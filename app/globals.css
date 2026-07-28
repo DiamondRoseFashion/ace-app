@@ -1,0 +1,37 @@
+:root{
+  --ink:#221429;
+  --deep:#3D1250;
+  --violet:#6B2D82;
+  --violet-2:#8F3FA8;
+  --lilac:#C9A6E0;
+  --paper:#FAF8FC;
+  --panel:#FFFFFF;
+  --line:#E7DEEF;
+  --gold:#D8B968;
+  --ok:#3E8E5A;
+  --muted:#7A6C86;
+  --radius:14px;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:'Inter',sans-serif;
+}
+h1,h2,h3{font-family:'Playfair Display',serif; margin:0;}
+
+.shell{display:flex; min-height:100vh;}
+.main{flex:1; padding:36px 44px; max-width:980px;}
+
+.card{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:32px;}
+.btn{border:none; border-radius:9px; padding:11px 20px; font-weight:600; font-size:13px; cursor:pointer;}
+.btn-primary{background:var(--violet); color:#fff;}
+.btn-ghost{background:transparent; color:var(--violet); border:1.5px solid var(--line);}
+.field-group{margin-bottom:18px;}
+label{display:block; font-size:12.5px; font-weight:600; margin-bottom:6px;}
+input, select, textarea{
+  width:100%; padding:11px 13px; border-radius:8px;
+  border:1.5px solid var(--line); font-size:14px;
+}
+.error-text{color:#B33A3A; font-size:13px; margin-top:10px;}
