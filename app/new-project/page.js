@@ -15,6 +15,11 @@ function emptyContact() {
   return { name: '', designation: '', tel: '', mobile: '', email: '' };
 }
 
+const DESIGNATIONS = [
+  'Manager', 'Project Manager', 'Site Engineer', 'Sales Engineer',
+  'Procurement Manager', 'Owner', 'Director', 'Consultant', 'Supervisor', 'Other',
+];
+
 export default function NewProject() {
   const router = useRouter();
   const supabase = createClient();
@@ -145,11 +150,14 @@ export default function NewProject() {
                         <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--violet)', textTransform: 'uppercase' }}>Contact {idx + 1}</span>
                         <span onClick={() => removeContact(key, idx)} style={{ fontSize: 11, color: '#B33A3A', cursor: 'pointer', fontWeight: 600 }}>Remove</span>
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 8 }}>
+                      <div className='form-row-2' style={{ marginBottom: 8 }}>
                         <input placeholder="Name" value={c.name} onChange={(e) => updateContact(key, idx, 'name', e.target.value)} />
-                        <input placeholder="Designation" value={c.designation} onChange={(e) => updateContact(key, idx, 'designation', e.target.value)} />
+                        <select value={c.designation} onChange={(e) => updateContact(key, idx, 'designation', e.target.value)}>
+                          <option value="">Designation…</option>
+                          {DESIGNATIONS.map((d) => <option key={d} value={d}>{d}</option>)}
+                        </select>
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+                      <div className='form-row-3'>
                         <input placeholder="Tel" value={c.tel} onChange={(e) => updateContact(key, idx, 'tel', e.target.value)} />
                         <input placeholder="Mobile" value={c.mobile} onChange={(e) => updateContact(key, idx, 'mobile', e.target.value)} />
                         <input placeholder="Email" value={c.email} onChange={(e) => updateContact(key, idx, 'email', e.target.value)} />

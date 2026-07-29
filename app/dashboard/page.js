@@ -42,7 +42,7 @@ export default function Dashboard() {
   return (
     <div className="shell">
       <div className="main">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 24 }}>
+        <div className="page-header">
           <div>
             <div style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--violet-2)', fontWeight: 600 }}>
               Overview
@@ -50,7 +50,7 @@ export default function Dashboard() {
             <h1 style={{ fontSize: 28 }}>My Projects</h1>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>{userEmail}</div>
           </div>
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div className="header-actions">
             <Link href="/team"><button className="btn btn-ghost">Team</button></Link>
             <button className="btn btn-ghost" onClick={handleLogout}>Log out</button>
             <Link href="/new-project"><button className="btn btn-primary">+ New Project</button></Link>
@@ -67,15 +67,7 @@ export default function Dashboard() {
           ) : (
             projects.map((p) => (
               <Link href={`/project/${p.id}`} key={p.id} style={{ textDecoration: 'none', color: 'inherit' }}>
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '2.4fr 1fr 1fr 1fr',
-                    padding: '15px 20px',
-                    borderBottom: '1px solid var(--line)',
-                    cursor: 'pointer',
-                  }}
-                >
+                <div className="project-row">
                   <div style={{ fontWeight: 600 }}>{p.name}</div>
                   <div>{p.status}</div>
                   <div>{p.percent_complete}%</div>

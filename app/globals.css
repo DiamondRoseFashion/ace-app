@@ -35,3 +35,23 @@ input, select, textarea{
   border:1.5px solid var(--line); font-size:14px;
 }
 .error-text{color:#B33A3A; font-size:13px; margin-top:10px;}
+
+.page-header{display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:24px; gap:16px; flex-wrap:wrap;}
+.header-actions{display:flex; gap:10px; flex-wrap:wrap;}
+.project-row{display:grid; grid-template-columns:2.4fr 1fr 1fr 1fr; padding:15px 20px; border-bottom:1px solid var(--line); cursor:pointer;}
+.form-row-2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+.form-row-3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;}
+
+/* Responsive: phones and small tablets */
+@media (max-width: 768px){
+  .shell{flex-direction:column;}
+  .main{padding:20px 16px; max-width:100%;}
+  .card{padding:20px;}
+  .page-header{align-items:flex-start;}
+  .header-actions{width:100%;}
+  .header-actions button{flex:1;}
+  .project-row{grid-template-columns:1fr; gap:4px; padding:14px 16px;}
+  .project-row > div:nth-child(1){font-size:15px;}
+  .project-row > div:not(:first-child){font-size:12.5px; color:var(--muted);}
+  .form-row-2, .form-row-3{grid-template-columns:1fr;}
+}

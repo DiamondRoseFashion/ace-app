@@ -39,6 +39,31 @@ export default function TeamPage() {
     else alert('Could not update role: ' + error.message);
   }
 
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteStatus, setInviteStatus] = useState(null); // null | 'sending' | 'sent' | 'error'
+  const [inviteError, setInviteError] = useState('');
+
+  async function sendInviteEmail() {
+    if (!inviteEmail.trim()) return;
+    setInviteStatus('sending'); setInviteError('');
+
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch('/api/invite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: inviteEmail.trim(), token: session?.access_token }),
+    });
+    const result = await res.json();
+
+    if (res.ok) {
+      setInviteStatus('sent');
+      setInviteEmail('');
+    } else {
+      setInviteStatus('error');
+      setInviteError(result.error || 'Something went wrong');
+    }
+  }
+
   function copyInviteLink() {
     navigator.clipboard.writeText(`${siteUrl}/login`);
     setCopied(true);
@@ -63,12 +88,27 @@ export default function TeamPage() {
         <div className="card" style={{ marginBottom: 24, marginTop: 20 }}>
           <div style={{ fontWeight: 600, marginBottom: 6 }}>Invite someone</div>
           <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>
-            ACE doesn't send invite emails yet — instead, share this link. Anyone who signs up
+            Send an email invite, or share the link directly. Anyone who signs up
             starts as "employee" until you assign them a role below.
           </p>
+
+          <div className="form-row-2" style={{ marginBottom: 10 }}>
+            <input
+              type="email"
+              placeholder="colleague@company.com"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+            />
+            <button className="btn btn-primary" onClick={sendInviteEmail} disabled={inviteStatus === 'sending' || !inviteEmail.trim()}>
+              {inviteStatus === 'sending' ? 'Sending…' : 'Send email invite'}
+            </button>
+          </div>
+          {inviteStatus === 'sent' && <div style={{ fontSize: 12.5, color: 'var(--ok)', marginBottom: 10 }}>Invite sent!</div>}
+          {inviteStatus === 'error' && <div className="error-text" style={{ marginBottom: 10 }}>{inviteError}</div>}
+
           <div style={{ display: 'flex', gap: 10 }}>
             <input readOnly value={`${siteUrl}/login`} style={{ flex: 1 }} />
-            <button className="btn btn-primary" onClick={copyInviteLink}>{copied ? 'Copied!' : 'Copy link'}</button>
+            <button className="btn btn-ghost" onClick={copyInviteLink}>{copied ? 'Copied!' : 'Copy link'}</button>
           </div>
         </div>
 
