@@ -4,6 +4,17 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
 
+const CONTACT_ROLES = [
+  { key: 'contractor', label: 'Contractor' },
+  { key: 'client', label: 'Client' },
+  { key: 'consultant', label: 'Consultant' },
+  { key: 'main_contractor', label: 'Main Contractor' },
+];
+
+function emptyContact() {
+  return { name: '', designation: '', tel: '', mobile: '', email: '' };
+}
+
 export default function NewProject() {
   const router = useRouter();
   const supabase = createClient();
@@ -13,9 +24,31 @@ export default function NewProject() {
   const [saving, setSaving] = useState(false);
 
   const [project, setProject] = useState({ name: '', status: 'design', location: '', brands_required: 'European' });
-  const [contact, setContact] = useState({ name: '', designation: '', tel: '', email: '' });
+
+  // one array of contacts per role
+  const [contacts, setContacts] = useState({
+    contractor: [emptyContact()],
+    client: [emptyContact()],
+    consultant: [],
+    main_contractor: [],
+  });
+
   const [quotation, setQuotation] = useState({ quotation_number: '', quotation_date: '', target_submission_date: '', quotation_value: '' });
   const [meeting, setMeeting] = useState({ meeting_date: '', venue: '', notes: '', actions: '' });
+
+  function addContact(roleKey) {
+    setContacts((c) => ({ ...c, [roleKey]: [...c[roleKey], emptyContact()] }));
+  }
+  function removeContact(roleKey, idx) {
+    setContacts((c) => ({ ...c, [roleKey]: c[roleKey].filter((_, i) => i !== idx) }));
+  }
+  function updateContact(roleKey, idx, field, value) {
+    setContacts((c) => {
+      const list = [...c[roleKey]];
+      list[idx] = { ...list[idx], [field]: value };
+      return { ...c, [roleKey]: list };
+    });
+  }
 
   async function saveStep1() {
     setError(''); setSaving(true);
@@ -29,8 +62,16 @@ export default function NewProject() {
 
     if (error) { setError(error.message); setSaving(false); return; }
 
-    if (contact.name) {
-      await supabase.from('contacts').insert({ ...contact, project_id: data.id, contact_role: 'contractor' });
+    // flatten all non-empty contacts across all roles into insert rows
+    const rows = [];
+    for (const roleKey of Object.keys(contacts)) {
+      for (const c of contacts[roleKey]) {
+        if (c.name.trim()) rows.push({ ...c, project_id: data.id, contact_role: roleKey });
+      }
+    }
+    if (rows.length > 0) {
+      const { error: contactError } = await supabase.from('contacts').insert(rows);
+      if (contactError) { setError(contactError.message); setSaving(false); return; }
     }
 
     setProjectId(data.id);
@@ -53,7 +94,7 @@ export default function NewProject() {
     const { error } = await supabase.from('meetings').insert({ ...meeting, project_id: projectId });
     if (error) { setError(error.message); setSaving(false); return; }
     setSaving(false);
-    router.push('/dashboard');
+    router.push(`/project/${projectId}`);
   }
 
   return (
@@ -61,7 +102,7 @@ export default function NewProject() {
       <div className="main">
         <h1 style={{ fontSize: 28, marginBottom: 24 }}>New Project</h1>
 
-        <div className="card" style={{ maxWidth: 640 }}>
+        <div className="card" style={{ maxWidth: 680 }}>
           <div style={{ display: 'flex', gap: 8, marginBottom: 24, fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>
             <span style={{ color: step >= 1 ? 'var(--violet)' : undefined }}>1. Project Details</span> →
             <span style={{ color: step >= 2 ? 'var(--violet)' : undefined }}>2. Quotation</span> →
@@ -94,12 +135,35 @@ export default function NewProject() {
                   <option>PRC</option>
                 </select>
               </div>
-              <div className="field-group">
-                <label>Contractor Contact — Name</label>
-                <input value={contact.name} onChange={(e) => setContact({ ...contact, name: e.target.value })} />
-              </div>
+
+              {CONTACT_ROLES.map(({ key, label }) => (
+                <div className="field-group" key={key}>
+                  <label>{label} <span style={{ fontWeight: 400, color: 'var(--muted)', fontSize: 11.5 }}>business card details</span></label>
+                  {contacts[key].map((c, idx) => (
+                    <div key={idx} style={{ border: '1.5px dashed var(--line)', borderRadius: 10, padding: 14, marginBottom: 8, background: '#FCFAFE' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--violet)', textTransform: 'uppercase' }}>Contact {idx + 1}</span>
+                        <span onClick={() => removeContact(key, idx)} style={{ fontSize: 11, color: '#B33A3A', cursor: 'pointer', fontWeight: 600 }}>Remove</span>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 8 }}>
+                        <input placeholder="Name" value={c.name} onChange={(e) => updateContact(key, idx, 'name', e.target.value)} />
+                        <input placeholder="Designation" value={c.designation} onChange={(e) => updateContact(key, idx, 'designation', e.target.value)} />
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+                        <input placeholder="Tel" value={c.tel} onChange={(e) => updateContact(key, idx, 'tel', e.target.value)} />
+                        <input placeholder="Mobile" value={c.mobile} onChange={(e) => updateContact(key, idx, 'mobile', e.target.value)} />
+                        <input placeholder="Email" value={c.email} onChange={(e) => updateContact(key, idx, 'email', e.target.value)} />
+                      </div>
+                    </div>
+                  ))}
+                  <span onClick={() => addContact(key)} style={{ fontSize: 12, color: 'var(--violet-2)', fontWeight: 600, cursor: 'pointer' }}>
+                    ＋ Add another {label.toLowerCase()} contact
+                  </span>
+                </div>
+              ))}
+
               {error && <div className="error-text">{error}</div>}
-              <button className="btn btn-primary" onClick={saveStep1} disabled={saving || !project.name}>
+              <button className="btn btn-primary" onClick={saveStep1} disabled={saving || !project.name} style={{ marginTop: 8 }}>
                 {saving ? 'Saving…' : 'Save & Continue →'}
               </button>
             </>

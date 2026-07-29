@@ -51,6 +51,7 @@ export default function Dashboard() {
             <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>{userEmail}</div>
           </div>
           <div style={{ display: 'flex', gap: 10 }}>
+            <Link href="/team"><button className="btn btn-ghost">Team</button></Link>
             <button className="btn btn-ghost" onClick={handleLogout}>Log out</button>
             <Link href="/new-project"><button className="btn btn-primary">+ New Project</button></Link>
           </div>
@@ -65,20 +66,22 @@ export default function Dashboard() {
             </div>
           ) : (
             projects.map((p) => (
-              <div
-                key={p.id}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '2.4fr 1fr 1fr 1fr',
-                  padding: '15px 20px',
-                  borderBottom: '1px solid var(--line)',
-                }}
-              >
-                <div style={{ fontWeight: 600 }}>{p.name}</div>
-                <div>{p.status}</div>
-                <div>{p.percent_complete}%</div>
-                <div>{p.location}</div>
-              </div>
+              <Link href={`/project/${p.id}`} key={p.id} style={{ textDecoration: 'none', color: 'inherit' }}>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '2.4fr 1fr 1fr 1fr',
+                    padding: '15px 20px',
+                    borderBottom: '1px solid var(--line)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <div style={{ fontWeight: 600 }}>{p.name}</div>
+                  <div>{p.status}</div>
+                  <div>{p.percent_complete}%</div>
+                  <div>{p.location}</div>
+                </div>
+              </Link>
             ))
           )}
         </div>
