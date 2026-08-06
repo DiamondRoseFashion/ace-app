@@ -17,17 +17,29 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // If someone arrives here via an invite link, Supabase automatically
-  // signs them into a temporary session so they can set a password.
-  // Detect that case and show the "set password" form instead of sign-in.
+  // If someone arrives here via an invite link, the link carries a fresh
+  // access token in the URL. We must use THAT token explicitly, rather
+  // than trusting whatever session might already be saved in this browser
+  // (e.g. if an admin is already logged in on the same device) — otherwise
+  // the invited person would see the admin's account instead of their own.
   useEffect(() => {
     checkForInvite();
   }, []);
 
   async function checkForInvite() {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
-      setInvitedEmail(session.user.email);
+    const hash = window.location.hash?.replace(/^#/, '');
+    const params = new URLSearchParams(hash);
+    const access_token = params.get('access_token');
+    const refresh_token = params.get('refresh_token');
+    const type = params.get('type');
+
+    if (access_token && (type === 'invite' || type === 'recovery' || type === 'signup')) {
+      const { data, error } = await supabase.auth.setSession({ access_token, refresh_token });
+      if (!error && data?.user) {
+        setInvitedEmail(data.user.email);
+        // Clear the token out of the visible URL now that it's been used.
+        window.history.replaceState(null, '', window.location.pathname);
+      }
     }
     setCheckingInvite(false);
   }
