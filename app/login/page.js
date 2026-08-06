@@ -14,6 +14,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -60,13 +61,17 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
 
+    if (!fullName.trim()) { setError('Please enter your name.'); return; }
     if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
     if (password !== confirmPassword) { setError('Passwords do not match.'); return; }
 
     setLoading(true);
-    const { error } = await supabase.auth.updateUser({ password });
-    if (error) setError(error.message);
-    else router.push('/dashboard');
+    const { error: pwError } = await supabase.auth.updateUser({ password });
+    if (pwError) { setError(pwError.message); setLoading(false); return; }
+
+    await supabase.rpc('update_my_name', { new_name: fullName.trim() });
+
+    router.push('/dashboard');
     setLoading(false);
   }
 
@@ -85,6 +90,10 @@ export default function LoginPage() {
           </p>
 
           <form onSubmit={handleSetPassword}>
+            <div className="field-group">
+              <label>Your name</label>
+              <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} required placeholder="e.g. Amal Siby" />
+            </div>
             <div className="field-group">
               <label>New password</label>
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
