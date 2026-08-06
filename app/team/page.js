@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabaseClient';
 
-const ROLES = ['admin', 'manager', 'employee', 'client', 'contractor'];
+const ROLES = ['owner', 'admin', 'manager', 'employee'];
 
 export default function TeamPage() {
   const router = useRouter();
@@ -13,11 +13,8 @@ export default function TeamPage() {
   const [profiles, setProfiles] = useState([]);
   const [myRole, setMyRole] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [siteUrl, setSiteUrl] = useState('');
-  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    setSiteUrl(window.location.origin);
     load();
   }, []);
 
@@ -39,38 +36,7 @@ export default function TeamPage() {
     else alert('Could not update role: ' + error.message);
   }
 
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteStatus, setInviteStatus] = useState(null); // null | 'sending' | 'sent' | 'error'
-  const [inviteError, setInviteError] = useState('');
-
-  async function sendInviteEmail() {
-    if (!inviteEmail.trim()) return;
-    setInviteStatus('sending'); setInviteError('');
-
-    const { data: { session } } = await supabase.auth.getSession();
-    const res = await fetch('/api/invite', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: inviteEmail.trim(), token: session?.access_token }),
-    });
-    const result = await res.json();
-
-    if (res.ok) {
-      setInviteStatus('sent');
-      setInviteEmail('');
-    } else {
-      setInviteStatus('error');
-      setInviteError(result.error || 'Something went wrong');
-    }
-  }
-
-  function copyInviteLink() {
-    navigator.clipboard.writeText(`${siteUrl}/login`);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
-
-  const canManage = myRole === 'admin' || myRole === 'manager';
+  const canManage = myRole === 'admin' || myRole === 'manager' || myRole === 'owner';
 
   return (
     <div className="shell">
@@ -86,30 +52,13 @@ export default function TeamPage() {
         </div>
 
         <div className="card" style={{ marginBottom: 24, marginTop: 20 }}>
-          <div style={{ fontWeight: 600, marginBottom: 6 }}>Invite someone</div>
-          <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>
-            Send an email invite, or share the link directly. Anyone who signs up
-            starts as "employee" until you assign them a role below.
+          <div style={{ fontWeight: 600, marginBottom: 6 }}>Adding someone new</div>
+          <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 0 }}>
+            ACE is invite-only — there's no public sign-up. To add a team member, client, or
+            contractor: in Supabase, go to <strong>Authentication → Users → Invite user</strong> and
+            enter their email. They'll get a secure link to set their own password. Once they log in
+            here for the first time, assign their role below.
           </p>
-
-          <div className="form-row-2" style={{ marginBottom: 10 }}>
-            <input
-              type="email"
-              placeholder="colleague@company.com"
-              value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
-            />
-            <button className="btn btn-primary" onClick={sendInviteEmail} disabled={inviteStatus === 'sending' || !inviteEmail.trim()}>
-              {inviteStatus === 'sending' ? 'Sending…' : 'Send email invite'}
-            </button>
-          </div>
-          {inviteStatus === 'sent' && <div style={{ fontSize: 12.5, color: 'var(--ok)', marginBottom: 10 }}>Invite sent!</div>}
-          {inviteStatus === 'error' && <div className="error-text" style={{ marginBottom: 10 }}>{inviteError}</div>}
-
-          <div style={{ display: 'flex', gap: 10 }}>
-            <input readOnly value={`${siteUrl}/login`} style={{ flex: 1 }} />
-            <button className="btn btn-ghost" onClick={copyInviteLink}>{copied ? 'Copied!' : 'Copy link'}</button>
-          </div>
         </div>
 
         <div className="card" style={{ padding: 0 }}>
@@ -140,8 +89,8 @@ export default function TeamPage() {
         </div>
 
         <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 16 }}>
-          <strong>client</strong> and <strong>contractor</strong> roles only see projects they've been
-          assigned to as the project owner — set that from a project's detail page.
+          <strong>Employees</strong> only see projects they created themselves.
+          <strong> Owner, admin,</strong> and <strong>manager</strong> can view and review every project.
         </p>
       </div>
     </div>

@@ -23,9 +23,10 @@ export default function Dashboard() {
 
       // Row-Level Security automatically limits this to
       // whatever rows this signed-in user is allowed to see.
+      // (Employees only see their own; owner/admin/manager see everyone's.)
       const { data, error } = await supabase
         .from('projects')
-        .select('*')
+        .select('*, creator:profiles!created_by(full_name)')
         .order('created_at', { ascending: false });
 
       if (!error) setProjects(data);
@@ -67,11 +68,12 @@ export default function Dashboard() {
           ) : (
             projects.map((p) => (
               <Link href={`/project/${p.id}`} key={p.id} style={{ textDecoration: 'none', color: 'inherit' }}>
-                <div className="project-row">
+                <div className="project-row" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr' }}>
                   <div style={{ fontWeight: 600 }}>{p.name}</div>
                   <div>{p.status}</div>
                   <div>{p.percent_complete}%</div>
                   <div>{p.location}</div>
+                  <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>{p.creator?.full_name || '—'}</div>
                 </div>
               </Link>
             ))

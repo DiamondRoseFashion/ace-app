@@ -20,7 +20,6 @@ export default function ProjectDetail() {
   const [meetings, setMeetings] = useState([]);
   const [files, setFiles] = useState([]);
   const [myRole, setMyRole] = useState(null);
-  const [externalUsers, setExternalUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -47,21 +46,11 @@ export default function ProjectDetail() {
     setQuotations(q || []);
     setMeetings(m || []);
     setFiles(fileList || []);
-
-    if (me?.role === 'admin' || me?.role === 'manager') {
-      const { data: ext } = await supabase.from('profiles').select('*').in('role', ['client', 'contractor']);
-      setExternalUsers(ext || []);
-    }
     setLoading(false);
   }
 
   async function updateStatus(newStatus) {
     await supabase.from('projects').update({ status: newStatus }).eq('id', projectId);
-    load();
-  }
-
-  async function assignOwner(userId) {
-    await supabase.from('projects').update({ owner_id: userId || null }).eq('id', projectId);
     load();
   }
 
@@ -87,7 +76,7 @@ export default function ProjectDetail() {
     URL.revokeObjectURL(url);
   }
 
-  const canManage = myRole === 'admin' || myRole === 'manager' || myRole === 'employee';
+  const canManage = myRole === 'owner' || myRole === 'admin' || myRole === 'manager' || myRole === 'employee';
 
   if (loading) return <div className="shell"><div className="main">Loading…</div></div>;
   if (!project) return <div className="shell"><div className="main">Project not found, or you don't have access to it.</div></div>;
@@ -128,23 +117,6 @@ export default function ProjectDetail() {
             <div style={{ fontWeight: 600 }}>{project.brands_required || '—'}</div>
           </div>
         </div>
-
-        {/* Owner assignment - admin/manager only */}
-        {(myRole === 'admin' || myRole === 'manager') && (
-          <div className="card" style={{ marginBottom: 20 }}>
-            <div style={{ fontWeight: 600, marginBottom: 6 }}>Client / Contractor Access</div>
-            <p style={{ fontSize: 12.5, color: 'var(--muted)', marginBottom: 10 }}>
-              Assign a client or contractor account to give them view access to only this project.
-              They must sign up first — invite them from the Team page.
-            </p>
-            <select value={project.owner_id || ''} onChange={(e) => assignOwner(e.target.value)}>
-              <option value="">— No external user assigned —</option>
-              {externalUsers.map((u) => (
-                <option key={u.id} value={u.id}>{u.full_name || u.id} ({u.role})</option>
-              ))}
-            </select>
-          </div>
-        )}
 
         {/* Contacts */}
         <SectionTitle>Contacts</SectionTitle>
