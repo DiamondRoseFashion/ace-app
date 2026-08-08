@@ -23,6 +23,9 @@ export default function ProjectDetail() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+  const [editing, setEditing] = useState(false);
+  const [editForm, setEditForm] = useState({ name: '', location: '', brands_required: '' });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => { load(); }, [projectId]);
 
@@ -42,6 +45,13 @@ export default function ProjectDetail() {
     ]);
 
     setProject(proj);
+    if (proj) {
+      setEditForm({
+        name: proj.name || '',
+        location: proj.location || '',
+        brands_required: proj.brands_required || '',
+      });
+    }
     setContacts(c || []);
     setQuotations(q || []);
     setMeetings(m || []);
@@ -51,6 +61,20 @@ export default function ProjectDetail() {
 
   async function updateStatus(newStatus) {
     await supabase.from('projects').update({ status: newStatus }).eq('id', projectId);
+    load();
+  }
+
+  async function saveEdit(e) {
+    e.preventDefault();
+    setSaving(true); setError('');
+    const { error } = await supabase.from('projects').update({
+      name: editForm.name,
+      location: editForm.location,
+      brands_required: editForm.brands_required,
+    }).eq('id', projectId);
+    if (error) { setError(error.message); setSaving(false); return; }
+    setEditing(false);
+    setSaving(false);
     load();
   }
 
@@ -85,13 +109,45 @@ export default function ProjectDetail() {
     <div className="shell">
       <div className="main" style={{ maxWidth: 820 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
-          <div>
-            <div style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--violet-2)', fontWeight: 600 }}>
-              {project.location || 'No location set'}
+          {editing ? (
+            <form onSubmit={saveEdit} style={{ flex: 1, marginRight: 20 }}>
+              <div className="field-group">
+                <label>Project Name</label>
+                <input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} required />
+              </div>
+              <div className="field-group">
+                <label>Location</label>
+                <input value={editForm.location} onChange={(e) => setEditForm({ ...editForm, location: e.target.value })} />
+              </div>
+              <div className="field-group">
+                <label>Brands Required</label>
+                <select value={editForm.brands_required} onChange={(e) => setEditForm({ ...editForm, brands_required: e.target.value })}>
+                  <option value="">—</option>
+                  <option>European</option>
+                  <option>Local</option>
+                  <option>PRC</option>
+                </select>
+              </div>
+              {error && <div className="error-text" style={{ marginBottom: 10 }}>{error}</div>}
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving…' : 'Save changes'}</button>
+                <button type="button" className="btn btn-ghost" onClick={() => setEditing(false)}>Cancel</button>
+              </div>
+            </form>
+          ) : (
+            <div>
+              <div style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--violet-2)', fontWeight: 600 }}>
+                {project.location || 'No location set'}
+              </div>
+              <h1 style={{ fontSize: 28 }}>{project.name}</h1>
             </div>
-            <h1 style={{ fontSize: 28 }}>{project.name}</h1>
+          )}
+          <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
+            {!editing && canManage && (
+              <button className="btn btn-ghost" onClick={() => setEditing(true)}>Edit</button>
+            )}
+            <Link href="/dashboard"><button className="btn btn-ghost">← Back to Projects</button></Link>
           </div>
-          <Link href="/dashboard"><button className="btn btn-ghost">← Back to Projects</button></Link>
         </div>
 
         {/* Overview */}
