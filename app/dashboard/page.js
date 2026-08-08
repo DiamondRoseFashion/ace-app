@@ -11,6 +11,8 @@ export default function Dashboard() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userEmail, setUserEmail] = useState('');
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
     async function load() {
@@ -40,6 +42,19 @@ export default function Dashboard() {
     router.push('/login');
   }
 
+  const STATUS_LABELS = { design: 'Design', tender: 'Tender', job_in_hand: 'Job in Hand' };
+
+  const filteredProjects = projects.filter((p) => {
+    const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
+    const q = search.trim().toLowerCase();
+    const matchesSearch =
+      !q ||
+      p.name?.toLowerCase().includes(q) ||
+      p.location?.toLowerCase().includes(q) ||
+      p.creator?.full_name?.toLowerCase().includes(q);
+    return matchesStatus && matchesSearch;
+  });
+
   return (
     <div className="shell">
       <div className="main">
@@ -58,6 +73,22 @@ export default function Dashboard() {
           </div>
         </div>
 
+        <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+          <input
+            type="text"
+            placeholder="Search by name, location, or creator…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ flex: '1 1 260px', minWidth: 0 }}
+          />
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ width: 'auto' }}>
+            <option value="all">All statuses</option>
+            <option value="design">Design</option>
+            <option value="tender">Tender</option>
+            <option value="job_in_hand">Job in Hand</option>
+          </select>
+        </div>
+
         <div className="card" style={{ padding: 0 }}>
           {loading ? (
             <div style={{ padding: 24, color: 'var(--muted)' }}>Loading…</div>
@@ -65,12 +96,16 @@ export default function Dashboard() {
             <div style={{ padding: 32, color: 'var(--muted)', textAlign: 'center' }}>
               No projects yet. Click "New Project" to add your first one.
             </div>
+          ) : filteredProjects.length === 0 ? (
+            <div style={{ padding: 32, color: 'var(--muted)', textAlign: 'center' }}>
+              No projects match your search.
+            </div>
           ) : (
-            projects.map((p) => (
+            filteredProjects.map((p) => (
               <Link href={`/project/${p.id}`} key={p.id} style={{ textDecoration: 'none', color: 'inherit' }}>
                 <div className="project-row" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr' }}>
                   <div style={{ fontWeight: 600 }}>{p.name}</div>
-                  <div>{p.status}</div>
+                  <div>{STATUS_LABELS[p.status] || p.status}</div>
                   <div>{p.percent_complete}%</div>
                   <div>{p.location}</div>
                   <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>{p.creator?.full_name || '—'}</div>
@@ -79,6 +114,11 @@ export default function Dashboard() {
             ))
           )}
         </div>
+        {!loading && projects.length > 0 && (
+          <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 10 }}>
+            Showing {filteredProjects.length} of {projects.length} projects
+          </div>
+        )}
       </div>
     </div>
   );
