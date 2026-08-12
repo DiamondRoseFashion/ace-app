@@ -76,16 +76,27 @@ export default function LoginPage() {
   }
 
   if (checkingInvite) {
-    return <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center' }} />;
+    return <div className="auth-shell" />;
   }
+
+  const Mark = () => (
+    <svg className="auth-mark" viewBox="0 0 100 90" aria-hidden="true">
+      <polygon points="50,0 100,30 75,90 25,90 0,30" fill="#C9A6E0" />
+      <polygon points="50,0 75,30 25,30" fill="#8F3FA8" />
+      <polygon points="0,30 25,30 25,90" fill="#6B2D82" />
+      <polygon points="100,30 75,30 75,90" fill="#4A1863" />
+      <polygon points="25,30 75,30 75,90 25,90" fill="#7A3592" />
+    </svg>
+  );
 
   // ---- Invited user: show "set your password" ----
   if (invitedEmail) {
     return (
-      <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center' }}>
-        <div className="card" style={{ width: 380 }}>
-          <h1 style={{ fontSize: 26, marginBottom: 4 }}>ACE</h1>
-          <p style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 24 }}>
+      <div className="auth-shell">
+        <div className="auth-card">
+          <Mark />
+          <div className="auth-title">ACE</div>
+          <p className="auth-sub">
             Welcome — set a password for <strong>{invitedEmail}</strong>
           </p>
 
@@ -116,12 +127,11 @@ export default function LoginPage() {
 
   // ---- Normal sign-in ----
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center' }}>
-      <div className="card" style={{ width: 380 }}>
-        <h1 style={{ fontSize: 26, marginBottom: 4 }}>ACE</h1>
-        <p style={{ color: 'var(--muted)', fontSize: 13, marginBottom: 24 }}>
-          Sign in to your projects
-        </p>
+    <div className="auth-shell">
+      <div className="auth-card">
+        <Mark />
+        <div className="auth-title">ACE</div>
+        <p className="auth-sub">Sign in to your projects</p>
 
         <form onSubmit={handleSignIn}>
           <div className="field-group">

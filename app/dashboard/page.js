@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabaseClient';
+import Sidebar from '@/components/Sidebar';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -57,18 +58,14 @@ export default function Dashboard() {
 
   return (
     <div className="shell">
+      <Sidebar active="dashboard" />
       <div className="main">
         <div className="page-header">
           <div>
-            <div style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--violet-2)', fontWeight: 600 }}>
-              Overview
-            </div>
-            <h1 style={{ fontSize: 28 }}>My Projects</h1>
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>{userEmail}</div>
+            <div className="eyebrow">Overview</div>
+            <h1 style={{ fontSize: 30, marginTop: 4 }}>My Projects</h1>
           </div>
           <div className="header-actions">
-            <Link href="/team"><button className="btn btn-ghost">Team</button></Link>
-            <button className="btn btn-ghost" onClick={handleLogout}>Log out</button>
             <Link href="/new-project"><button className="btn btn-primary">+ New Project</button></Link>
           </div>
         </div>
@@ -103,10 +100,10 @@ export default function Dashboard() {
           ) : (
             filteredProjects.map((p) => (
               <Link href={`/project/${p.id}`} key={p.id} style={{ textDecoration: 'none', color: 'inherit' }}>
-                <div className="project-row" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr' }}>
+                <div className="project-row" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr', alignItems: 'center' }}>
                   <div style={{ fontWeight: 600 }}>{p.name}</div>
-                  <div>{STATUS_LABELS[p.status] || p.status}</div>
-                  <div>{p.percent_complete}%</div>
+                  <div><span className={`pill pill-${p.status}`}>{STATUS_LABELS[p.status] || p.status}</span></div>
+                  <div className="mono" style={{ fontSize: 13 }}>{p.percent_complete}%</div>
                   <div>{p.location}</div>
                   <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>{p.creator?.full_name || '—'}</div>
                 </div>

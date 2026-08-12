@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabaseClient';
+import Sidebar from '@/components/Sidebar';
 
 const ROLES = ['owner', 'admin', 'manager', 'employee'];
 
@@ -40,15 +41,13 @@ export default function TeamPage() {
 
   return (
     <div className="shell">
+      <Sidebar active="team" />
       <div className="main">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 8 }}>
+        <div className="page-header">
           <div>
-            <div style={{ fontSize: 11, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--violet-2)', fontWeight: 600 }}>
-              People
-            </div>
-            <h1 style={{ fontSize: 28 }}>Team & Access</h1>
+            <div className="eyebrow">People</div>
+            <h1 style={{ fontSize: 30, marginTop: 4 }}>Team & Access</h1>
           </div>
-          <Link href="/dashboard"><button className="btn btn-ghost">← Back to Projects</button></Link>
         </div>
 
         <div className="card" style={{ marginBottom: 24, marginTop: 20 }}>

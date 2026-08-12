@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
+import Sidebar from '@/components/Sidebar';
 
 const CONTACT_ROLES = [
   { key: 'contractor', label: 'Contractor' },
@@ -55,6 +56,11 @@ export default function NewProject() {
     });
   }
 
+  async function logActivity(pid, action) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) await supabase.from('activity_log').insert({ project_id: pid, actor_id: user.id, action });
+  }
+
   async function saveStep1() {
     setError(''); setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
@@ -81,6 +87,7 @@ export default function NewProject() {
 
     setProjectId(data.id);
     await supabase.from('projects').update({ percent_complete: 20 }).eq('id', data.id);
+    await logActivity(data.id, 'created the project');
     setSaving(false);
     setStep(2);
   }
@@ -90,6 +97,7 @@ export default function NewProject() {
     const { error } = await supabase.from('quotations').insert({ ...quotation, project_id: projectId });
     if (error) { setError(error.message); setSaving(false); return; }
     await supabase.from('projects').update({ percent_complete: 30 }).eq('id', projectId);
+    await logActivity(projectId, `added quotation ${quotation.quotation_number || '(no number)'}`);
     setSaving(false);
     setStep(3);
   }
@@ -98,14 +106,17 @@ export default function NewProject() {
     setError(''); setSaving(true);
     const { error } = await supabase.from('meetings').insert({ ...meeting, project_id: projectId });
     if (error) { setError(error.message); setSaving(false); return; }
+    await logActivity(projectId, `logged a meeting${meeting.meeting_date ? ' on ' + meeting.meeting_date : ''}`);
     setSaving(false);
     router.push(`/project/${projectId}`);
   }
 
   return (
     <div className="shell">
+      <Sidebar active="new-project" />
       <div className="main">
-        <h1 style={{ fontSize: 28, marginBottom: 24 }}>New Project</h1>
+        <div className="eyebrow">New Entry</div>
+        <h1 style={{ fontSize: 30, marginTop: 4, marginBottom: 24 }}>New Project</h1>
 
         <div className="card" style={{ maxWidth: 680 }}>
           <div style={{ display: 'flex', gap: 8, marginBottom: 24, fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>

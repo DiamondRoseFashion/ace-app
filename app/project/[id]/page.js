@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabaseClient';
+import Sidebar from '@/components/Sidebar';
 
 const STATUS_LABELS = { design: 'Design', tender: 'Tender', job_in_hand: 'Job in Hand' };
 const ROLE_LABELS = { contractor: 'Contractor', client: 'Client', consultant: 'Consultant', main_contractor: 'Main Contractor' };
@@ -19,6 +20,7 @@ export default function ProjectDetail() {
   const [quotations, setQuotations] = useState([]);
   const [meetings, setMeetings] = useState([]);
   const [files, setFiles] = useState([]);
+  const [activity, setActivity] = useState([]);
   const [myRole, setMyRole] = useState(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -36,13 +38,16 @@ export default function ProjectDetail() {
     const { data: me } = await supabase.from('profiles').select('role').eq('id', user.id).single();
     setMyRole(me?.role);
 
-    const [{ data: proj }, { data: c }, { data: q }, { data: m }, { data: fileList }] = await Promise.all([
+    const [{ data: proj }, { data: c }, { data: q }, { data: m }, { data: fileList }, { data: log }] = await Promise.all([
       supabase.from('projects').select('*').eq('id', projectId).single(),
       supabase.from('contacts').select('*').eq('project_id', projectId).order('contact_role'),
       supabase.from('quotations').select('*').eq('project_id', projectId).order('created_at', { ascending: false }),
       supabase.from('meetings').select('*').eq('project_id', projectId).order('meeting_date', { ascending: false }),
       supabase.storage.from('project-files').list(projectId),
+      supabase.from('audit_log').select('*, actor:profiles!changed_by(full_name)').eq('project_id', projectId).order('changed_at', { ascending: false }).limit(50),
     ]);
+
+    setActivity(log || []);
 
     setProject(proj);
     if (proj) {
@@ -102,11 +107,12 @@ export default function ProjectDetail() {
 
   const canManage = myRole === 'owner' || myRole === 'admin' || myRole === 'manager' || myRole === 'employee';
 
-  if (loading) return <div className="shell"><div className="main">Loading…</div></div>;
-  if (!project) return <div className="shell"><div className="main">Project not found, or you don't have access to it.</div></div>;
+  if (loading) return <div className="shell"><Sidebar active="dashboard" /><div className="main">Loading…</div></div>;
+  if (!project) return <div className="shell"><Sidebar active="dashboard" /><div className="main">Project not found, or you don't have access to it.</div></div>;
 
   return (
     <div className="shell">
+      <Sidebar active="dashboard" />
       <div className="main" style={{ maxWidth: 820 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
           {editing ? (
@@ -166,7 +172,7 @@ export default function ProjectDetail() {
           </div>
           <div>
             <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>Progress</div>
-            <div style={{ fontWeight: 700, color: 'var(--violet)' }}>{project.percent_complete}%</div>
+            <div className="mono" style={{ fontWeight: 700, color: 'var(--violet)', fontSize: 15 }}>{project.percent_complete}%</div>
           </div>
           <div>
             <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>Brands Required</div>
@@ -222,7 +228,7 @@ export default function ProjectDetail() {
 
         {/* Files */}
         <SectionTitle>Files</SectionTitle>
-        <div className="card">
+        <div className="card" style={{ marginBottom: 20 }}>
           {error && <div className="error-text" style={{ marginBottom: 10 }}>{error}</div>}
           <input type="file" onChange={handleFileUpload} disabled={uploading} style={{ marginBottom: 14 }} />
           {files.length === 0 ? <Empty text="No files uploaded yet." /> : files.map((f) => (
@@ -232,9 +238,50 @@ export default function ProjectDetail() {
             </div>
           ))}
         </div>
+
+        {/* Activity */}
+        <SectionTitle>Activity</SectionTitle>
+        <div className="card">
+          {activity.length === 0 ? <Empty text="No activity recorded yet." /> : activity.map((a) => (
+            <div key={a.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--line)', fontSize: 13 }}>
+              <span>{describeActivity(a)}</span>
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
+                {a.actor?.full_name || 'Someone'} · {new Date(a.changed_at).toLocaleString()}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
+}
+
+const TABLE_LABELS = { projects: 'the project', contacts: 'a contact', quotations: 'a quotation', meetings: 'a meeting' };
+const FIELD_LABELS = {
+  name: 'Name', location: 'Location', status: 'Status', brands_required: 'Brands Required',
+  percent_complete: 'Progress', quotation_number: 'Quotation Number', quotation_value: 'Value',
+  meeting_date: 'Meeting Date', venue: 'Venue', notes: 'Notes', actions: 'Actions',
+};
+const SKIP_FIELDS = new Set(['id', 'created_at', 'updated_at', 'project_id']);
+
+function describeActivity(a) {
+  const thing = TABLE_LABELS[a.table_name] || a.table_name;
+  if (a.action === 'insert') return `Added ${thing}`;
+  if (a.action === 'delete') return `Removed ${thing}`;
+
+  // update — describe what actually changed
+  const before = a.old_data || {};
+  const after = a.new_data || {};
+  const changes = Object.keys(after)
+    .filter((k) => !SKIP_FIELDS.has(k) && JSON.stringify(before[k]) !== JSON.stringify(after[k]))
+    .map((k) => {
+      const label = FIELD_LABELS[k] || k;
+      const from = before[k] ?? '—';
+      const to = after[k] ?? '—';
+      return `${label}: ${from} → ${to}`;
+    });
+  if (changes.length === 0) return `Updated ${thing}`;
+  return `Updated ${thing} — ${changes.join(', ')}`;
 }
 
 function SectionTitle({ children }) {
