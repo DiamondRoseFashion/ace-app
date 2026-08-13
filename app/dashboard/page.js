@@ -1,11 +1,10 @@
 'use client';
-<DownloadBackupButton />
-import DownloadBackupButton from '@/components/DownloadBackupButton';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabaseClient';
 import Sidebar from '@/components/Sidebar';
+import DownloadBackupButton from '@/components/DownloadBackupButton';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -67,6 +66,7 @@ export default function Dashboard() {
             <h1 style={{ fontSize: 30, marginTop: 4 }}>My Projects</h1>
           </div>
           <div className="header-actions">
+            <DownloadBackupButton />
             <Link href="/new-project"><button className="btn btn-primary">+ New Project</button></Link>
           </div>
         </div>
