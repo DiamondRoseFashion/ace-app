@@ -33,13 +33,21 @@ export async function GET(request) {
     return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
   }
 
-  const { data: projects, error: projectsError } = await supabaseAdmin
+ const { data: rawProjects, error: projectsError } = await supabaseAdmin
     .from('projects')
-    .select('*');
+    .select('*, creator:profiles!created_by(full_name)');
 
   if (projectsError) {
     return NextResponse.json({ error: 'Failed to fetch projects' }, { status: 500 });
   }
+// Flatten the joined creator name into a plain column, and drop the raw nested object
+  const projects = (rawProjects || []).map((p) => {
+    const { creator, ...rest } = p;
+    return {
+      ...rest,
+      created_by_name: creator?.full_name || '',
+    };
+  });
 
   const workbook = new ExcelJS.Workbook();
 
