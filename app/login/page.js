@@ -17,6 +17,9 @@ export default function LoginPage() {
   const [fullName, setFullName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [forgotMode, setForgotMode] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSent, setForgotSent] = useState(false);
 
   // If someone arrives here via an invite link, the link carries a fresh
   // access token in the URL. We must use THAT token explicitly, rather
@@ -53,6 +56,20 @@ export default function LoginPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) setError(error.message);
     else router.push('/dashboard');
+
+    setLoading(false);
+  }
+async function handleForgotPassword(e) {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+      redirectTo: `${window.location.origin}/login`,
+    });
+
+    if (error) setError(error.message);
+    else setForgotSent(true);
 
     setLoading(false);
   }
@@ -124,6 +141,48 @@ export default function LoginPage() {
       </div>
     );
   }
+// ---- Forgot password ----
+  if (forgotMode) {
+    return (
+      <div className="auth-shell">
+        <div className="auth-card">
+          <Mark />
+          <div className="auth-title">ACE</div>
+          <p className="auth-sub">Reset your password</p>
+
+          {forgotSent ? (
+            <>
+              <p style={{ fontSize: 13.5, color: 'var(--muted)', textAlign: 'center', marginTop: 8 }}>
+                If an account exists for <strong>{forgotEmail}</strong>, a reset link has been sent. Check your inbox.
+              </p>
+              <button className="btn btn-primary" style={{ width: '100%', marginTop: 16 }} onClick={() => { setForgotMode(false); setForgotSent(false); }}>
+                Back to sign in
+              </button>
+            </>
+          ) : (
+            <form onSubmit={handleForgotPassword}>
+              <div className="field-group">
+                <label>Email</label>
+                <input type="email" value={forgotEmail} onChange={(e) => setForgotEmail(e.target.value)} required />
+              </div>
+
+              {error && <div className="error-text">{error}</div>}
+
+              <button className="btn btn-primary" style={{ width: '100%', marginTop: 8 }} disabled={loading}>
+                {loading ? 'Sending…' : 'Send reset link'}
+              </button>
+
+              <p style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 14, textAlign: 'center' }}>
+                <span onClick={() => setForgotMode(false)} style={{ color: 'var(--violet-2)', cursor: 'pointer', fontWeight: 600 }}>
+                  ← Back to sign in
+                </span>
+              </p>
+            </form>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   // ---- Normal sign-in ----
   return (
@@ -142,6 +201,11 @@ export default function LoginPage() {
             <label>Password</label>
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
           </div>
+	<p style={{ textAlign: 'right', marginTop: -8, marginBottom: 8 }}>
+            <span onClick={() => { setForgotMode(true); setError(''); }} style={{ fontSize: 12.5, color: 'var(--violet-2)', cursor: 'pointer', fontWeight: 600 }}>
+              Forgot password?
+            </span>
+          </p>
 
           {error && <div className="error-text">{error}</div>}
 
