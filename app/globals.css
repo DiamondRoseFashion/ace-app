@@ -40,8 +40,18 @@ a{color:inherit;}
 
 /* ===== SHELL & SIDEBAR ===== */
 .shell{display:flex; min-height:100vh;}
-.main{flex:1; padding:40px 48px; max-width:1040px;}
-
+.main{
+  flex:1; padding:40px 48px; max-width:1040px;
+  background:
+    radial-gradient(650px 420px at 88% -8%, rgba(216,185,104,.14), transparent 60%),
+    radial-gradient(500px 360px at 8% 105%, rgba(216,185,104,.09), transparent 55%),
+    linear-gradient(165deg, var(--deep) 0%, #2A0C3B 55%, #1B0827 100%);
+  color:#F1EAF7;
+  min-height:100vh;
+}
+.main h1{color:#fff; text-shadow:0 0 20px rgba(216,185,104,.30);}
+.main .eyebrow{color:var(--gold);}
+.main .card{color:var(--ink);}
 .sidebar{
   width:240px; flex-shrink:0; min-height:100vh; position:sticky; top:0;
   background:linear-gradient(175deg, var(--deep) 0%, #2A0C3B 100%);
