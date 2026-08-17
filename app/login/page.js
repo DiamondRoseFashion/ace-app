@@ -20,6 +20,9 @@ export default function LoginPage() {
   const [forgotMode, setForgotMode] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotSent, setForgotSent] = useState(false);
+  const [resetCode, setResetCode] = useState('');
+  const [resetPassword, setResetPassword] = useState('');
+  const [resetConfirmPassword, setResetConfirmPassword] = useState('');
 
   // If someone arrives here via an invite link, the link carries a fresh
   // access token in the URL. We must use THAT token explicitly, rather
@@ -87,6 +90,28 @@ async function handleForgotPassword(e) {
     else setForgotSent(true);
 
     setLoading(false);
+  }
+async function handleResetWithCode(e) {
+    e.preventDefault();
+    setError('');
+
+    if (resetPassword.length < 6) { setError('Password must be at least 6 characters.'); return; }
+    if (resetPassword !== resetConfirmPassword) { setError('Passwords do not match.'); return; }
+
+    setLoading(true);
+    const { error: verifyError } = await supabase.auth.verifyOtp({
+      email: forgotEmail,
+      token: resetCode,
+      type: 'recovery',
+    });
+
+    if (verifyError) { setError(verifyError.message); setLoading(false); return; }
+
+    const { error: pwError } = await supabase.auth.updateUser({ password: resetPassword });
+    if (pwError) { setError(pwError.message); setLoading(false); return; }
+
+    setLoading(false);
+    router.push('/dashboard');
   }
 
   async function handleSetPassword(e) {
@@ -166,14 +191,29 @@ async function handleForgotPassword(e) {
           <p className="auth-sub">Reset your password</p>
 
           {forgotSent ? (
-            <>
-              <p style={{ fontSize: 13.5, color: 'var(--muted)', textAlign: 'center', marginTop: 8 }}>
-                If an account exists for <strong>{forgotEmail}</strong>, a reset link has been sent. Check your inbox.
+            <form onSubmit={handleResetWithCode}>
+              <p style={{ fontSize: 13.5, color: 'var(--muted)', marginBottom: 12 }}>
+                Enter the code sent to <strong>{forgotEmail}</strong>
               </p>
-              <button className="btn btn-primary" style={{ width: '100%', marginTop: 16 }} onClick={() => { setForgotMode(false); setForgotSent(false); }}>
-                Back to sign in
+              <div className="field-group">
+                <label>6-digit code</label>
+                <input value={resetCode} onChange={(e) => setResetCode(e.target.value)} required maxLength={6} />
+              </div>
+              <div className="field-group">
+                <label>New password</label>
+                <input type="password" value={resetPassword} onChange={(e) => setResetPassword(e.target.value)} required minLength={6} />
+              </div>
+              <div className="field-group">
+                <label>Confirm password</label>
+                <input type="password" value={resetConfirmPassword} onChange={(e) => setResetConfirmPassword(e.target.value)} required minLength={6} />
+              </div>
+
+              {error && <div className="error-text">{error}</div>}
+
+              <button className="btn btn-primary" style={{ width: '100%', marginTop: 8 }} disabled={loading}>
+                {loading ? 'Saving…' : 'Reset password'}
               </button>
-            </>
+            </form>
           ) : (
             <form onSubmit={handleForgotPassword}>
               <div className="field-group">
