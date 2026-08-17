@@ -26,7 +26,7 @@
 html{-webkit-font-smoothing:antialiased;}
 body{
   margin:0;
-  background:var(--paper);
+  background:#1B0827;
   color:var(--ink);
   font-family:'Inter',-apple-system,sans-serif;
   font-size:14px;
