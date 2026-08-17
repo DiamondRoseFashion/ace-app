@@ -39,7 +39,22 @@ export default function NewProject() {
     main_contractor: [],
   });
 
-  const [quotation, setQuotation] = useState({ quotation_number: '', quotation_date: '', target_submission_date: '', quotation_value: '' });
+const [quotation, setQuotation] = useState({
+  quotation_number: '',
+  quotation_date: '',
+  target_submission_date: '',
+  quotation_value: '',
+  quotation_status: '',
+  win_percentage: '',
+  issued_by: '',
+  opportunity_ref: '',
+  customer_name: '',
+  client: '',
+  consultant: '',
+  item: '',
+  remarks: '',
+  contractor: '',
+}); 
   const [meeting, setMeeting] = useState({ meeting_date: '', venue: '', notes: '', actions: '' });
 
   function addContact(roleKey) {
@@ -205,6 +220,51 @@ export default function NewProject() {
               <div className="field-group">
                 <label>Quotation Value</label>
                 <input value={quotation.quotation_value} onChange={(e) => setQuotation({ ...quotation, quotation_value: e.target.value })} />
+              </div>
+	<div className="field-group">
+                <label>Quotation Status</label>
+                <select value={quotation.quotation_status} onChange={(e) => setQuotation({ ...quotation, quotation_status: e.target.value })}>
+                  <option value="">Select…</option>
+                  <option value="pending">Pending</option>
+                  <option value="win">Win</option>
+                  <option value="lost">Lost</option>
+                </select>
+              </div>
+              <div className="field-group">
+                <label>Win %</label>
+                <input value={quotation.win_percentage} onChange={(e) => setQuotation({ ...quotation, win_percentage: e.target.value })} />
+              </div>
+              <div className="field-group">
+                <label>Issued By</label>
+                <input value={quotation.issued_by} onChange={(e) => setQuotation({ ...quotation, issued_by: e.target.value })} />
+              </div>
+              <div className="field-group">
+                <label>Opportunity Ref. (Project Name/Details)</label>
+                <input value={quotation.opportunity_ref} onChange={(e) => setQuotation({ ...quotation, opportunity_ref: e.target.value })} />
+              </div>
+              <div className="field-group">
+                <label>Customer Name</label>
+                <input value={quotation.customer_name} onChange={(e) => setQuotation({ ...quotation, customer_name: e.target.value })} />
+              </div>
+              <div className="field-group">
+                <label>Client</label>
+                <input value={quotation.client} onChange={(e) => setQuotation({ ...quotation, client: e.target.value })} />
+              </div>
+              <div className="field-group">
+                <label>Consultant</label>
+                <input value={quotation.consultant} onChange={(e) => setQuotation({ ...quotation, consultant: e.target.value })} />
+              </div>
+              <div className="field-group">
+                <label>Contractor</label>
+                <input value={quotation.contractor} onChange={(e) => setQuotation({ ...quotation, contractor: e.target.value })} />
+              </div>
+              <div className="field-group">
+                <label>Item</label>
+                <input value={quotation.item} onChange={(e) => setQuotation({ ...quotation, item: e.target.value })} />
+              </div>
+              <div className="field-group">
+                <label>Remarks</label>
+                <textarea rows={3} value={quotation.remarks} onChange={(e) => setQuotation({ ...quotation, remarks: e.target.value })} />
               </div>
               {error && <div className="error-text">{error}</div>}
               <button className="btn btn-primary" onClick={saveStep2} disabled={saving}>

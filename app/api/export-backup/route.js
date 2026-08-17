@@ -77,6 +77,33 @@ export async function GET(request) {
       rowCountOnSheet += 1;
     });
   }
+const { data: quotations, error: quotationsError } = await supabaseAdmin
+    .from('quotations')
+    .select('*');
+
+  if (!quotationsError && quotations && quotations.length > 0) {
+    const qKeys = new Set();
+    quotations.forEach((q) => Object.keys(q).forEach((k) => qKeys.add(k)));
+    const qColumns = Array.from(qKeys);
+
+    let qSheetIndex = 1;
+    let qSheet = workbook.addWorksheet(`Quotations_${qSheetIndex}`);
+    qSheet.columns = qColumns.map((key) => ({ header: key, key, width: 22 }));
+    qSheet.getRow(1).font = { bold: true };
+
+    let qRowCount = 0;
+    quotations.forEach((q) => {
+      if (qRowCount >= ROWS_PER_SHEET) {
+        qSheetIndex += 1;
+        qSheet = workbook.addWorksheet(`Quotations_${qSheetIndex}`);
+        qSheet.columns = qColumns.map((key) => ({ header: key, key, width: 22 }));
+        qSheet.getRow(1).font = { bold: true };
+        qRowCount = 0;
+      }
+      qSheet.addRow(q);
+      qRowCount += 1;
+    });
+  }
 
   const buffer = await workbook.xlsx.writeBuffer();
 
