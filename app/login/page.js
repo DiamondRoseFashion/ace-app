@@ -196,8 +196,8 @@ async function handleResetWithCode(e) {
                 Enter the code sent to <strong>{forgotEmail}</strong>
               </p>
               <div className="field-group">
-                <label>6-digit code</label>
-                <input value={resetCode} onChange={(e) => setResetCode(e.target.value)} required maxLength={6} />
+                <label>Code from email</label>
+                <input value={resetCode} onChange={(e) => setResetCode(e.target.value)} required maxLength={8} />
               </div>
               <div className="field-group">
                 <label>New password</label>
