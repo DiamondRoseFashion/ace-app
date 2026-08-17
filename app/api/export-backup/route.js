@@ -10,6 +10,26 @@ const supabaseAdmin = createClient(
 const ALLOWED_ROLES = ['owner', 'admin', 'manager'];
 const ROWS_PER_SHEET = 5000;
 
+// Turns any ISO date/datetime string (e.g. 2026-07-29T05:50:53...) into a
+// simple DD/MM/YYYY string for the Excel file. Leaves everything else as-is.
+function formatRowDates(row) {
+  const formatted = {};
+  for (const [key, value] of Object.entries(row)) {
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) {
+      const d = new Date(value);
+      if (!isNaN(d.getTime())) {
+        const day = String(d.getUTCDate()).padStart(2, '0');
+        const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+        const year = d.getUTCFullYear();
+        formatted[key] = `${day}/${month}/${year}`;
+        continue;
+      }
+    }
+    formatted[key] = value;
+  }
+  return formatted;
+}
+
 export async function GET(request) {
   const authHeader = request.headers.get('authorization') || '';
   const token = authHeader.replace('Bearer ', '');
@@ -33,20 +53,21 @@ export async function GET(request) {
     return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
   }
 
- const { data: rawProjects, error: projectsError } = await supabaseAdmin
+  const { data: rawProjects, error: projectsError } = await supabaseAdmin
     .from('projects')
     .select('*, creator:profiles!created_by(full_name)');
 
   if (projectsError) {
     return NextResponse.json({ error: 'Failed to fetch projects' }, { status: 500 });
   }
-// Flatten the joined creator name into a plain column, and drop the raw nested object
+
+  // Flatten the joined creator name into a plain column, and drop the raw nested object
   const projects = (rawProjects || []).map((p) => {
     const { creator, ...rest } = p;
-    return {
+    return formatRowDates({
       ...rest,
       created_by_name: creator?.full_name || '',
-    };
+    });
   });
 
   const workbook = new ExcelJS.Workbook();
@@ -77,11 +98,14 @@ export async function GET(request) {
       rowCountOnSheet += 1;
     });
   }
-const { data: quotations, error: quotationsError } = await supabaseAdmin
+
+  const { data: rawQuotations, error: quotationsError } = await supabaseAdmin
     .from('quotations')
     .select('*');
 
-  if (!quotationsError && quotations && quotations.length > 0) {
+  if (!quotationsError && rawQuotations && rawQuotations.length > 0) {
+    const quotations = rawQuotations.map((q) => formatRowDates(q));
+
     const qKeys = new Set();
     quotations.forEach((q) => Object.keys(q).forEach((k) => qKeys.add(k)));
     const qColumns = Array.from(qKeys);
