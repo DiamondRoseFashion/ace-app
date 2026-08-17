@@ -30,21 +30,36 @@ export default function LoginPage() {
     checkForInvite();
   }, []);
 
-  async function checkForInvite() {
+ async function checkForInvite() {
+    // Older-style links: token in the URL hash
     const hash = window.location.hash?.replace(/^#/, '');
-    const params = new URLSearchParams(hash);
-    const access_token = params.get('access_token');
-    const refresh_token = params.get('refresh_token');
-    const type = params.get('type');
+    const hashParams = new URLSearchParams(hash);
+    const access_token = hashParams.get('access_token');
+    const refresh_token = hashParams.get('refresh_token');
+    const hashType = hashParams.get('type');
 
-    if (access_token && (type === 'invite' || type === 'recovery' || type === 'signup')) {
+    if (access_token && (hashType === 'invite' || hashType === 'recovery' || hashType === 'signup')) {
       const { data, error } = await supabase.auth.setSession({ access_token, refresh_token });
       if (!error && data?.user) {
         setInvitedEmail(data.user.email);
-        // Clear the token out of the visible URL now that it's been used.
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+      setCheckingInvite(false);
+      return;
+    }
+
+    // Newer-style links: a "code" in the regular URL query string
+    const searchParams = new URLSearchParams(window.location.search);
+    const code = searchParams.get('code');
+
+    if (code) {
+      const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+      if (!error && data?.user) {
+        setInvitedEmail(data.user.email);
         window.history.replaceState(null, '', window.location.pathname);
       }
     }
+
     setCheckingInvite(false);
   }
 
