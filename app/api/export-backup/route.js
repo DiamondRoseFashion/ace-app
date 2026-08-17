@@ -30,6 +30,35 @@ function formatRowDates(row) {
   return formatted;
 }
 
+function addDynamicSheet(workbook, baseName, rows) {
+  if (!rows || rows.length === 0) {
+    workbook.addWorksheet(`${baseName}_1`);
+    return;
+  }
+
+  const allKeys = new Set();
+  rows.forEach((r) => Object.keys(r).forEach((k) => allKeys.add(k)));
+  const columns = Array.from(allKeys);
+
+  let sheetIndex = 1;
+  let sheet = workbook.addWorksheet(`${baseName}_${sheetIndex}`);
+  sheet.columns = columns.map((key) => ({ header: key, key, width: 22 }));
+  sheet.getRow(1).font = { bold: true };
+
+  let rowCount = 0;
+  rows.forEach((row) => {
+    if (rowCount >= ROWS_PER_SHEET) {
+      sheetIndex += 1;
+      sheet = workbook.addWorksheet(`${baseName}_${sheetIndex}`);
+      sheet.columns = columns.map((key) => ({ header: key, key, width: 22 }));
+      sheet.getRow(1).font = { bold: true };
+      rowCount = 0;
+    }
+    sheet.addRow(row);
+    rowCount += 1;
+  });
+}
+
 export async function GET(request) {
   const authHeader = request.headers.get('authorization') || '';
   const token = authHeader.replace('Bearer ', '');
@@ -61,73 +90,47 @@ export async function GET(request) {
     return NextResponse.json({ error: 'Failed to fetch projects' }, { status: 500 });
   }
 
-  // Flatten the joined creator name into a plain column, and drop the raw nested object
+  const { data: rawQuotations, error: quotationsError } = await supabaseAdmin
+    .from('quotations')
+    .select('*');
+
+  const quotations = quotationsError ? [] : (rawQuotations || []);
+
+  // Map each project to its most recent quotation (if it has one)
+  const latestQuotationByProject = {};
+  quotations.forEach((q) => {
+    const existing = latestQuotationByProject[q.project_id];
+    if (!existing || new Date(q.created_at) > new Date(existing.created_at)) {
+      latestQuotationByProject[q.project_id] = q;
+    }
+  });
+
+  // Flatten the joined creator name, and merge in that project's quotation details
   const projects = (rawProjects || []).map((p) => {
     const { creator, ...rest } = p;
+
+    const matchedQuotation = latestQuotationByProject[p.id];
+    let quotationFields = {};
+    if (matchedQuotation) {
+      const { id, project_id, created_at, ...qRest } = matchedQuotation;
+      quotationFields = {
+        ...qRest,
+        quotation_id: id,
+        quotation_created_at: created_at,
+      };
+    }
+
     return formatRowDates({
       ...rest,
       created_by_name: creator?.full_name || '',
+      ...quotationFields,
     });
   });
 
   const workbook = new ExcelJS.Workbook();
 
-  if (!projects || projects.length === 0) {
-    workbook.addWorksheet('Projects_1');
-  } else {
-    const allKeys = new Set();
-    projects.forEach((p) => Object.keys(p).forEach((k) => allKeys.add(k)));
-    const columns = Array.from(allKeys);
-
-    let sheetIndex = 1;
-    let sheet = workbook.addWorksheet(`Projects_${sheetIndex}`);
-    sheet.columns = columns.map((key) => ({ header: key, key, width: 22 }));
-    sheet.getRow(1).font = { bold: true };
-
-    let rowCountOnSheet = 0;
-
-    projects.forEach((project) => {
-      if (rowCountOnSheet >= ROWS_PER_SHEET) {
-        sheetIndex += 1;
-        sheet = workbook.addWorksheet(`Projects_${sheetIndex}`);
-        sheet.columns = columns.map((key) => ({ header: key, key, width: 22 }));
-        sheet.getRow(1).font = { bold: true };
-        rowCountOnSheet = 0;
-      }
-      sheet.addRow(project);
-      rowCountOnSheet += 1;
-    });
-  }
-
-  const { data: rawQuotations, error: quotationsError } = await supabaseAdmin
-    .from('quotations')
-    .select('*');
-
-  if (!quotationsError && rawQuotations && rawQuotations.length > 0) {
-    const quotations = rawQuotations.map((q) => formatRowDates(q));
-
-    const qKeys = new Set();
-    quotations.forEach((q) => Object.keys(q).forEach((k) => qKeys.add(k)));
-    const qColumns = Array.from(qKeys);
-
-    let qSheetIndex = 1;
-    let qSheet = workbook.addWorksheet(`Quotations_${qSheetIndex}`);
-    qSheet.columns = qColumns.map((key) => ({ header: key, key, width: 22 }));
-    qSheet.getRow(1).font = { bold: true };
-
-    let qRowCount = 0;
-    quotations.forEach((q) => {
-      if (qRowCount >= ROWS_PER_SHEET) {
-        qSheetIndex += 1;
-        qSheet = workbook.addWorksheet(`Quotations_${qSheetIndex}`);
-        qSheet.columns = qColumns.map((key) => ({ header: key, key, width: 22 }));
-        qSheet.getRow(1).font = { bold: true };
-        qRowCount = 0;
-      }
-      qSheet.addRow(q);
-      qRowCount += 1;
-    });
-  }
+  addDynamicSheet(workbook, 'Projects', projects);
+  addDynamicSheet(workbook, 'Quotations', quotations.map((q) => formatRowDates(q)));
 
   const buffer = await workbook.xlsx.writeBuffer();
 
