@@ -40,7 +40,13 @@ const links = [
     { key: 'profile', href: '/profile', label: 'My Profile', icon: '👤' },
   ];
   return (
+    return (
     <div className="sidebar">
+      <img
+        src="/logo.png"
+        alt="ACE"
+        style={{ width: '100%', maxWidth: 220, borderRadius: 24, display: 'block', margin: '0 auto 24px' }}
+      />
       <Link href="/dashboard" className="brand">
         <svg className="facet-mark" viewBox="0 0 100 90" aria-hidden="true">
           <polygon points="50,0 100,30 75,90 25,90 0,30" fill="#C9A6E0" />
