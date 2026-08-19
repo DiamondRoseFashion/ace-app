@@ -33,33 +33,20 @@ export default function Sidebar({ active }) {
     .slice(0, 2)
     .toUpperCase();
 
-const links = [
+  const links = [
     { key: 'dashboard', href: '/dashboard', label: 'My Projects', icon: '📁' },
     { key: 'new-project', href: '/new-project', label: 'New Project', icon: '➕' },
     { key: 'team', href: '/team', label: 'Team & Access', icon: '👥' },
     { key: 'profile', href: '/profile', label: 'My Profile', icon: '👤' },
   ];
+
   return (
-    return (
     <div className="sidebar">
       <img
         src="/logo.png"
         alt="ACE"
         style={{ width: '100%', maxWidth: 220, borderRadius: 24, display: 'block', margin: '0 auto 24px' }}
       />
-      <Link href="/dashboard" className="brand">
-        <svg className="facet-mark" viewBox="0 0 100 90" aria-hidden="true">
-          <polygon points="50,0 100,30 75,90 25,90 0,30" fill="#C9A6E0" />
-          <polygon points="50,0 75,30 25,30" fill="#8F3FA8" />
-          <polygon points="0,30 25,30 25,90" fill="#6B2D82" />
-          <polygon points="100,30 75,30 75,90" fill="#4A1863" />
-          <polygon points="25,30 75,30 75,90 25,90" fill="#7A3592" />
-        </svg>
-        <div>
-          <div className="brand-name">ACE</div>
-          <div className="brand-sub">Project Control</div>
-        </div>
-      </Link>
 
       <nav className="sidebar-nav">
         {links.map((l) => (
