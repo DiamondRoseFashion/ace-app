@@ -1,87 +1,81 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
 
-const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Dashboard' },
-  { href: '/new-project', label: 'New Project' },
-  { href: '/team', label: 'Team' },
-];
-
-export default function Sidebar() {
+export default function Sidebar({ active }) {
   const router = useRouter();
-  const pathname = usePathname();
   const supabase = createClient();
+  const [name, setName] = useState('');
+  const [role, setRole] = useState('');
 
-  const handleLogout = async () => {
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from('profiles').select('full_name, role').eq('id', user.id).single();
+      setName(data?.full_name || user.email);
+      setRole(data?.role || '');
+    })();
+  }, []);
+
+  async function handleLogout() {
     await supabase.auth.signOut();
     router.push('/login');
-  };
+  }
 
+  const initials = (name || '?')
+    .split(' ')
+    .map((p) => p[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
+const links = [
+    { key: 'dashboard', href: '/dashboard', label: 'My Projects', icon: '📁' },
+    { key: 'new-project', href: '/new-project', label: 'New Project', icon: '➕' },
+    { key: 'team', href: '/team', label: 'Team & Access', icon: '👥' },
+    { key: 'profile', href: '/profile', label: 'My Profile', icon: '👤' },
+  ];
   return (
-    <aside
-      style={{
-        width: '220px',
-        minHeight: '100vh',
-        background: '#0d1b3e',
-        color: '#fff',
-        display: 'flex',
-        flexDirection: 'column',
-        padding: '20px 16px',
-      }}
-    >
-      <div style={{ marginBottom: '32px', textAlign: 'center' }}>
-        <Image
-          src="/logo.png"
-          alt="ACE - Project Management Application"
-          width={160}
-          height={80}
-          style={{ width: '100%', height: 'auto' }}
-          priority
-        />
-      </div>
+    <div className="sidebar">
+      <Link href="/dashboard" className="brand">
+        <svg className="facet-mark" viewBox="0 0 100 90" aria-hidden="true">
+          <polygon points="50,0 100,30 75,90 25,90 0,30" fill="#C9A6E0" />
+          <polygon points="50,0 75,30 25,30" fill="#8F3FA8" />
+          <polygon points="0,30 25,30 25,90" fill="#6B2D82" />
+          <polygon points="100,30 75,30 75,90" fill="#4A1863" />
+          <polygon points="25,30 75,30 75,90 25,90" fill="#7A3592" />
+        </svg>
+        <div>
+          <div className="brand-name">ACE</div>
+          <div className="brand-sub">Project Control</div>
+        </div>
+      </Link>
 
-      <nav style={{ flex: 1 }}>
-        {NAV_ITEMS.map((item) => {
-          const isActive = pathname === item.href;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              style={{
-                display: 'block',
-                padding: '10px 12px',
-                marginBottom: '6px',
-                borderRadius: '6px',
-                textDecoration: 'none',
-                color: '#fff',
-                background: isActive ? '#f5860a' : 'transparent',
-                fontWeight: isActive ? 600 : 400,
-              }}
-            >
-              {item.label}
-            </Link>
-          );
-        })}
+      <nav className="sidebar-nav">
+        {links.map((l) => (
+          <Link
+            key={l.key}
+            href={l.href}
+            className={`nav-item${active === l.key ? ' active' : ''}`}
+          >
+            <span aria-hidden="true">{l.icon}</span> {l.label}
+          </Link>
+        ))}
       </nav>
 
-      <button
-        onClick={handleLogout}
-        style={{
-          padding: '10px 12px',
-          borderRadius: '6px',
-          border: 'none',
-          background: '#1e2f5c',
-          color: '#fff',
-          cursor: 'pointer',
-          fontWeight: 500,
-        }}
-      >
-        Log out
+      <div className="sidebar-spacer" />
+
+      <button className="user-chip" onClick={handleLogout} title="Log out">
+        <span className="avatar">{initials}</span>
+        <span className="user-chip-text">
+          <span className="user-chip-name">{name || '\u00A0'}</span>
+          <span className="user-chip-role">{role ? `${role} · Log out` : 'Log out'}</span>
+        </span>
       </button>
-    </aside>
+    </div>
   );
 }
