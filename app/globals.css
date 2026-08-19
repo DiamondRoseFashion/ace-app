@@ -1,6 +1,6 @@
 :root{
   --ink:#221429;
-  --deep:#3D1250;
+  --deep:#0F1F3D;
   --violet:#6B2D82;
   --violet-2:#8F3FA8;
   --lilac:#C9A6E0;
@@ -26,7 +26,7 @@
 html{-webkit-font-smoothing:antialiased;}
 body{
   margin:0;
-  background:#1B0827;
+  background:#0A1526;
   color:var(--ink);
   font-family:'Inter',-apple-system,sans-serif;
   font-size:14px;
@@ -39,23 +39,38 @@ a{color:inherit;}
 @media (prefers-reduced-motion: reduce){ *{transition:none !important; animation:none !important;} }
 
 /* ===== SHELL & SIDEBAR ===== */
-.shell{display:flex; min-height:100vh;}
+.shell{
+  display:flex; min-height:100vh;
+  background:
+    radial-gradient(3px 3px at 18% 22%, rgba(255,224,160,.9), transparent 55%),
+    radial-gradient(2.5px 2.5px at 62% 12%, rgba(255,224,160,.75), transparent 55%),
+    radial-gradient(2px 2px at 78% 55%, rgba(255,224,160,.65), transparent 55%),
+    radial-gradient(3px 3px at 35% 78%, rgba(255,224,160,.55), transparent 55%),
+    radial-gradient(2px 2px at 92% 82%, rgba(255,224,160,.6), transparent 55%),
+    radial-gradient(2.5px 2.5px at 50% 45%, rgba(255,224,160,.4), transparent 55%),
+    radial-gradient(900px 600px at 85% -10%, rgba(216,185,104,.18), transparent 60%),
+    radial-gradient(700px 520px at 8% 105%, rgba(216,185,104,.12), transparent 55%),
+    linear-gradient(165deg, var(--deep) 0%, #14294A 55%, #0A1526 100%);
+  background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 100% 100%, 220% 220%, 220% 220%, 220% 220%;
+  animation: bg-drift 22s ease-in-out infinite;
+}
+@keyframes bg-drift{
+  0%{background-position: 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%;}
+  50%{background-position: 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%, 100% 30%, 20% 100%, 40% 60%;}
+  100%{background-position: 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%;}
+}
 .main{
   flex:1; padding:40px 48px; max-width:1040px;
-  background:
-    radial-gradient(650px 420px at 88% -8%, rgba(216,185,104,.14), transparent 60%),
-    radial-gradient(500px 360px at 8% 105%, rgba(216,185,104,.09), transparent 55%),
-    linear-gradient(165deg, var(--deep) 0%, #2A0C3B 55%, #1B0827 100%);
   color:#F1EAF7;
-  min-height:100vh;
+  --muted:#C9BBD6;
 }
-.main{--muted:#C9BBD6;}
 .main h1{color:#fff; text-shadow:0 0 20px rgba(216,185,104,.30);}
 .main .eyebrow{color:var(--gold);}
 .main .card{color:var(--ink); --muted:#7A6C86;}
+
 .sidebar{
   width:240px; flex-shrink:0; min-height:100vh; position:sticky; top:0;
-  background:linear-gradient(175deg, var(--deep) 0%, #2A0C3B 100%);
+  background:linear-gradient(175deg, var(--deep) 0%, #14294A 100%);
   color:#fff; display:flex; flex-direction:column; padding:26px 18px;
 }
 .brand{display:flex; align-items:center; gap:10px; margin-bottom:34px; text-decoration:none; padding:0 6px;}
@@ -144,8 +159,11 @@ input:focus, select:focus, textarea:focus{
 .auth-shell{
   min-height:100vh; display:flex; align-items:center; justify-content:center;
   background:
-    radial-gradient(700px 500px at 15% -10%, rgba(216,169,86,.10), transparent 60%),
-    linear-gradient(160deg, var(--deep) 0%, #2A0C3B 55%, #200930 100%);
+    radial-gradient(3px 3px at 20% 25%, rgba(255,224,160,.85), transparent 55%),
+    radial-gradient(2px 2px at 70% 15%, rgba(255,224,160,.65), transparent 55%),
+    radial-gradient(2.5px 2.5px at 85% 60%, rgba(255,224,160,.6), transparent 55%),
+    radial-gradient(700px 500px at 15% -10%, rgba(216,169,86,.14), transparent 60%),
+    linear-gradient(160deg, var(--deep) 0%, #14294A 55%, #0A1526 100%);
   padding:24px;
 }
 .auth-card{
