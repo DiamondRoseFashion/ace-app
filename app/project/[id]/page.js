@@ -203,18 +203,30 @@ export default function ProjectDetail() {
           )}
         </div>
 
-        {/* Quotations */}
+{/* Quotations */}
         <SectionTitle>Quotations</SectionTitle>
         <div className="card" style={{ marginBottom: 20 }}>
           {quotations.length === 0 ? <Empty text="No quotations yet." /> : quotations.map((q) => (
-            <div key={q.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--line)', fontSize: 13.5 }}>
+            <div key={q.id} style={{ padding: '10px 0', borderBottom: '1px solid var(--line)', fontSize: 13.5 }}>
               <strong>{q.quotation_number || 'Untitled'}</strong> — {q.quotation_value ? `AED ${q.quotation_value}` : 'no value set'}
-              <div style={{ fontSize: 12, color: 'var(--muted)' }}>Dated {q.quotation_date || '—'}, target submission {q.target_submission_date || '—'}</div>
+              {q.quotation_status && <span className={`pill pill-${q.quotation_status}`} style={{ marginLeft: 8 }}>{q.quotation_status}</span>}
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
+                Dated {q.quotation_date || '—'}, target submission {q.target_submission_date || '—'}
+              </div>
+              <div style={{ fontSize: 12.5, marginTop: 6, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 16px' }}>
+                {q.win_percentage && <div><span style={{ color: 'var(--muted)' }}>Win %:</span> {q.win_percentage}%</div>}
+                {q.issued_by && <div><span style={{ color: 'var(--muted)' }}>Issued by:</span> {q.issued_by}</div>}
+                {q.opportunity_ref && <div><span style={{ color: 'var(--muted)' }}>Opportunity ref:</span> {q.opportunity_ref}</div>}
+                {q.customer_name && <div><span style={{ color: 'var(--muted)' }}>Customer:</span> {q.customer_name}</div>}
+                {q.client && <div><span style={{ color: 'var(--muted)' }}>Client:</span> {q.client}</div>}
+                {q.consultant && <div><span style={{ color: 'var(--muted)' }}>Consultant:</span> {q.consultant}</div>}
+                {q.contractor && <div><span style={{ color: 'var(--muted)' }}>Contractor:</span> {q.contractor}</div>}
+                {q.item && <div><span style={{ color: 'var(--muted)' }}>Item:</span> {q.item}</div>}
+              </div>
+              {q.remarks && <div style={{ fontSize: 12.5, marginTop: 6, color: 'var(--muted)' }}>Remarks: {q.remarks}</div>}
             </div>
           ))}
-        </div>
-
-        {/* Meetings */}
+        </div>        {/* Meetings */}
         <SectionTitle>Meetings</SectionTitle>
         <div className="card" style={{ marginBottom: 20 }}>
           {meetings.length === 0 ? <Empty text="No meetings logged yet." /> : meetings.map((m) => (
@@ -283,9 +295,8 @@ function describeActivity(a) {
   if (changes.length === 0) return `Updated ${thing}`;
   return `Updated ${thing} — ${changes.join(', ')}`;
 }
-
 function SectionTitle({ children }) {
-  return <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 8, marginTop: 4 }}>{children}</div>;
+  return <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--gold)', marginBottom: 8, marginTop: 4 }}>{children}</div>;
 }
 function Empty({ text }) {
   return <div style={{ fontSize: 13, color: 'var(--muted)', padding: '8px 0' }}>{text}</div>;
