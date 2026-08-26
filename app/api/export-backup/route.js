@@ -10,6 +10,9 @@ const supabaseAdmin = createClient(
 const ALLOWED_ROLES = ['owner', 'admin', 'manager'];
 const ROWS_PER_SHEET = 5000;
 
+// Only the raw database primary/foreign keys get dropped — everything else stays.
+const ID_LIKE_KEYS = new Set(['id', 'project_id']);
+
 // Turns any ISO date/datetime string (e.g. 2026-07-29T05:50:53...) into a
 // simple DD/MM/YYYY string for the Excel file. Leaves everything else as-is.
 function formatRowDates(row) {
@@ -28,6 +31,16 @@ function formatRowDates(row) {
     formatted[key] = value;
   }
   return formatted;
+}
+
+// Removes only the raw internal id / project_id columns before export.
+function stripIds(row) {
+  const cleaned = {};
+  for (const [key, value] of Object.entries(row)) {
+    if (ID_LIKE_KEYS.has(key)) continue;
+    cleaned[key] = value;
+  }
+  return cleaned;
 }
 
 function addDynamicSheet(workbook, baseName, rows) {
@@ -105,32 +118,40 @@ export async function GET(request) {
     }
   });
 
-  // Flatten the joined creator name, and merge in that project's quotation details
+  // Flatten the joined creator name (into created_by, replacing the raw user id),
+  // and merge in that project's quotation details (quotation_id shows the
+  // human-readable quotation number instead of the quotation's raw database id).
   const projects = (rawProjects || []).map((p) => {
-    const { creator, ...rest } = p;
+    const { creator, created_by, ...rest } = p;
 
     const matchedQuotation = latestQuotationByProject[p.id];
     let quotationFields = {};
     if (matchedQuotation) {
-      const { id, project_id, created_at, ...qRest } = matchedQuotation;
+      const { id, project_id, created_at, quotation_number, ...qRest } = matchedQuotation;
       quotationFields = {
+        quotation_id: quotation_number || '',
+        quotation_number,
         ...qRest,
-        quotation_id: id,
         quotation_created_at: created_at,
       };
     }
 
-    return formatRowDates({
+    return stripIds(formatRowDates({
       ...rest,
-      created_by_name: creator?.full_name || '',
+      created_by: creator?.full_name || '',
       ...quotationFields,
-    });
+    }));
+  });
+
+  const quotationRows = quotations.map((q) => {
+    const { created_by, ...rest } = q;
+    return stripIds(formatRowDates(rest));
   });
 
   const workbook = new ExcelJS.Workbook();
 
   addDynamicSheet(workbook, 'Projects', projects);
-  addDynamicSheet(workbook, 'Quotations', quotations.map((q) => formatRowDates(q)));
+  addDynamicSheet(workbook, 'Quotations', quotationRows);
 
   const buffer = await workbook.xlsx.writeBuffer();
 
