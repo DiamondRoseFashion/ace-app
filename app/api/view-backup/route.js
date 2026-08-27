@@ -18,6 +18,25 @@ function stripIds(row) {
   return cleaned;
 }
 
+// Turns any ISO date/datetime string into a simple DD/MM/YYYY string.
+function formatRowDates(row) {
+  const formatted = {};
+  for (const [key, value] of Object.entries(row)) {
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) {
+      const d = new Date(value);
+      if (!isNaN(d.getTime())) {
+        const day = String(d.getUTCDate()).padStart(2, '0');
+        const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+        const year = d.getUTCFullYear();
+        formatted[key] = `${day}/${month}/${year}`;
+        continue;
+      }
+    }
+    formatted[key] = value;
+  }
+  return formatted;
+}
+
 export async function GET(request) {
   const authHeader = request.headers.get('authorization') || '';
   const token = authHeader.replace('Bearer ', '');
@@ -78,16 +97,16 @@ export async function GET(request) {
       };
     }
 
-    return stripIds({
+    return stripIds(formatRowDates({
       ...rest,
       created_by: creator?.full_name || '',
       ...quotationFields,
-    });
+    }));
   });
 
   const quotationRows = quotations.map((q) => {
     const { created_by, ...rest } = q;
-    return stripIds(rest);
+    return stripIds(formatRowDates(rest));
   });
 
   return NextResponse.json({ projects, quotations: quotationRows });
