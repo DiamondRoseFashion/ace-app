@@ -10,6 +10,7 @@ export default function Sidebar({ active }) {
   const supabase = createClient();
   const [name, setName] = useState('');
   const [role, setRole] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -42,18 +43,24 @@ export default function Sidebar({ active }) {
 
   return (
     <div className="sidebar">
-      <img
-        src="/logo.png"
-        alt="ACE"
-        style={{ width: '100%', maxWidth: 220, borderRadius: 24, display: 'block', margin: '0 auto 24px' }}
-      />
+      <div className="sidebar-top">
+        <img src="/logo.png" alt="ACE" className="sidebar-logo" />
+        <button
+          className="menu-toggle"
+          onClick={() => setMenuOpen((o) => !o)}
+          aria-label="Toggle menu"
+        >
+          {menuOpen ? '✕' : '☰'}
+        </button>
+      </div>
 
-      <nav className="sidebar-nav">
+      <nav className={`sidebar-nav${menuOpen ? ' mobile-open' : ''}`}>
         {links.map((l) => (
           <Link
             key={l.key}
             href={l.href}
             className={`nav-item${active === l.key ? ' active' : ''}`}
+            onClick={() => setMenuOpen(false)}
           >
             <span aria-hidden="true">{l.icon}</span> {l.label}
           </Link>
@@ -62,7 +69,7 @@ export default function Sidebar({ active }) {
 
       <div className="sidebar-spacer" />
 
-      <button className="user-chip" onClick={handleLogout} title="Log out">
+      <button className={`user-chip${menuOpen ? ' mobile-open' : ''}`} onClick={handleLogout} title="Log out">
         <span className="avatar">{initials}</span>
         <span className="user-chip-text">
           <span className="user-chip-name">{name || '\u00A0'}</span>
