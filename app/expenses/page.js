@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabaseClient';
 import Sidebar from '@/components/Sidebar';
 
 const MANAGEMENT_ROLES = ['owner', 'admin', 'manager'];
+const PIE_COLORS = ['#6B2D82', '#8F3FA8', '#D8B968', '#3E8E5A', '#9A7213', '#B33A3A', '#4A1863', '#7A3592', '#C9A6E0', '#5C2570'];
 
 function monthKey(dateStr) {
   const d = new Date(dateStr);
@@ -15,6 +16,58 @@ function monthLabel(key) {
   const [y, m] = key.split('-');
   const d = new Date(Number(y), Number(m) - 1, 1);
   return d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+}
+
+// Builds SVG path data for one pie slice
+function describeArc(cx, cy, r, startAngle, endAngle) {
+  const start = {
+    x: cx + r * Math.cos((Math.PI / 180) * (startAngle - 90)),
+    y: cy + r * Math.sin((Math.PI / 180) * (startAngle - 90)),
+  };
+  const end = {
+    x: cx + r * Math.cos((Math.PI / 180) * (endAngle - 90)),
+    y: cy + r * Math.sin((Math.PI / 180) * (endAngle - 90)),
+  };
+  const largeArcFlag = endAngle - startAngle <= 180 ? 0 : 1;
+  return `M ${cx} ${cy} L ${start.x} ${start.y} A ${r} ${r} 0 ${largeArcFlag} 1 ${end.x} ${end.y} Z`;
+}
+
+function PieChart({ data }) {
+  const total = data.reduce((sum, [, v]) => sum + v, 0);
+  if (total === 0) return null;
+
+  let cumulative = 0;
+  const slices = data.map(([name, value], idx) => {
+    const startAngle = (cumulative / total) * 360;
+    cumulative += value;
+    const endAngle = (cumulative / total) * 360;
+    return {
+      name,
+      value,
+      path: describeArc(100, 100, 90, startAngle, endAngle),
+      color: PIE_COLORS[idx % PIE_COLORS.length],
+      pct: Math.round((value / total) * 100),
+    };
+  });
+
+  return (
+    <div style={{ display: 'flex', gap: 28, alignItems: 'center', flexWrap: 'wrap' }}>
+      <svg width={200} height={200} viewBox="0 0 200 200">
+        {slices.map((s) => (
+          <path key={s.name} d={s.path} fill={s.color} stroke="#fff" strokeWidth={1.5} />
+        ))}
+      </svg>
+      <div style={{ flex: 1, minWidth: 180 }}>
+        {slices.map((s) => (
+          <div key={s.name} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, fontSize: 12.5 }}>
+            <span style={{ width: 10, height: 10, borderRadius: 3, background: s.color, flexShrink: 0 }} />
+            <span style={{ fontWeight: 600, flex: 1 }}>{s.name}</span>
+            <span className="mono" style={{ color: 'var(--muted)' }}>AED {s.value.toLocaleString()} ({s.pct}%)</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 export default function ExpensesPage() {
@@ -93,7 +146,6 @@ export default function ExpensesPage() {
     load();
   }
 
-  // ----- Manager-only aggregations -----
   const monthlyTotals = useMemo(() => {
     const map = {};
     expenses.forEach((e) => {
@@ -122,7 +174,6 @@ export default function ExpensesPage() {
     return Object.entries(map).sort((a, b) => b[1] - a[1]);
   }, [expenses, selectedMonth]);
 
-  const maxEmployeeTotal = Math.max(1, ...employeeTotalsForMonth.map(([, total]) => total));
   const selectedMonthTotal = employeeTotalsForMonth.reduce((sum, [, v]) => sum + v, 0);
 
   if (loading) return <div className="shell"><Sidebar active="expenses" /><div className="main">Loading…</div></div>;
@@ -209,29 +260,19 @@ export default function ExpensesPage() {
               )}
             </div>
 
-            {/* Per-employee breakdown */}
+            {/* Pie chart breakdown for selected month */}
             <div className="eyebrow" style={{ marginBottom: 8 }}>
-              {selectedMonth ? `Breakdown — ${monthLabel(selectedMonth)}` : 'Breakdown'}
+              {selectedMonth ? `Breakdown by Employee — ${monthLabel(selectedMonth)}` : 'Breakdown by Employee'}
             </div>
             <div className="card" style={{ marginBottom: 20 }}>
               {employeeTotalsForMonth.length === 0 ? (
                 <div style={{ color: 'var(--muted)', fontSize: 13 }}>No expenses for this month.</div>
               ) : (
                 <>
-                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 16 }}>
                     Total: AED {selectedMonthTotal.toLocaleString()}
                   </div>
-                  {employeeTotalsForMonth.map(([name, total]) => (
-                    <div key={name} style={{ marginBottom: 12 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 4 }}>
-                        <span style={{ fontWeight: 600 }}>{name}</span>
-                        <span className="mono">AED {total.toLocaleString()} ({Math.round((total / selectedMonthTotal) * 100)}%)</span>
-                      </div>
-                      <div style={{ background: 'var(--line)', borderRadius: 6, height: 10, overflow: 'hidden' }}>
-                        <div style={{ width: `${(total / maxEmployeeTotal) * 100}%`, background: 'var(--violet)', height: '100%' }} />
-                      </div>
-                    </div>
-                  ))}
+                  <PieChart data={employeeTotalsForMonth} />
                 </>
               )}
             </div>
