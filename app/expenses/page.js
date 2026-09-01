@@ -44,7 +44,8 @@ function PieChart({ data }) {
     return {
       name,
       value,
-      path: describeArc(100, 100, 90, startAngle, endAngle),
+      startAngle,
+      endAngle,
       color: PIE_COLORS[idx % PIE_COLORS.length],
       pct: Math.round((value / total) * 100),
     };
@@ -53,9 +54,13 @@ function PieChart({ data }) {
   return (
     <div style={{ display: 'flex', gap: 28, alignItems: 'center', flexWrap: 'wrap' }}>
       <svg width={200} height={200} viewBox="0 0 200 200">
-        {slices.map((s) => (
-          <path key={s.name} d={s.path} fill={s.color} stroke="#fff" strokeWidth={1.5} />
-        ))}
+        {slices.map((s) =>
+          s.endAngle - s.startAngle >= 359.99 ? (
+            <circle key={s.name} cx={100} cy={100} r={90} fill={s.color} stroke="#fff" strokeWidth={1.5} />
+          ) : (
+            <path key={s.name} d={describeArc(100, 100, 90, s.startAngle, s.endAngle)} fill={s.color} stroke="#fff" strokeWidth={1.5} />
+          )
+        )}
       </svg>
       <div style={{ flex: 1, minWidth: 180 }}>
         {slices.map((s) => (
