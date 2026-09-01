@@ -34,11 +34,13 @@ export default function Sidebar({ active }) {
     .slice(0, 2)
     .toUpperCase();
 
-    const links = [
+  const isManagerRole = ['owner', 'admin', 'manager'].includes(role);
+
+  const links = [
     { key: 'dashboard', href: '/dashboard', label: 'My Projects', icon: '📁' },
     { key: 'new-project', href: '/new-project', label: 'New Project', icon: '➕' },
     { key: 'team', href: '/team', label: 'Team & Access', icon: '👥' },
-    ...(['owner', 'admin', 'manager'].includes(role) ? [{ key: 'expenses', href: '/expenses', label: 'Expenses', icon: '💰' }] : []),
+    { key: 'expenses', href: '/expenses', label: isManagerRole ? 'Expenses' : 'My Expenses', icon: '💰' },
     { key: 'profile', href: '/profile', label: 'My Profile', icon: '👤' },
   ];
 
