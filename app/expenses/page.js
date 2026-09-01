@@ -178,7 +178,16 @@ export default function ExpensesPage() {
   }, [expenses, selectedMonth]);
 
   const selectedMonthTotal = employeeTotalsForMonth.reduce((sum, [, v]) => sum + v, 0);
-
+  const categoryTotalsForMonth = useMemo(() => {
+    const map = {};
+    expenses
+      .filter((e) => monthKey(e.expense_date) === selectedMonth)
+      .forEach((e) => {
+        const name = e.category?.trim() || 'Uncategorized';
+        map[name] = (map[name] || 0) + Number(e.amount);
+      });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]);
+  }, [expenses, selectedMonth]);
   if (loading) return <div className="shell"><Sidebar active="expenses" /><div className="main">Loading…</div></div>;
 
   return (
@@ -263,7 +272,7 @@ export default function ExpensesPage() {
               )}
             </div>
 
-            {/* Pie chart breakdown for selected month */}
+                        {/* Pie chart breakdown for selected month */}
             <div className="eyebrow" style={{ marginBottom: 8 }}>
               {selectedMonth ? `Breakdown by Employee — ${monthLabel(selectedMonth)}` : 'Breakdown by Employee'}
             </div>
@@ -279,9 +288,23 @@ export default function ExpensesPage() {
                 </>
               )}
             </div>
-          </>
-        )}
 
+            {/* Category breakdown for selected month */}
+            <div className="eyebrow" style={{ marginBottom: 8 }}>
+              {selectedMonth ? `Breakdown by Category — ${monthLabel(selectedMonth)}` : 'Breakdown by Category'}
+            </div>
+            <div className="card" style={{ marginBottom: 20 }}>
+              {categoryTotalsForMonth.length === 0 ? (
+                <div style={{ color: 'var(--muted)', fontSize: 13 }}>No expenses for this month.</div>
+              ) : (
+                <>
+                  <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 16 }}>
+                    Total: AED {selectedMonthTotal.toLocaleString()}
+                  </div>
+                  <PieChart data={categoryTotalsForMonth} />
+                </>
+              )}
+            </div>
         {/* Entries list */}
         <div className="eyebrow" style={{ marginBottom: 8 }}>
           {isManager ? 'Recent Entries' : 'My Recent Entries'}
