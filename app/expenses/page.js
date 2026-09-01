@@ -6,9 +6,7 @@ import { createClient } from '@/lib/supabaseClient';
 import Sidebar from '@/components/Sidebar';
 
 const MANAGEMENT_ROLES = ['owner', 'admin', 'manager'];
-const PIE_COLORS = ['#6B2D82', '#8F3FA8', '#D8B968', '#3E8E5A', '#9A7213', '#B33A3A', '#4A1863', '#7A3592', '#C9A6E0', '#5C2570'];
-
-function monthKey(dateStr) {
+const PIE_COLORS = ['#6B2D82', '#D8B968', '#3E8E5A', '#2F6FED', '#B33A3A', '#E07A3E', '#1FA2A6', '#C2478B', '#4A1863', '#9A7213'];function monthKey(dateStr) {
   const d = new Date(dateStr);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
