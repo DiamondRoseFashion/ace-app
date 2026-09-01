@@ -305,8 +305,10 @@ export default function ExpensesPage() {
                 </>
               )}
             </div>
-        {/* Entries list */}
-        <div className="eyebrow" style={{ marginBottom: 8 }}>
+          </>
+        )}
+
+        {/* Entries list */}        <div className="eyebrow" style={{ marginBottom: 8 }}>
           {isManager ? 'Recent Entries' : 'My Recent Entries'}
         </div>
         <div className="card" style={{ padding: 0 }}>
