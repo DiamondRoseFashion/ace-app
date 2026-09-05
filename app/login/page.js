@@ -137,15 +137,8 @@ async function handleResetWithCode(e) {
   }
 
   const Mark = () => (
-    <svg className="auth-mark" viewBox="0 0 100 90" aria-hidden="true">
-      <polygon points="50,0 100,30 75,90 25,90 0,30" fill="#C9A6E0" />
-      <polygon points="50,0 75,30 25,30" fill="#8F3FA8" />
-      <polygon points="0,30 25,30 25,90" fill="#6B2D82" />
-      <polygon points="100,30 75,30 75,90" fill="#4A1863" />
-      <polygon points="25,30 75,30 75,90 25,90" fill="#7A3592" />
-    </svg>
+    <img src="/logo.png" alt="ACE" className="auth-logo" />
   );
-
   // ---- Invited user: show "set your password" ----
   if (invitedEmail) {
     return (
