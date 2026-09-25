@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
 import Sidebar from '@/components/Sidebar';
 import {
-  MANAGEMENT_ROLES, REMINDER_OPTIONS, reminderLabel,
+  MANAGEMENT_ROLES, REMINDER_OPTIONS, reminderLabel, DEFAULT_REMINDER, ANYTIME_REMINDER_HOUR,
   todayKey, addDays, weekDays, parseKey, formatTime, formatDayLong, formatDayShort,
   meetingTitle, initials, getPref, setPref, notifyMeetingsChanged, friendlyDbError,
 } from '@/lib/planner';
@@ -435,7 +435,7 @@ export default function PlannerPage() {
                 <div>
                   <label>Reminder</label>
                   <select value={form.reminder_minutes} onChange={(e) => setForm({ ...form, reminder_minutes: e.target.value })}>
-                    <option value="">Default ({reminderLabel(me.reminder_default_minutes ?? 30).toLowerCase()})</option>
+                    <option value="">Default ({reminderLabel(me.reminder_default_minutes ?? DEFAULT_REMINDER).toLowerCase()})</option>
                     {REMINDER_OPTIONS.map((r) => <option key={r.value} value={String(r.value)}>{r.label}</option>)}
                   </select>
                 </div>
@@ -503,6 +503,7 @@ function MeetingRow({ m, showDate, showAssignee, onToggle, onOpen, defaultRemind
             {m.venue && <span>📍 {m.venue}</span>}
             {m.project?.name && <span>📁 {m.project.name}</span>}
             {m.start_time && rem != null && rem >= 0 && !m.is_done && <span>🔔 {reminderLabel(rem).replace(' before', '')}</span>}
+            {!m.start_time && m.assigned_to === meId && m.reminder_minutes !== -1 && !m.is_done && <span>🔔 {ANYTIME_REMINDER_HOUR}:00 AM</span>}
           </span>
         </span>
         {showAssignee && m.assignee?.full_name && (
@@ -514,7 +515,7 @@ function MeetingRow({ m, showDate, showAssignee, onToggle, onOpen, defaultRemind
 }
 
 function ReminderSettings({ me, onClose, onSaved, supabase }) {
-  const [mins, setMins] = useState(String(me.reminder_default_minutes ?? 30));
+  const [mins, setMins] = useState(String(me.reminder_default_minutes ?? DEFAULT_REMINDER));
   const [popup, setPopup] = useState(true);
   const [sound, setSound] = useState(true);
   const [perm, setPerm] = useState('default');
@@ -562,7 +563,7 @@ function ReminderSettings({ me, onClose, onSaved, supabase }) {
           <select value={mins} onChange={(e) => setMins(e.target.value)}>
             {REMINDER_OPTIONS.map((r) => <option key={r.value} value={String(r.value)}>{r.label}</option>)}
           </select>
-          <div className="hint">Each meeting can also have its own reminder time.</div>
+          <div className="hint">Used for any meeting where you didn&apos;t choose a reminder. Each meeting can also have its own time. Meetings without a start time remind you at {ANYTIME_REMINDER_HOUR}:00 AM that day. The alarm keeps ringing until you stop it.</div>
         </div>
 
         <div className="eyebrow" style={{ margin: '18px 0 10px' }}>On this device</div>

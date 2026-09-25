@@ -366,3 +366,5 @@ input:focus, select:focus, textarea:focus{
 
 .day-strip.week-mode{visibility:hidden; height:0; overflow:hidden;}
 @media (max-width: 768px){ .day-strip.week-mode{display:none;} }
+.btn-stop{background:var(--gold); color:#2A0C3B; box-shadow:0 2px 10px rgba(216,185,104,.35);}
+.btn-stop:hover{background:#E6C97A;}
