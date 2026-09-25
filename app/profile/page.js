@@ -74,13 +74,16 @@ export default function MyProfile() {
     // Cache-bust so the new picture shows immediately instead of a stale cached one
     const freshUrl = `${publicUrlData.publicUrl}?t=${Date.now()}`;
 
-    const { error: updateError } = await supabase
+    const { data: updated, error: updateError } = await supabase
       .from('profiles')
       .update({ avatar_url: freshUrl })
-      .eq('id', userId);
+      .eq('id', userId)
+      .select('id');
 
     if (updateError) {
       setError(updateError.message);
+    } else if (!updated || updated.length === 0) {
+      setError('Your photo was uploaded but could not be saved to your profile. Please contact an admin.');
     } else {
       setAvatarUrl(freshUrl);
     }
@@ -93,17 +96,20 @@ export default function MyProfile() {
     setSuccess('');
     setSaving(true);
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
       .update({
         full_name: fullName.trim(),
         phone: phone.trim(),
         designation: designation.trim(),
       })
-      .eq('id', userId);
+      .eq('id', userId)
+      .select('id');
 
     if (error) {
       setError(error.message);
+    } else if (!data || data.length === 0) {
+      setError('Your changes could not be saved. Please contact an admin.');
     } else {
       setSuccess('Profile updated.');
     }
