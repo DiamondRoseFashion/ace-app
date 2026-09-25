@@ -488,7 +488,8 @@ export default function ProjectDetail() {
             </>
           ) : meetings.length === 0 ? <Empty text="No meetings logged yet." /> : meetings.map((m) => (
             <div key={m.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--line)', fontSize: 13.5 }}>
-              <strong>{m.meeting_date || 'Undated'}</strong>{m.venue ? ` at ${m.venue}` : ''}
+              {m.title && <div style={{ fontWeight: 600 }}>{m.title}{m.is_done ? ' ✓' : ''}</div>}
+              <strong>{m.meeting_date || 'Undated'}</strong>{m.start_time ? `, ${m.start_time.slice(0, 5)}` : ''}{m.venue ? ` at ${m.venue}` : ''}
               {m.notes && <div style={{ fontSize: 12.5, marginTop: 2 }}>{m.notes}</div>}
               {m.actions && <div style={{ fontSize: 12.5, color: 'var(--violet-2)', marginTop: 2 }}>Actions: {m.actions}</div>}
             </div>

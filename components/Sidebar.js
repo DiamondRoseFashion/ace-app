@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
+import MeetingReminder from '@/components/MeetingReminder';
 
 export default function Sidebar({ active }) {
   const router = useRouter();
@@ -39,6 +40,7 @@ export default function Sidebar({ active }) {
   const links = [
     { key: 'dashboard', href: '/dashboard', label: 'My Projects', icon: '📁' },
     { key: 'new-project', href: '/new-project', label: 'New Project', icon: '➕' },
+    { key: 'planner', href: '/planner', label: 'Meetings', icon: '📅' },
     { key: 'team', href: '/team', label: 'Team & Access', icon: '👥' },
     { key: 'expenses', href: '/expenses', label: isManagerRole ? 'Expenses' : 'My Expenses', icon: '💰' },
     { key: 'profile', href: '/profile', label: 'My Profile', icon: '👤' },
@@ -46,6 +48,7 @@ export default function Sidebar({ active }) {
 
   return (
     <div className="sidebar">
+      <MeetingReminder />
       <div className="sidebar-top">
         <img src="/logo.png" alt="ACE" className="sidebar-logo" />
         <button
