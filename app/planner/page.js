@@ -9,6 +9,7 @@ import {
   todayKey, addDays, weekDays, parseKey, formatTime, formatDayLong, formatDayShort,
   meetingTitle, initials, getPref, setPref, notifyMeetingsChanged, friendlyDbError,
 } from '@/lib/planner';
+import { enablePush, disablePush, pushStatus } from '@/lib/pushClient';
 
 const SELECT = '*, project:projects(id, name), assignee:profiles!assigned_to(id, full_name)';
 
@@ -518,7 +519,9 @@ function ReminderSettings({ me, onClose, onSaved, supabase }) {
   const [mins, setMins] = useState(String(me.reminder_default_minutes ?? DEFAULT_REMINDER));
   const [popup, setPopup] = useState(true);
   const [sound, setSound] = useState(true);
-  const [perm, setPerm] = useState('default');
+  const [push, setPush] = useState('checking'); // on | off | denied | unsupported | needs-home-screen
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushMsg, setPushMsg] = useState('');
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
   const [saving, setSaving] = useState(false);
@@ -526,7 +529,7 @@ function ReminderSettings({ me, onClose, onSaved, supabase }) {
   useEffect(() => {
     setPopup(getPref('alarm-popup', true));
     setSound(getPref('alarm-sound', true));
-    setPerm(typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'unsupported');
+    pushStatus().then(setPush).catch(() => setPush('unsupported'));
   }, []);
 
   async function save() {
@@ -544,10 +547,39 @@ function ReminderSettings({ me, onClose, onSaved, supabase }) {
     setMsg('Saved.');
   }
 
-  async function enableNotifications() {
-    if (!('Notification' in window)) return;
-    const p = await Notification.requestPermission();
-    setPerm(p);
+  async function turnOnPush() {
+    setPushMsg(''); setPushBusy(true);
+    try {
+      const r = await enablePush(supabase);
+      setPush(r);
+      if (r === 'on') setPushMsg('✅ This device will now get meeting reminders, even when ACE is closed.');
+    } catch (e) {
+      setPushMsg(friendlyDbError(e.message) || 'Could not turn on notifications.');
+    }
+    setPushBusy(false);
+  }
+
+  async function turnOffPush() {
+    setPushMsg(''); setPushBusy(true);
+    try { await disablePush(supabase); setPush('off'); setPushMsg('Notifications turned off for this device.'); } catch { /* ignore */ }
+    setPushBusy(false);
+  }
+
+  async function sendTest() {
+    setPushMsg(''); setPushBusy(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/push-test', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${session?.access_token || ''}` },
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) setPushMsg(body.error || 'Could not send a test.');
+      else setPushMsg(`Test sent to ${body.delivered} of your device${body.devices === 1 ? '' : 's'}. It should appear within a few seconds.`);
+    } catch {
+      setPushMsg('Could not send a test.');
+    }
+    setPushBusy(false);
   }
 
   return (
@@ -577,17 +609,27 @@ function ReminderSettings({ me, onClose, onSaved, supabase }) {
         </label>
 
         <div className="notif-box">
-          <div style={{ fontWeight: 600, marginBottom: 4 }}>Phone &amp; computer notifications</div>
-          {perm === 'granted' && <div className="hint">✅ Notifications are on for this device.</div>}
-          {perm === 'denied' && <div className="hint">Notifications are blocked for ACE in this browser. Allow them in the browser&apos;s site settings, then reload.</div>}
-          {perm === 'unsupported' && <div className="hint">This browser can&apos;t show notifications. On iPhone, add ACE to your Home Screen first (Share → Add to Home Screen) and open it from there.</div>}
-          {perm === 'default' && (
+          <div style={{ fontWeight: 600, marginBottom: 4 }}>Reminders when ACE is closed</div>
+          {push === 'checking' && <div className="hint">Checking this device…</div>}
+          {push === 'on' && (
             <>
-              <div className="hint" style={{ marginBottom: 8 }}>Show reminders as a system notification even when ACE is in the background.</div>
-              <button type="button" className="btn btn-ghost" onClick={enableNotifications}>Turn on notifications</button>
+              <div className="hint">✅ On for this device. Reminders arrive as a phone/computer notification even when ACE is closed.</div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                <button type="button" className="btn btn-ghost" disabled={pushBusy} onClick={sendTest}>Send test notification</button>
+                <button type="button" className="btn btn-ghost danger-text" disabled={pushBusy} onClick={turnOffPush}>Turn off on this device</button>
+              </div>
             </>
           )}
-          <div className="hint" style={{ marginTop: 8 }}>For now, reminders work while ACE is open in a tab or on your home screen. Alerts when the app is fully closed are coming next.</div>
+          {push === 'off' && (
+            <>
+              <div className="hint" style={{ marginBottom: 8 }}>Get meeting reminders on this phone or computer even when ACE is closed.</div>
+              <button type="button" className="btn btn-primary" disabled={pushBusy} onClick={turnOnPush}>{pushBusy ? 'Turning on…' : 'Turn on notifications'}</button>
+            </>
+          )}
+          {push === 'denied' && <div className="hint">Notifications are blocked for ACE in this browser. Tap the icon to the left of the web address → Site settings → Notifications → Allow, then reload ACE.</div>}
+          {push === 'needs-home-screen' && <div className="hint">On iPhone: tap the Share button <strong>⬆︎</strong> in Safari → <strong>Add to Home Screen</strong>. Then open ACE from its new icon and come back here to turn on notifications.</div>}
+          {push === 'unsupported' && <div className="hint">This browser can&apos;t receive background notifications. Please use Chrome, Edge or Safari (on iPhone, from the Home Screen icon).</div>}
+          {pushMsg && <div className="hint" style={{ marginTop: 8, color: 'var(--ink)' }}>{pushMsg}</div>}
         </div>
 
         {err && <div className="error-text" style={{ marginBottom: 10 }}>{err}</div>}

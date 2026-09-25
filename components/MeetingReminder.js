@@ -13,6 +13,7 @@ import {
   todayKey, addDays, parseKey, meetingStart, meetingTitle, formatTime, getPref,
   DEFAULT_REMINDER, ANYTIME_REMINDER_HOUR,
 } from '@/lib/planner';
+import { syncPush } from '@/lib/pushClient';
 
 const CHECK_EVERY_MS = 15 * 1000;
 const RELOAD_EVERY_MS = 2 * 60 * 1000;
@@ -245,6 +246,9 @@ export default function MeetingReminder() {
       navigator.serviceWorker.register('/sw.js').catch(() => {});
     }
     load();
+    syncPush(supabase());
+    const onSwMessage = (e) => { if (e.data?.type === 'ace-reminder') load(); };
+    try { navigator.serviceWorker?.addEventListener('message', onSwMessage); } catch { /* ignore */ }
     const checkTimer = setInterval(check, CHECK_EVERY_MS);
     const reloadTimer = setInterval(load, RELOAD_EVERY_MS);
     const onChange = () => load();
@@ -273,6 +277,7 @@ export default function MeetingReminder() {
       window.removeEventListener('ace-meetings-changed', onChange);
       window.removeEventListener('ace-test-alarm', onTest);
       document.removeEventListener('visibilitychange', onVisible);
+      try { navigator.serviceWorker?.removeEventListener('message', onSwMessage); } catch { /* ignore */ }
       stopAlarmSound(); // the next page's sidebar picks the alarm back up
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
