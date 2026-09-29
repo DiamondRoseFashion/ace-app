@@ -298,7 +298,7 @@ export default function MeetingReminder() {
               {m.start_time ? formatTime(m.start_time) : 'Anytime'}
               {m.end_time ? ` – ${formatTime(m.end_time)}` : ''}
               {m.venue ? ` · 📍 ${m.venue}` : ''}
-              {m.project?.name ? ` · 📁 ${m.project.name}` : ''}
+              {(m.project?.name || m.project_name) ? ` · 📁 ${m.project?.name || m.project_name}` : ''}
             </div>
             <div className="reminder-actions">
               <button className="btn btn-stop" onClick={() => close(m, { markSeen: true })}>🔕 Stop</button>

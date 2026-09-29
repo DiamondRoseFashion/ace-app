@@ -8,7 +8,7 @@ import {
   MANAGEMENT_ROLES, REMINDER_OPTIONS, reminderLabel, DEFAULT_REMINDER, ANYTIME_REMINDER_HOUR,
   todayKey, addDays, weekDays, parseKey, formatTime, formatDayLong, formatDayShort,
   meetingTitle, initials, getPref, setPref, notifyMeetingsChanged, friendlyDbError,
-  STATUSES, statusOf, statusLabel, isOverdue, matchesStatus,
+  STATUSES, statusOf, statusLabel, isOverdue, matchesStatus, projectLabel,
 } from '@/lib/planner';
 import { enablePush, disablePush, pushStatus } from '@/lib/pushClient';
 import { buildCalendar } from '@/lib/ics';
@@ -45,7 +45,7 @@ const STATUS_GROUP_ORDER = ['overdue', 'pending', 'completed', 'postponed', 'can
 function emptyForm(date, assignedTo) {
   return {
     id: null, title: '', meeting_date: date, start_time: '', end_time: '',
-    venue: '', project_id: '', assigned_to: assignedTo || '', reminder_minutes: '',
+    venue: '', project_id: '', projectText: '', projectTouched: false, assigned_to: assignedTo || '', reminder_minutes: '',
     notes: '', actions: '', status: 'pending', originalStatus: 'pending',
   };
 }
@@ -59,6 +59,8 @@ function toForm(m) {
     end_time: m.end_time ? m.end_time.slice(0, 5) : '',
     venue: m.venue || '',
     project_id: m.project_id || '',
+    projectText: projectLabel(m),
+    projectTouched: false,
     assigned_to: m.assigned_to || '',
     reminder_minutes: m.reminder_minutes == null ? '' : String(m.reminder_minutes),
     notes: m.notes || '',
@@ -124,7 +126,7 @@ function downloadCsv(rows, filename) {
   const lines = [head.join(',')].concat(rows.map((m) => [
     m.meeting_date, m.start_time ? m.start_time.slice(0, 5) : '', m.end_time ? m.end_time.slice(0, 5) : '',
     meetingTitle(m), m.assignee?.full_name || '', isOverdue(m, now) ? 'Overdue' : statusLabel(statusOf(m)),
-    m.project?.name || '', m.venue || '', m.notes || '', m.actions || '',
+    projectLabel(m), m.venue || '', m.notes || '', m.actions || '',
   ].map(esc).join(',')));
   // BOM so Excel reads Arabic and other characters correctly
   const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
@@ -303,12 +305,20 @@ export default function PlannerPage() {
       start_time: form.start_time || null,
       end_time: form.end_time || null,
       venue: form.venue.trim() || null,
-      project_id: form.project_id || null,
       reminder_minutes: form.reminder_minutes === '' ? null : Number(form.reminder_minutes),
       notes: form.notes.trim() || null,
       actions: form.actions.trim() || null,
     };
     if (form.status !== form.originalStatus) payload.status = form.status;
+    // Project: only send it when it was changed (or for a new meeting), so
+    // editing a meeting linked to a project you can't see never unlinks it.
+    if (!form.id || form.projectTouched) {
+      const text = form.projectText.trim();
+      const match = text && projects.find((p) => p.name.trim().toLowerCase() === text.toLowerCase());
+      if (match) { payload.project_id = match.id; payload.project_name = null; }
+      else if (text) { payload.project_id = null; payload.project_name = text; }
+      else { payload.project_id = null; payload.project_name = null; }
+    }
     if (isManager && form.assigned_to) payload.assigned_to = form.assigned_to;
 
     setSaving(true);
@@ -343,10 +353,11 @@ export default function PlannerPage() {
   const q = search.trim().toLowerCase();
   const passesOther = (m) => {
     if (!isManager) return true;
-    if (projectFilter === 'none' && m.project_id) return false;
-    if (projectFilter !== 'all' && projectFilter !== 'none' && m.project_id !== projectFilter) return false;
+    if (projectFilter === 'none' && projectLabel(m)) return false;
+    if (projectFilter.startsWith('id:') && m.project_id !== projectFilter.slice(3)) return false;
+    if (projectFilter.startsWith('name:') && (m.project_id || (m.project_name || '').trim().toLowerCase() !== projectFilter.slice(5))) return false;
     if (q) {
-      const hay = [meetingTitle(m), m.venue, m.notes, m.actions, m.project?.name, m.assignee?.full_name]
+      const hay = [meetingTitle(m), m.venue, m.notes, m.actions, projectLabel(m), m.assignee?.full_name]
         .filter(Boolean).join(' ').toLowerCase();
       if (!hay.includes(q)) return false;
     }
@@ -370,6 +381,17 @@ export default function PlannerPage() {
     return map;
   }, [visible]);
   const showAssignee = isManager && effectiveWho !== 'mine';
+
+  // project names typed on meetings (not in the Projects list), for the filter
+  const typedProjects = useMemo(() => {
+    const map = new Map();
+    meetings.forEach((m) => {
+      if (m.project_id || !m.project_name?.trim()) return;
+      const key = m.project_name.trim().toLowerCase();
+      if (!map.has(key)) map.set(key, { key, label: m.project_name.trim() });
+    });
+    return [...map.values()].sort((a, b) => a.label.localeCompare(b.label));
+  }, [meetings]);
 
   // summary (status filter not applied, so the numbers always add up)
   const base = meetings.filter(passesOther);
@@ -481,7 +503,12 @@ export default function PlannerPage() {
                 <select value={projectFilter} onChange={(e) => setProjectFilter(e.target.value)}>
                   <option value="all">All projects</option>
                   <option value="none">No project</option>
-                  {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  {projects.map((p) => <option key={p.id} value={`id:${p.id}`}>{p.name}</option>)}
+                  {typedProjects.length > 0 && (
+                    <optgroup label="Typed on meetings">
+                      {typedProjects.map((n) => <option key={n.key} value={`name:${n.key}`}>{n.label}</option>)}
+                    </optgroup>
+                  )}
                 </select>
               </label>
               <label className="fb-field fb-search">
@@ -786,10 +813,11 @@ export default function PlannerPage() {
                 </div>
                 <div>
                   <label>Project <span className="optional">(optional)</span></label>
-                  <select value={form.project_id} onChange={(e) => setForm({ ...form, project_id: e.target.value })}>
-                    <option value="">No project</option>
-                    {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                  </select>
+                  <ProjectPicker
+                    value={form.projectText}
+                    projects={projects}
+                    onChange={(text) => setForm({ ...form, projectText: text, projectTouched: true })}
+                  />
                 </div>
               </div>
               <div className="form-row-2" style={{ marginBottom: 14 }}>
@@ -969,6 +997,84 @@ function OutlookConnect({ supabase, onClose }) {
   );
 }
 
+// Type-or-pick project box: suggests matching projects from the list,
+// and lets you keep a new name that isn't in the list.
+function ProjectPicker({ value, projects, onChange }) {
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(-1);
+  const wrapRef = useRef(null);
+  const text = value.trim().toLowerCase();
+  const matches = projects
+    .filter((p) => !text || p.name.toLowerCase().includes(text))
+    .slice(0, 8);
+  const exact = text && projects.some((p) => p.name.trim().toLowerCase() === text);
+  const options = [
+    ...matches.map((p) => ({ type: 'project', label: p.name })),
+    ...(text && !exact ? [{ type: 'new', label: value.trim() }] : []),
+  ];
+
+  useEffect(() => {
+    function onDoc(e) { if (wrapRef.current && !wrapRef.current.contains(e.target)) setOpen(false); }
+    document.addEventListener('mousedown', onDoc);
+    document.addEventListener('touchstart', onDoc);
+    return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('touchstart', onDoc); };
+  }, []);
+
+  function choose(o) {
+    onChange(o.label);
+    setOpen(false);
+    setActive(-1);
+  }
+
+  function onKeyDown(e) {
+    if (!open && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) { setOpen(true); return; }
+    if (e.key === 'ArrowDown') { e.preventDefault(); setActive((i) => Math.min(i + 1, options.length - 1)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setActive((i) => Math.max(i - 1, 0)); }
+    else if (e.key === 'Enter' && open && active >= 0 && options[active]) { e.preventDefault(); choose(options[active]); }
+    else if (e.key === 'Escape') { setOpen(false); }
+  }
+
+  return (
+    <div className="pp" ref={wrapRef}>
+      <div className="pp-input">
+        <input
+          value={value}
+          onChange={(e) => { onChange(e.target.value); setOpen(true); setActive(-1); }}
+          onFocus={() => setOpen(true)}
+          onKeyDown={onKeyDown}
+          placeholder={projects.length ? 'Pick a project or type a name' : 'Type a project name'}
+          role="combobox"
+          aria-expanded={open}
+          aria-autocomplete="list"
+          aria-label="Project"
+          autoComplete="off"
+        />
+        {value && (
+          <button type="button" className="pp-clear" aria-label="Clear project" onClick={() => { onChange(''); setOpen(false); }}>✕</button>
+        )}
+      </div>
+      {open && (options.length > 0 || !value) && (
+        <div className="pp-menu" role="listbox">
+          {options.map((o, i) => (
+            <button
+              type="button"
+              key={`${o.type}-${o.label}`}
+              role="option"
+              aria-selected={i === active}
+              className={`pp-opt${i === active ? ' active' : ''}${o.type === 'new' ? ' pp-new' : ''}`}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => choose(o)}
+            >
+              {o.type === 'new' ? <>＋ Use “{o.label}”<span className="pp-sub">new name, not in Projects</span></> : <>📁 {o.label}</>}
+            </button>
+          ))}
+          {options.length === 0 && <div className="pp-empty">No projects yet. Type a name to use one.</div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MeetingRow({ m, showDate, showAssignee, onToggle, onOpen, defaultReminder, meId, nowMs }) {
   const status = statusOf(m);
   const overdue = isOverdue(m, nowMs);
@@ -1000,7 +1106,7 @@ function MeetingRow({ m, showDate, showAssignee, onToggle, onOpen, defaultRemind
           <span className="mr-meta">
             {showDate && <span>{formatDayLong(m.meeting_date)}</span>}
             {m.venue && <span>📍 {m.venue}</span>}
-            {m.project?.name && <span>📁 {m.project.name}</span>}
+            {projectLabel(m) && <span>📁 {projectLabel(m)}</span>}
             {active && !overdue && m.start_time && rem != null && rem >= 0 && <span>🔔 {reminderLabel(rem).replace(' before', '')}</span>}
             {active && !overdue && !m.start_time && m.assigned_to === meId && m.reminder_minutes !== -1 && <span>🔔 {ANYTIME_REMINDER_HOUR}:00 AM</span>}
           </span>
