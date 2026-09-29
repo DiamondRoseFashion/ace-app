@@ -271,7 +271,7 @@ export default function ProjectDetail() {
   return (
     <div className="shell">
       <Sidebar active="dashboard" />
-      <div className="main" style={{ maxWidth: 820 }}>
+      <div className="main" style={{ maxWidth: 1200 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
           {editing ? (
             <div style={{ flex: 1, marginRight: 20 }}>
