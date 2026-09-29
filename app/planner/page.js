@@ -8,17 +8,45 @@ import {
   MANAGEMENT_ROLES, REMINDER_OPTIONS, reminderLabel, DEFAULT_REMINDER, ANYTIME_REMINDER_HOUR,
   todayKey, addDays, weekDays, parseKey, formatTime, formatDayLong, formatDayShort,
   meetingTitle, initials, getPref, setPref, notifyMeetingsChanged, friendlyDbError,
+  STATUSES, statusOf, statusLabel, isOverdue, matchesStatus,
 } from '@/lib/planner';
 import { enablePush, disablePush, pushStatus } from '@/lib/pushClient';
 import { buildCalendar } from '@/lib/ics';
 
 const SELECT = '*, project:projects(id, name), assignee:profiles!assigned_to(id, full_name)';
 
+const STATUS_FILTERS = [
+  { value: 'all', label: 'All' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'overdue', label: 'Overdue' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'postponed', label: 'Postponed' },
+  { value: 'cancelled', label: 'Cancelled' },
+];
+
+const RANGES = [
+  { value: 'today', label: 'Today' },
+  { value: 'week', label: 'This week' },
+  { value: 'month', label: 'This month' },
+  { value: 'last30', label: 'Last 30 days' },
+  { value: 'next30', label: 'Next 30 days' },
+  { value: 'custom', label: 'Custom dates…' },
+];
+
+const GROUPS = [
+  { value: 'employee', label: 'Employee' },
+  { value: 'date', label: 'Date' },
+  { value: 'status', label: 'Status' },
+  { value: 'none', label: 'No grouping' },
+];
+
+const STATUS_GROUP_ORDER = ['overdue', 'pending', 'completed', 'postponed', 'cancelled'];
+
 function emptyForm(date, assignedTo) {
   return {
     id: null, title: '', meeting_date: date, start_time: '', end_time: '',
     venue: '', project_id: '', assigned_to: assignedTo || '', reminder_minutes: '',
-    notes: '', actions: '',
+    notes: '', actions: '', status: 'pending', originalStatus: 'pending',
   };
 }
 
@@ -35,6 +63,8 @@ function toForm(m) {
     reminder_minutes: m.reminder_minutes == null ? '' : String(m.reminder_minutes),
     notes: m.notes || '',
     actions: m.actions || '',
+    status: statusOf(m),
+    originalStatus: statusOf(m),
   };
 }
 
@@ -46,13 +76,66 @@ function partOfDay(m) {
   return 'Evening';
 }
 
-function sortMeetings(list) {
-  return [...list].sort((a, b) => {
+function sortMeetings(list, newestFirst = false) {
+  const sorted = [...list].sort((a, b) => {
     if (a.meeting_date !== b.meeting_date) return a.meeting_date < b.meeting_date ? -1 : 1;
     if (!a.start_time && b.start_time) return 1;
     if (a.start_time && !b.start_time) return -1;
     return (a.start_time || '') < (b.start_time || '') ? -1 : 1;
   });
+  return newestFirst ? sorted.reverse() : sorted;
+}
+
+function monthBounds(key) {
+  const d = parseKey(key);
+  const first = new Date(d.getFullYear(), d.getMonth(), 1);
+  const last = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+  const k = (x) => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
+  return [k(first), k(last)];
+}
+
+function rangeDates(range, today, customFrom, customTo) {
+  switch (range) {
+    case 'today': return [today, today];
+    case 'week': { const w = weekDays(today); return [w[0], w[6]]; }
+    case 'month': return monthBounds(today);
+    case 'last30': return [addDays(today, -29), today];
+    case 'next30': return [today, addDays(today, 29)];
+    case 'custom': {
+      const from = customFrom || today;
+      const to = customTo && customTo >= from ? customTo : from;
+      return [from, to];
+    }
+    default: return [today, today];
+  }
+}
+
+function shortDate(key) {
+  return parseKey(key).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function downloadCsv(rows, filename) {
+  const head = ['Date', 'Start', 'End', 'Title', 'Employee', 'Status', 'Project', 'Venue', 'Notes', 'Course of actions'];
+  const esc = (v) => {
+    const t = v == null ? '' : String(v);
+    return /[",\n\r]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+  };
+  const now = Date.now();
+  const lines = [head.join(',')].concat(rows.map((m) => [
+    m.meeting_date, m.start_time ? m.start_time.slice(0, 5) : '', m.end_time ? m.end_time.slice(0, 5) : '',
+    meetingTitle(m), m.assignee?.full_name || '', isOverdue(m, now) ? 'Overdue' : statusLabel(statusOf(m)),
+    m.project?.name || '', m.venue || '', m.notes || '', m.actions || '',
+  ].map(esc).join(',')));
+  // BOM so Excel reads Arabic and other characters correctly
+  const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
 export default function PlannerPage() {
@@ -64,13 +147,24 @@ export default function PlannerPage() {
   const [me, setMe] = useState(null); // { id, role, full_name, reminder_default_minutes }
   const [people, setPeople] = useState([]);
   const [projects, setProjects] = useState([]);
-  const [view, setView] = useState('day');
+  const [view, setView] = useState('day'); // day | week | list (list: management only)
   const [date, setDate] = useState(todayKey());
-  const [who, setWho] = useState('mine');
   const [meetings, setMeetings] = useState([]);
   const [carryOver, setCarryOver] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pageError, setPageError] = useState('');
+  const [nowMs, setNowMs] = useState(Date.now());
+
+  // management filters
+  const [who, setWho] = useState('mine'); // 'mine' | 'all' | <profile id>
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [projectFilter, setProjectFilter] = useState('all'); // 'all' | 'none' | <project id>
+  const [search, setSearch] = useState('');
+  const [range, setRange] = useState('week');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
+  const [groupBy, setGroupBy] = useState('employee');
+  const [newestFirst, setNewestFirst] = useState(false);
 
   const [quickTitle, setQuickTitle] = useState('');
   const [quickTime, setQuickTime] = useState('');
@@ -84,12 +178,14 @@ export default function PlannerPage() {
   const isManager = MANAGEMENT_ROLES.includes(me?.role);
   const today = todayKey();
   const days = useMemo(() => weekDays(date), [date]);
-  // always load the whole week so the day strip can show which days have meetings
-  const rangeFrom = days[0];
-  const rangeTo = days[6];
+  const [listFrom, listTo] = rangeDates(range, today, customFrom, customTo);
+  // day & week load the whole week so the day strip can show which days have meetings
+  const rangeFrom = view === 'list' ? listFrom : days[0];
+  const rangeTo = view === 'list' ? listTo : days[6];
 
-  // who we're viewing: 'mine' | 'all' | <profile id>
-  const filterId = who === 'mine' ? me?.id : who === 'all' ? null : who;
+  // Employees only ever see their own meetings
+  const effectiveWho = isManager ? who : 'mine';
+  const filterId = effectiveWho === 'mine' ? me?.id : effectiveWho === 'all' ? null : effectiveWho;
 
   useEffect(() => {
     (async () => {
@@ -108,6 +204,8 @@ export default function PlannerPage() {
       setProjects(projs || []);
       setPeople(ppl || []);
     })();
+    const tick = setInterval(() => setNowMs(Date.now()), 60 * 1000); // keeps "Overdue" current
+    return () => clearInterval(tick);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -122,11 +220,11 @@ export default function PlannerPage() {
     setMeetings(sortMeetings(data || []));
 
     // Any.do-style "still to do": your own unfinished meetings from the last week
-    if (view === 'day' && date === today && who === 'mine') {
+    if (view === 'day' && date === today && effectiveWho === 'mine') {
       const { data: past } = await supabase.from('meetings').select(SELECT)
         .eq('assigned_to', me.id).eq('is_done', false).not('start_time', 'is', null)
         .gte('meeting_date', addDays(today, -7)).lt('meeting_date', today);
-      setCarryOver(sortMeetings(past || []));
+      setCarryOver(sortMeetings((past || []).filter((m) => statusOf(m) === 'pending')));
     } else {
       setCarryOver([]);
     }
@@ -136,7 +234,7 @@ export default function PlannerPage() {
   useEffect(() => {
     loadMeetings();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [me, view, rangeFrom, date === today, who]);
+  }, [me, view, rangeFrom, rangeTo, date === today, effectiveWho]);
 
   useEffect(() => {
     const onChange = () => loadMeetings();
@@ -145,11 +243,16 @@ export default function PlannerPage() {
   });
 
   // ---------- actions ----------
-  async function toggleDone(m) {
-    const next = !m.is_done;
-    const patch = (list) => list.map((x) => (x.id === m.id ? { ...x, is_done: next } : x));
+  function patchLocal(id, fields) {
+    const patch = (list) => list.map((x) => (x.id === id ? { ...x, ...fields } : x));
     setMeetings(patch);
     setCarryOver(patch);
+  }
+
+  async function toggleDone(m) {
+    const next = statusOf(m) !== 'completed';
+    patchLocal(m.id, { is_done: next, status: next ? 'completed' : 'pending' });
+    // the tick-box updates is_done; the database keeps status in step
     const { error } = await supabase.from('meetings').update({ is_done: next }).eq('id', m.id);
     if (error) { setPageError(friendlyDbError(error.message)); loadMeetings(); return; }
     notifyMeetingsChanged();
@@ -176,7 +279,7 @@ export default function PlannerPage() {
     setFormError('');
     setConfirmDelete(false);
     const assignee = isManager && filterId ? filterId : me.id;
-    setForm(emptyForm(forDate || date, assignee));
+    setForm(emptyForm(forDate || (view === 'list' ? today : date), assignee));
   }
 
   function openEdit(m) {
@@ -205,6 +308,7 @@ export default function PlannerPage() {
       notes: form.notes.trim() || null,
       actions: form.actions.trim() || null,
     };
+    if (form.status !== form.originalStatus) payload.status = form.status;
     if (isManager && form.assigned_to) payload.assigned_to = form.assigned_to;
 
     setSaving(true);
@@ -229,26 +333,109 @@ export default function PlannerPage() {
     loadMeetings();
   }
 
+  function clearFilters() {
+    setStatusFilter('all');
+    setProjectFilter('all');
+    setSearch('');
+  }
+
   // ---------- derived ----------
-  const dayMeetings = meetings.filter((m) => m.meeting_date === date);
-  const doneCount = dayMeetings.filter((m) => m.is_done).length;
+  const q = search.trim().toLowerCase();
+  const passesOther = (m) => {
+    if (!isManager) return true;
+    if (projectFilter === 'none' && m.project_id) return false;
+    if (projectFilter !== 'all' && projectFilter !== 'none' && m.project_id !== projectFilter) return false;
+    if (q) {
+      const hay = [meetingTitle(m), m.venue, m.notes, m.actions, m.project?.name, m.assignee?.full_name]
+        .filter(Boolean).join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  };
+  const passes = (m) => passesOther(m) && (!isManager || matchesStatus(m, statusFilter, nowMs));
+
+  const visible = meetings.filter(passes);
+  const visibleCarry = carryOver.filter(passes);
+  const filtersActive = isManager && (statusFilter !== 'all' || projectFilter !== 'all' || q);
+
+  const dayMeetings = visible.filter((m) => m.meeting_date === date);
+  const dayActive = dayMeetings.filter((m) => ['pending', 'completed'].includes(statusOf(m)));
+  const doneCount = dayActive.filter((m) => statusOf(m) === 'completed').length;
   const groups = ['Morning', 'Afternoon', 'Evening', 'Anytime']
     .map((name) => ({ name, items: dayMeetings.filter((m) => partOfDay(m) === name) }))
     .filter((g) => g.items.length > 0);
   const countByDay = useMemo(() => {
     const map = {};
-    meetings.forEach((m) => { map[m.meeting_date] = (map[m.meeting_date] || 0) + 1; });
+    visible.forEach((m) => { map[m.meeting_date] = (map[m.meeting_date] || 0) + 1; });
     return map;
-  }, [meetings]);
-  const showAssignee = isManager && who !== 'mine';
+  }, [visible]);
+  const showAssignee = isManager && effectiveWho !== 'mine';
 
-  const heading = view === 'week'
-    ? `${parseKey(days[0]).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} – ${parseKey(days[6]).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
-    : date === today ? (who === 'mine' ? 'My Day' : 'Today') : formatDayLong(date);
+  // summary (status filter not applied, so the numbers always add up)
+  const base = meetings.filter(passesOther);
+  const stats = {
+    total: base.length,
+    completed: base.filter((m) => statusOf(m) === 'completed').length,
+    pending: base.filter((m) => statusOf(m) === 'pending').length,
+    overdue: base.filter((m) => isOverdue(m, nowMs)).length,
+    postponed: base.filter((m) => statusOf(m) === 'postponed').length,
+    cancelled: base.filter((m) => statusOf(m) === 'cancelled').length,
+  };
+  const countable = stats.completed + stats.pending;
+  const completionRate = countable ? Math.round((stats.completed / countable) * 100) : null;
+
+  // list view grouping
+  const listItems = sortMeetings(visible, newestFirst);
+  let listGroups = [];
+  if (view === 'list') {
+    if (groupBy === 'employee') {
+      const map = new Map();
+      listItems.forEach((m) => {
+        const name = m.assignee?.full_name || 'Unassigned';
+        if (!map.has(name)) map.set(name, []);
+        map.get(name).push(m);
+      });
+      listGroups = [...map.entries()]
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([name, items]) => ({ key: name, title: name, avatar: initials(name), items }));
+    } else if (groupBy === 'date') {
+      const map = new Map();
+      listItems.forEach((m) => {
+        if (!map.has(m.meeting_date)) map.set(m.meeting_date, []);
+        map.get(m.meeting_date).push(m);
+      });
+      listGroups = [...map.entries()].map(([d, items]) => ({
+        key: d, title: `${formatDayLong(d)}${d === today ? ' · Today' : ''}`, items,
+      }));
+    } else if (groupBy === 'status') {
+      listGroups = STATUS_GROUP_ORDER.map((st) => ({
+        key: st,
+        title: st === 'pending' ? 'Upcoming' : statusLabel(st),
+        pill: st,
+        items: listItems.filter((m) => (st === 'overdue' ? isOverdue(m, nowMs)
+          : st === 'pending' ? statusOf(m) === 'pending' && !isOverdue(m, nowMs)
+            : statusOf(m) === st)),
+      })).filter((g) => g.items.length > 0);
+    } else {
+      listGroups = listItems.length ? [{ key: 'all', title: null, items: listItems }] : [];
+    }
+  }
+
+  const whoLabel = effectiveWho === 'mine' ? 'My meetings'
+    : effectiveWho === 'all' ? 'All employees'
+      : (people.find((p) => p.id === effectiveWho)?.full_name || 'Employee');
+
+  const heading = view === 'list'
+    ? 'Meetings overview'
+    : view === 'week'
+      ? `${parseKey(days[0]).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} – ${parseKey(days[6]).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
+      : date === today ? (effectiveWho === 'mine' ? 'My Day' : 'Today') : formatDayLong(date);
 
   if (!me) {
     return <div className="shell"><Sidebar active="planner" /><div className="main">Loading…</div></div>;
   }
+
+  const rowProps = { onToggle: toggleDone, onOpen: openEdit, defaultReminder: me.reminder_default_minutes, meId: me.id, nowMs };
 
   return (
     <div className="shell">
@@ -258,14 +445,16 @@ export default function PlannerPage() {
           <div>
             <div className="eyebrow">Meetings Planner</div>
             <h1 style={{ fontSize: 30, marginTop: 4 }}>{heading}</h1>
-            {view === 'day' && date === today && (
-              <div className="planner-sub">{formatDayLong(today)}</div>
-            )}
+            {view === 'day' && date === today && <div className="planner-sub">{formatDayLong(today)}</div>}
+            {view === 'list' && <div className="planner-sub">{whoLabel} · {shortDate(listFrom)}{listTo !== listFrom ? ` – ${shortDate(listTo)}` : ''}</div>}
           </div>
           <div className="header-actions">
             <div className="seg" role="tablist" aria-label="View">
               <button role="tab" aria-selected={view === 'day'} className={view === 'day' ? 'on' : ''} onClick={() => setView('day')}>Day</button>
               <button role="tab" aria-selected={view === 'week'} className={view === 'week' ? 'on' : ''} onClick={() => setView('week')}>Week</button>
+              {isManager && (
+                <button role="tab" aria-selected={view === 'list'} className={view === 'list' ? 'on' : ''} onClick={() => setView('list')}>List</button>
+              )}
             </div>
             <button className="btn btn-ghost" onClick={() => setShowOutlook(true)}>📆 Outlook</button>
             <button className="btn btn-ghost" onClick={() => setShowSettings(true)}>⚙️ Reminders</button>
@@ -273,40 +462,134 @@ export default function PlannerPage() {
           </div>
         </div>
 
-        {/* Date navigation */}
-        <div className="planner-nav">
-          <button className="nav-arrow" aria-label="Previous" onClick={() => setDate(addDays(date, view === 'week' ? -7 : -1))}>‹</button>
-          <div className={`day-strip${view === 'week' ? ' week-mode' : ''}`}>
-            {days.map((d) => (
-              <button
-                key={d}
-                className={`day-chip${d === date && view === 'day' ? ' selected' : ''}${d === today ? ' today' : ''}`}
-                onClick={() => { setDate(d); setView('day'); }}
-              >
-                <span className="dc-name">{formatDayShort(d)}</span>
-                <span className="dc-num">{parseKey(d).getDate()}</span>
-                <span className={`dc-dot${countByDay[d] ? ' has' : ''}`} />
-              </button>
-            ))}
+        {/* Management filters */}
+        {isManager && (
+          <div className="filter-bar">
+            <div className="fb-row">
+              <label className="fb-field">
+                <span>Person</span>
+                <select value={who} onChange={(e) => setWho(e.target.value)}>
+                  <option value="mine">My meetings</option>
+                  <option value="all">All employees</option>
+                  {people.filter((p) => p.id !== me.id).map((p) => (
+                    <option key={p.id} value={p.id}>{p.full_name || 'Unnamed'}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="fb-field">
+                <span>Project</span>
+                <select value={projectFilter} onChange={(e) => setProjectFilter(e.target.value)}>
+                  <option value="all">All projects</option>
+                  <option value="none">No project</option>
+                  {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </label>
+              <label className="fb-field fb-search">
+                <span>Search</span>
+                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Title, venue, notes…" />
+              </label>
+            </div>
+            <div className="fb-row">
+              <div className="status-chips" role="group" aria-label="Status">
+                {STATUS_FILTERS.map((s) => (
+                  <button
+                    key={s.value}
+                    type="button"
+                    className={`chip chip-${s.value}${statusFilter === s.value ? ' on' : ''}`}
+                    aria-pressed={statusFilter === s.value}
+                    onClick={() => setStatusFilter(s.value)}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+              {filtersActive && <button type="button" className="fb-clear" onClick={clearFilters}>Clear filters</button>}
+            </div>
+            {view === 'list' && (
+              <div className="fb-row">
+                <label className="fb-field">
+                  <span>Dates</span>
+                  <select value={range} onChange={(e) => setRange(e.target.value)}>
+                    {RANGES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                  </select>
+                </label>
+                {range === 'custom' && (
+                  <>
+                    <label className="fb-field"><span>From</span><input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} /></label>
+                    <label className="fb-field"><span>To</span><input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} /></label>
+                  </>
+                )}
+                <label className="fb-field">
+                  <span>Group by</span>
+                  <select value={groupBy} onChange={(e) => setGroupBy(e.target.value)}>
+                    {GROUPS.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
+                  </select>
+                </label>
+                <label className="fb-field">
+                  <span>Order</span>
+                  <select value={newestFirst ? 'new' : 'old'} onChange={(e) => setNewestFirst(e.target.value === 'new')}>
+                    <option value="old">Oldest first</option>
+                    <option value="new">Newest first</option>
+                  </select>
+                </label>
+              </div>
+            )}
           </div>
-          <button className="nav-arrow" aria-label="Next" onClick={() => setDate(addDays(date, view === 'week' ? 7 : 1))}>›</button>
-          {date !== today && <button className="btn btn-ghost today-btn" onClick={() => setDate(today)}>Today</button>}
-          {isManager && (
-            <select className="who-select" value={who} onChange={(e) => setWho(e.target.value)} aria-label="Whose meetings">
-              <option value="mine">My meetings</option>
-              <option value="all">Everyone</option>
-              {people.filter((p) => p.id !== me.id).map((p) => (
-                <option key={p.id} value={p.id}>{p.full_name || 'Unnamed'}</option>
+        )}
+
+        {/* Summary (management) */}
+        {isManager && (
+          <div className="stat-row">
+            <button type="button" className={`stat${statusFilter === 'all' ? ' on' : ''}`} onClick={() => setStatusFilter('all')}>
+              <strong>{stats.total}</strong><span>Total</span>
+            </button>
+            <button type="button" className={`stat st-completed${statusFilter === 'completed' ? ' on' : ''}`} onClick={() => setStatusFilter('completed')}>
+              <strong>{stats.completed}</strong><span>Completed</span>
+            </button>
+            <button type="button" className={`stat st-pending${statusFilter === 'pending' ? ' on' : ''}`} onClick={() => setStatusFilter('pending')}>
+              <strong>{stats.pending}</strong><span>Pending</span>
+            </button>
+            <button type="button" className={`stat st-overdue${statusFilter === 'overdue' ? ' on' : ''}`} onClick={() => setStatusFilter('overdue')}>
+              <strong>{stats.overdue}</strong><span>Overdue</span>
+            </button>
+            <button type="button" className={`stat st-postponed${statusFilter === 'postponed' ? ' on' : ''}`} onClick={() => setStatusFilter('postponed')}>
+              <strong>{stats.postponed}</strong><span>Postponed</span>
+            </button>
+            <button type="button" className={`stat st-cancelled${statusFilter === 'cancelled' ? ' on' : ''}`} onClick={() => setStatusFilter('cancelled')}>
+              <strong>{stats.cancelled}</strong><span>Cancelled</span>
+            </button>
+            <div className="stat stat-rate" title="Completed out of completed + pending">
+              <strong>{completionRate == null ? '—' : `${completionRate}%`}</strong><span>Completion</span>
+            </div>
+          </div>
+        )}
+
+        {/* Date navigation (day & week) */}
+        {view !== 'list' && (
+          <div className="planner-nav">
+            <button className="nav-arrow" aria-label="Previous" onClick={() => setDate(addDays(date, view === 'week' ? -7 : -1))}>‹</button>
+            <div className={`day-strip${view === 'week' ? ' week-mode' : ''}`}>
+              {days.map((d) => (
+                <button
+                  key={d}
+                  className={`day-chip${d === date && view === 'day' ? ' selected' : ''}${d === today ? ' today' : ''}`}
+                  onClick={() => { setDate(d); setView('day'); }}
+                >
+                  <span className="dc-name">{formatDayShort(d)}</span>
+                  <span className="dc-num">{parseKey(d).getDate()}</span>
+                  <span className={`dc-dot${countByDay[d] ? ' has' : ''}`} />
+                </button>
               ))}
-            </select>
-          )}
-        </div>
+            </div>
+            <button className="nav-arrow" aria-label="Next" onClick={() => setDate(addDays(date, view === 'week' ? 7 : 1))}>›</button>
+            {date !== today && <button className="btn btn-ghost today-btn" onClick={() => setDate(today)}>Today</button>}
+          </div>
+        )}
 
         {pageError && <div className="card planner-error">{pageError}</div>}
 
-        {view === 'day' ? (
+        {view === 'day' && (
           <>
-            {/* Quick add */}
             <form className="quick-add" onSubmit={quickAdd}>
               <span className="qa-plus" aria-hidden="true">＋</span>
               <input
@@ -319,20 +602,18 @@ export default function PlannerPage() {
               <button className="btn btn-primary" disabled={!quickTitle.trim()}>Add</button>
             </form>
 
-            {dayMeetings.length > 0 && (
+            {dayActive.length > 0 && (
               <div className="progress-row">
-                <div className="progress-bar"><div style={{ width: `${(doneCount / dayMeetings.length) * 100}%` }} /></div>
-                <span>{doneCount} of {dayMeetings.length} done</span>
+                <div className="progress-bar"><div style={{ width: `${(doneCount / dayActive.length) * 100}%` }} /></div>
+                <span>{doneCount} of {dayActive.length} done</span>
               </div>
             )}
 
-            {carryOver.length > 0 && (
+            {visibleCarry.length > 0 && (
               <>
                 <div className="eyebrow planner-group">Still open from earlier</div>
                 <div className="card meeting-list">
-                  {carryOver.map((m) => (
-                    <MeetingRow key={m.id} m={m} showDate showAssignee={false} onToggle={toggleDone} onOpen={openEdit} defaultReminder={me.reminder_default_minutes} meId={me.id} />
-                  ))}
+                  {visibleCarry.map((m) => <MeetingRow key={m.id} m={m} showDate showAssignee={false} {...rowProps} />)}
                 </div>
               </>
             )}
@@ -342,26 +623,26 @@ export default function PlannerPage() {
             ) : dayMeetings.length === 0 ? (
               <div className="card empty-day">
                 <div className="empty-icon" aria-hidden="true">🗓️</div>
-                <div className="empty-title">Nothing scheduled{date === today ? ' today' : ''}</div>
-                <div className="empty-sub">Add a meeting above, or plan ahead in the week view.</div>
+                <div className="empty-title">{filtersActive ? 'No meetings match these filters' : `Nothing scheduled${date === today ? ' today' : ''}`}</div>
+                <div className="empty-sub">{filtersActive ? 'Try another status or clear the filters.' : 'Add a meeting above, or plan ahead in the week view.'}</div>
               </div>
             ) : (
               groups.map((g) => (
                 <div key={g.name}>
                   <div className="eyebrow planner-group">{g.name}</div>
                   <div className="card meeting-list">
-                    {g.items.map((m) => (
-                      <MeetingRow key={m.id} m={m} showAssignee={showAssignee} onToggle={toggleDone} onOpen={openEdit} defaultReminder={me.reminder_default_minutes} meId={me.id} />
-                    ))}
+                    {g.items.map((m) => <MeetingRow key={m.id} m={m} showAssignee={showAssignee} {...rowProps} />)}
                   </div>
                 </div>
               ))
             )}
           </>
-        ) : (
+        )}
+
+        {view === 'week' && (
           <div className="week-grid">
             {days.map((d) => {
-              const list = meetings.filter((m) => m.meeting_date === d);
+              const list = visible.filter((m) => m.meeting_date === d);
               return (
                 <div key={d} className={`week-col${d === today ? ' today' : ''}`}>
                   <button className="week-head" onClick={() => { setDate(d); setView('day'); }}>
@@ -369,19 +650,74 @@ export default function PlannerPage() {
                     <strong>{parseKey(d).getDate()}</strong>
                   </button>
                   <div className="week-items">
-                    {list.map((m) => (
-                      <button key={m.id} className={`week-item${m.is_done ? ' done' : ''}`} onClick={() => openEdit(m)}>
-                        {m.start_time && <span className="wi-time">{formatTime(m.start_time)}</span>}
-                        <span className="wi-title">{meetingTitle(m)}</span>
-                        {showAssignee && m.assignee?.full_name && <span className="wi-who">{m.assignee.full_name}</span>}
-                      </button>
-                    ))}
+                    {list.map((m) => {
+                      const st = isOverdue(m, nowMs) ? 'overdue' : statusOf(m);
+                      return (
+                        <button key={m.id} className={`week-item wi-${st}${st === 'completed' ? ' done' : ''}`} onClick={() => openEdit(m)}>
+                          {m.start_time && <span className="wi-time">{formatTime(m.start_time)}</span>}
+                          <span className="wi-title">{meetingTitle(m)}</span>
+                          {st !== 'pending' && st !== 'completed' && <span className={`pill-status ps-${st}`}>{statusLabel(st)}</span>}
+                          {showAssignee && m.assignee?.full_name && <span className="wi-who">{m.assignee.full_name}</span>}
+                        </button>
+                      );
+                    })}
                     <button className="week-add" onClick={() => openNew(d)} aria-label={`Add meeting on ${formatDayLong(d)}`}>＋</button>
                   </div>
                 </div>
               );
             })}
           </div>
+        )}
+
+        {view === 'list' && isManager && (
+          <>
+            <div className="list-toolbar">
+              <span>{listItems.length} meeting{listItems.length === 1 ? '' : 's'}</span>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                disabled={listItems.length === 0}
+                onClick={() => downloadCsv(listItems, `ACE-meetings-${listFrom}-to-${listTo}.csv`)}
+              >
+                ⬇ Download for Excel
+              </button>
+            </div>
+            {loading ? (
+              <div className="card" style={{ color: 'var(--muted)' }}>Loading…</div>
+            ) : listGroups.length === 0 ? (
+              <div className="card empty-day">
+                <div className="empty-icon" aria-hidden="true">🔎</div>
+                <div className="empty-title">No meetings found</div>
+                <div className="empty-sub">Try a wider date range, another person, or clear the filters.</div>
+              </div>
+            ) : (
+              listGroups.map((g) => {
+                const done = g.items.filter((m) => statusOf(m) === 'completed').length;
+                const late = g.items.filter((m) => isOverdue(m, nowMs)).length;
+                return (
+                  <div key={g.key}>
+                    {g.title && (
+                      <div className="list-group-head">
+                        {g.avatar && <span className="avatar">{g.avatar}</span>}
+                        {g.pill && <span className={`pill-status ps-${g.pill}`}>{g.title}</span>}
+                        {!g.pill && <strong>{g.title}</strong>}
+                        <span className="lgh-meta">
+                          {g.items.length} meeting{g.items.length === 1 ? '' : 's'}
+                          {groupBy !== 'status' && ` · ${done} completed`}
+                          {groupBy !== 'status' && late > 0 && <span className="lgh-late"> · {late} overdue</span>}
+                        </span>
+                      </div>
+                    )}
+                    <div className="card meeting-list">
+                      {g.items.map((m) => (
+                        <MeetingRow key={m.id} m={m} showDate showAssignee={groupBy !== 'employee'} {...rowProps} />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </>
         )}
       </div>
 
@@ -393,14 +729,46 @@ export default function PlannerPage() {
               <button className="reminder-x" aria-label="Close" onClick={() => setForm(null)}>✕</button>
             </div>
             <form onSubmit={saveForm}>
+              {form.id && (
+                <div className="field-group">
+                  <label>Status</label>
+                  <div className="status-picker" role="radiogroup" aria-label="Meeting status">
+                    {STATUSES.map((s) => (
+                      <button
+                        key={s.value}
+                        type="button"
+                        role="radio"
+                        aria-checked={form.status === s.value}
+                        className={`sp sp-${s.value}${form.status === s.value ? ' on' : ''}`}
+                        onClick={() => setForm({ ...form, status: s.value })}
+                      >
+                        {s.label}
+                      </button>
+                    ))}
+                  </div>
+                  {form.status === 'postponed' && (
+                    <div className="hint">Reminders are paused. To reschedule, change the date below and it goes back to Pending.</div>
+                  )}
+                  {form.status === 'cancelled' && <div className="hint">Reminders are switched off for this meeting.</div>}
+                </div>
+              )}
               <div className="field-group">
                 <label>Title</label>
-                <input autoFocus value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="e.g. Site visit with consultant" />
+                <input autoFocus={!form.id} value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="e.g. Site visit with consultant" />
               </div>
               <div className="form-row-3" style={{ marginBottom: 14 }}>
                 <div>
                   <label>Date</label>
-                  <input type="date" value={form.meeting_date} onChange={(e) => setForm({ ...form, meeting_date: e.target.value })} />
+                  <input
+                    type="date"
+                    value={form.meeting_date}
+                    onChange={(e) => setForm({
+                      ...form,
+                      meeting_date: e.target.value,
+                      // moving a postponed meeting to a new date reschedules it
+                      status: form.status === 'postponed' ? 'pending' : form.status,
+                    })}
+                  />
                 </div>
                 <div>
                   <label>Start</label>
@@ -601,18 +969,22 @@ function OutlookConnect({ supabase, onClose }) {
   );
 }
 
-function MeetingRow({ m, showDate, showAssignee, onToggle, onOpen, defaultReminder, meId }) {
+function MeetingRow({ m, showDate, showAssignee, onToggle, onOpen, defaultReminder, meId, nowMs }) {
+  const status = statusOf(m);
+  const overdue = isOverdue(m, nowMs);
+  const active = status === 'pending';
   // other people's default reminder isn't known here, so only show it for my own meetings
   const rem = m.reminder_minutes ?? (m.assigned_to === meId ? defaultReminder : null);
+  const done = status === 'completed';
   return (
-    <div className={`meeting-row${m.is_done ? ' done' : ''}`}>
+    <div className={`meeting-row mr-${status}${overdue ? ' mr-overdue' : ''}`}>
       <button
-        className={`check${m.is_done ? ' on' : ''}`}
-        aria-label={m.is_done ? 'Mark as not done' : 'Mark as done'}
-        aria-pressed={m.is_done}
+        className={`check${done ? ' on' : ''}`}
+        aria-label={done ? 'Mark as pending' : 'Mark as completed'}
+        aria-pressed={done}
         onClick={() => onToggle(m)}
       >
-        {m.is_done ? '✓' : ''}
+        {done ? '✓' : ''}
       </button>
       <button className="mr-main" onClick={() => onOpen(m)}>
         <span className="mr-time mono">
@@ -620,13 +992,17 @@ function MeetingRow({ m, showDate, showAssignee, onToggle, onOpen, defaultRemind
           {m.end_time ? <span className="mr-end">{formatTime(m.end_time)}</span> : null}
         </span>
         <span className="mr-text">
-          <span className="mr-title">{meetingTitle(m)}</span>
+          <span className="mr-title">
+            {meetingTitle(m)}
+            {overdue && <span className="pill-status ps-overdue">Overdue</span>}
+            {(status === 'cancelled' || status === 'postponed') && <span className={`pill-status ps-${status}`}>{statusLabel(status)}</span>}
+          </span>
           <span className="mr-meta">
             {showDate && <span>{formatDayLong(m.meeting_date)}</span>}
             {m.venue && <span>📍 {m.venue}</span>}
             {m.project?.name && <span>📁 {m.project.name}</span>}
-            {m.start_time && rem != null && rem >= 0 && !m.is_done && <span>🔔 {reminderLabel(rem).replace(' before', '')}</span>}
-            {!m.start_time && m.assigned_to === meId && m.reminder_minutes !== -1 && !m.is_done && <span>🔔 {ANYTIME_REMINDER_HOUR}:00 AM</span>}
+            {active && !overdue && m.start_time && rem != null && rem >= 0 && <span>🔔 {reminderLabel(rem).replace(' before', '')}</span>}
+            {active && !overdue && !m.start_time && m.assigned_to === meId && m.reminder_minutes !== -1 && <span>🔔 {ANYTIME_REMINDER_HOUR}:00 AM</span>}
           </span>
         </span>
         {showAssignee && m.assignee?.full_name && (

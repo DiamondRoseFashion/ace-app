@@ -169,7 +169,7 @@ export default function MeetingReminder() {
       const [{ data: prof }, { data: meetings, error }] = await Promise.all([
         sb.from('profiles').select('reminder_default_minutes').eq('id', user.id).single(),
         sb.from('meetings')
-          .select('id, title, meeting_date, start_time, end_time, venue, reminder_minutes, is_done, project:projects(name)')
+          .select('*, project:projects(name)')
           .eq('assigned_to', user.id)
           .eq('is_done', false)
           .gte('meeting_date', today)
@@ -179,7 +179,8 @@ export default function MeetingReminder() {
       dataRef.current = {
         uid: user.id,
         def: prof?.reminder_default_minutes ?? DEFAULT_REMINDER,
-        meetings: meetings || [],
+        // cancelled / postponed meetings never ring
+        meetings: (meetings || []).filter((m) => !m.status || m.status === 'pending'),
       };
       check();
     } catch { /* never break the page over a reminder */ }

@@ -32,7 +32,7 @@ async function handle(req) {
 
   const { data: meetings, error } = await admin
     .from('meetings')
-    .select('id, title, meeting_date, start_time, venue, reminder_minutes, assigned_to, is_done, push_sent_key, project:projects(name)')
+    .select('*, project:projects(name)')
     .eq('is_done', false)
     .not('assigned_to', 'is', null)
     .gte('meeting_date', shiftDateKey(today, -1))

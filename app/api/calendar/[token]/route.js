@@ -26,7 +26,7 @@ export async function GET(_req, { params }) {
   const [{ data: prof }, { data: meetings, error }] = await Promise.all([
     admin.from('profiles').select('full_name, reminder_default_minutes').eq('id', feed.user_id).maybeSingle(),
     admin.from('meetings')
-      .select('id, title, meeting_date, start_time, end_time, venue, notes, actions, is_done, reminder_minutes, created_at, project:projects(name)')
+      .select('*, project:projects(name)')
       .eq('assigned_to', feed.user_id)
       .gte('meeting_date', shiftDateKey(today, -90))
       .lte('meeting_date', shiftDateKey(today, 365))
