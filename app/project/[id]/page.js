@@ -21,7 +21,7 @@ const DESIGNATIONS = [
 ];
 
 function emptyContact() {
-  return { id: null, name: '', designation: '', tel: '', mobile: '', email: '' };
+  return { id: null, company_name: '', name: '', designation: '', tel: '', mobile: '', email: '' };
 }
 function emptyQuotation() {
   return {
@@ -183,8 +183,8 @@ export default function ProjectDetail() {
       if (delErr) { setError(delErr.message); setSaving(false); return; }
     }
     for (const c of flatEditContacts) {
-      if (!c.name.trim()) continue;
-      const payload = { name: c.name, designation: c.designation, tel: c.tel, mobile: c.mobile, email: c.email, contact_role: c.contact_role };
+      if (!(c.name || '').trim() && !(c.company_name || '').trim()) continue;
+      const payload = { company_name: (c.company_name || '').trim() || null, name: c.name, designation: c.designation, tel: c.tel, mobile: c.mobile, email: c.email, contact_role: c.contact_role };
       if (c.id) {
         const { error: updErr } = await supabase.from('contacts').update(payload).eq('id', c.id);
         if (updErr) { setError(updErr.message); setSaving(false); return; }
@@ -386,6 +386,9 @@ export default function ProjectDetail() {
                       <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--violet)', textTransform: 'uppercase' }}>Contact {idx + 1}</span>
                       <span onClick={() => removeEditContact(key, idx)} style={{ fontSize: 11, color: '#B33A3A', cursor: 'pointer', fontWeight: 600 }}>Remove</span>
                     </div>
+                    <div style={{ marginBottom: 8 }}>
+                      <input placeholder="Company name" value={c.company_name || ''} onChange={(e) => updateEditContact(key, idx, 'company_name', e.target.value)} />
+                    </div>
                     <div className="form-row-2" style={{ marginBottom: 8 }}>
                       <input placeholder="Name" value={c.name} onChange={(e) => updateEditContact(key, idx, 'name', e.target.value)} />
                       <select value={c.designation} onChange={(e) => updateEditContact(key, idx, 'designation', e.target.value)}>
@@ -414,8 +417,10 @@ export default function ProjectDetail() {
                   <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--violet-2)', textTransform: 'uppercase', marginBottom: 6 }}>{label}</div>
                   {roleContacts.map((c) => (
                     <div key={c.id} style={{ fontSize: 13.5, marginBottom: 4 }}>
+                      {c.company_name && <span style={{ fontWeight: 700, color: 'var(--deep)' }}>{c.company_name}{c.name ? ' · ' : ''}</span>}
                       <strong>{c.name}</strong>{c.designation ? ` — ${c.designation}` : ''}
                       {c.tel && <span style={{ color: 'var(--muted)' }}> · {c.tel}</span>}
+                      {c.mobile && <span style={{ color: 'var(--muted)' }}> · {c.mobile}</span>}
                       {c.email && <span style={{ color: 'var(--muted)' }}> · {c.email}</span>}
                     </div>
                   ))}

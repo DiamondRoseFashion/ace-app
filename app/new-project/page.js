@@ -13,7 +13,7 @@ const CONTACT_ROLES = [
 ];
 
 function emptyContact() {
-  return { name: '', designation: '', tel: '', mobile: '', email: '' };
+  return { company_name: '', name: '', designation: '', tel: '', mobile: '', email: '' };
 }
 
 const DESIGNATIONS = [
@@ -92,7 +92,7 @@ const [quotation, setQuotation] = useState({
     const rows = [];
     for (const roleKey of Object.keys(contacts)) {
       for (const c of contacts[roleKey]) {
-        if (c.name.trim()) rows.push({ ...c, project_id: data.id, contact_role: roleKey });
+        if (c.name.trim() || (c.company_name || '').trim()) rows.push({ ...c, project_id: data.id, contact_role: roleKey });
       }
     }
     if (rows.length > 0) {
@@ -175,6 +175,9 @@ const [quotation, setQuotation] = useState({
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                         <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--violet)', textTransform: 'uppercase' }}>Contact {idx + 1}</span>
                         <span onClick={() => removeContact(key, idx)} style={{ fontSize: 11, color: '#B33A3A', cursor: 'pointer', fontWeight: 600 }}>Remove</span>
+                      </div>
+                      <div style={{ marginBottom: 8 }}>
+                        <input placeholder="Company name" value={c.company_name || ''} onChange={(e) => updateContact(key, idx, 'company_name', e.target.value)} />
                       </div>
                       <div className='form-row-2' style={{ marginBottom: 8 }}>
                         <input placeholder="Name" value={c.name} onChange={(e) => updateContact(key, idx, 'name', e.target.value)} />

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { buildBackupData } from '@/lib/backupData';
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -7,35 +8,6 @@ const supabaseAdmin = createClient(
 );
 
 const ALLOWED_ROLES = ['owner', 'admin', 'manager'];
-const ID_LIKE_KEYS = new Set(['id', 'project_id']);
-
-function stripIds(row) {
-  const cleaned = {};
-  for (const [key, value] of Object.entries(row)) {
-    if (ID_LIKE_KEYS.has(key)) continue;
-    cleaned[key] = value;
-  }
-  return cleaned;
-}
-
-// Turns any ISO date/datetime string into a simple DD/MM/YYYY string.
-function formatRowDates(row) {
-  const formatted = {};
-  for (const [key, value] of Object.entries(row)) {
-    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) {
-      const d = new Date(value);
-      if (!isNaN(d.getTime())) {
-        const day = String(d.getUTCDate()).padStart(2, '0');
-        const month = String(d.getUTCMonth() + 1).padStart(2, '0');
-        const year = d.getUTCFullYear();
-        formatted[key] = `${day}/${month}/${year}`;
-        continue;
-      }
-    }
-    formatted[key] = value;
-  }
-  return formatted;
-}
 
 export async function GET(request) {
   const authHeader = request.headers.get('authorization') || '';
@@ -60,54 +32,10 @@ export async function GET(request) {
     return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
   }
 
-  const { data: rawProjects, error: projectsError } = await supabaseAdmin
-    .from('projects')
-    .select('*, creator:profiles!created_by(full_name)');
-
-  if (projectsError) {
-    return NextResponse.json({ error: 'Failed to fetch projects' }, { status: 500 });
+  const built = await buildBackupData(supabaseAdmin);
+  if (built.error) {
+    return NextResponse.json({ error: built.error }, { status: 500 });
   }
 
-  const { data: rawQuotations, error: quotationsError } = await supabaseAdmin
-    .from('quotations')
-    .select('*');
-
-  const quotations = quotationsError ? [] : (rawQuotations || []);
-
-  const latestQuotationByProject = {};
-  quotations.forEach((q) => {
-    const existing = latestQuotationByProject[q.project_id];
-    if (!existing || new Date(q.created_at) > new Date(existing.created_at)) {
-      latestQuotationByProject[q.project_id] = q;
-    }
-  });
-
-  const projects = (rawProjects || []).map((p) => {
-    const { creator, created_by, ...rest } = p;
-
-    const matchedQuotation = latestQuotationByProject[p.id];
-    let quotationFields = {};
-    if (matchedQuotation) {
-      const { id, project_id, created_at, quotation_number, ...qRest } = matchedQuotation;
-      quotationFields = {
-        quotation_id: quotation_number || '',
-        quotation_number,
-        ...qRest,
-        quotation_created_at: created_at,
-      };
-    }
-
-    return stripIds(formatRowDates({
-      ...rest,
-      created_by: creator?.full_name || '',
-      ...quotationFields,
-    }));
-  });
-
-  const quotationRows = quotations.map((q) => {
-    const { created_by, ...rest } = q;
-    return stripIds(formatRowDates(rest));
-  });
-
-  return NextResponse.json({ projects, quotations: quotationRows });
+  return NextResponse.json({ projects: built.projects, quotations: built.quotations, contacts: built.contacts });
 }

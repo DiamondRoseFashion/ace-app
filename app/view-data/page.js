@@ -47,7 +47,7 @@ export default function ViewData() {
 
   const [allowed, setAllowed] = useState(null);
   const [tab, setTab] = useState('projects');
-  const [data, setData] = useState({ projects: [], quotations: [] });
+  const [data, setData] = useState({ projects: [], quotations: [], contacts: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -84,7 +84,7 @@ export default function ViewData() {
     }
 
     const json = await res.json();
-    setData(json);
+    setData({ projects: [], quotations: [], contacts: [], ...json });
     setLoading(false);
   }
 
@@ -118,9 +118,16 @@ export default function ViewData() {
               >
                 Quotations ({data.quotations.length})
               </button>
+              <button
+                className={tab === 'contacts' ? 'btn btn-primary' : 'btn btn-ghost'}
+                onClick={() => setTab('contacts')}
+                style={{ fontSize: 12.5 }}
+              >
+                Contacts ({data.contacts.length})
+              </button>
             </div>
             <div style={{ padding: 20 }}>
-              <DataTable rows={tab === 'projects' ? data.projects : data.quotations} />
+              <DataTable rows={tab === 'projects' ? data.projects : tab === 'contacts' ? data.contacts : data.quotations} />
             </div>
           </div>
         )}
