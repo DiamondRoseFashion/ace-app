@@ -176,6 +176,11 @@ export default function PlannerPage() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showOutlook, setShowOutlook] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [bulkConfirm, setBulkConfirm] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [notice, setNotice] = useState('');
 
   const isManager = MANAGEMENT_ROLES.includes(me?.role);
   const today = todayKey();
@@ -232,6 +237,8 @@ export default function PlannerPage() {
     }
     setLoading(false);
   }
+
+  useEffect(() => { if (view !== 'list') exitSelect(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [view]);
 
   useEffect(() => {
     loadMeetings();
@@ -339,6 +346,49 @@ export default function PlannerPage() {
     setSaving(false);
     if (error) { setFormError(friendlyDbError(error.message)); return; }
     setForm(null);
+    notifyMeetingsChanged();
+    loadMeetings();
+  }
+
+  function canDeleteMeeting(m) {
+    return isManager || m.created_by === me.id;
+  }
+
+  async function deleteOne(m) {
+    setNotice('');
+    const { data, error } = await supabase.from('meetings').delete().eq('id', m.id).select('id');
+    if (error) { setPageError(friendlyDbError(error.message)); return; }
+    if (!data || data.length === 0) { setPageError("You don't have permission to delete this meeting."); return; }
+    setMeetings((list) => list.filter((x) => x.id !== m.id));
+    setCarryOver((list) => list.filter((x) => x.id !== m.id));
+    setNotice(`Deleted "${meetingTitle(m)}".`);
+    notifyMeetingsChanged();
+  }
+
+  function toggleSelect(id) {
+    setSelectedIds((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id); else n.add(id);
+      return n;
+    });
+  }
+
+  function exitSelect() {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+    setBulkConfirm(false);
+  }
+
+  async function deleteSelected() {
+    const ids = [...selectedIds];
+    if (!ids.length) return;
+    setBulkBusy(true);
+    const { data, error } = await supabase.from('meetings').delete().in('id', ids).select('id');
+    setBulkBusy(false);
+    if (error) { setPageError(friendlyDbError(error.message)); return; }
+    const n = (data || []).length;
+    setNotice(`${n} meeting${n === 1 ? '' : 's'} deleted.`);
+    exitSelect();
     notifyMeetingsChanged();
     loadMeetings();
   }
@@ -457,7 +507,11 @@ export default function PlannerPage() {
     return <div className="shell"><Sidebar active="planner" /><div className="main">Loading…</div></div>;
   }
 
-  const rowProps = { onToggle: toggleDone, onOpen: openEdit, defaultReminder: me.reminder_default_minutes, meId: me.id, nowMs };
+  const rowProps = {
+    onToggle: toggleDone, onOpen: openEdit, defaultReminder: me.reminder_default_minutes, meId: me.id, nowMs,
+    onDelete: deleteOne, canDelete: canDeleteMeeting,
+    selectMode, selectedIds, onSelect: toggleSelect,
+  };
 
   return (
     <div className="shell">
@@ -614,6 +668,7 @@ export default function PlannerPage() {
         )}
 
         {pageError && <div className="card planner-error">{pageError}</div>}
+        {notice && <div className="notice ok">{notice}</div>}
 
         {view === 'day' && (
           <>
@@ -700,6 +755,10 @@ export default function PlannerPage() {
           <>
             <div className="list-toolbar">
               <span>{listItems.length} meeting{listItems.length === 1 ? '' : 's'}</span>
+              <span style={{ flex: 1 }} />
+              {!selectMode && listItems.length > 0 && (
+                <button type="button" className="btn btn-ghost" onClick={() => { setSelectMode(true); setNotice(''); }}>Select</button>
+              )}
               <button
                 type="button"
                 className="btn btn-ghost"
@@ -709,6 +768,32 @@ export default function PlannerPage() {
                 ⬇ Download for Excel
               </button>
             </div>
+            {selectMode && (
+              <div className="select-bar">
+                <label className="toggle-row" style={{ margin: 0 }}>
+                  <input
+                    type="checkbox"
+                    checked={listItems.length > 0 && listItems.every((m) => selectedIds.has(m.id))}
+                    onChange={(e) => setSelectedIds(e.target.checked ? new Set(listItems.map((m) => m.id)) : new Set())}
+                  />
+                  <span>Select all {listItems.length} shown</span>
+                </label>
+                <span className="sb-count">{selectedIds.size} selected</span>
+                <span style={{ flex: 1 }} />
+                {bulkConfirm ? (
+                  <>
+                    <span className="sb-count" style={{ color: 'var(--err)' }}>Delete {selectedIds.size} permanently?</span>
+                    <button className="btn btn-ghost" disabled={bulkBusy} onClick={() => setBulkConfirm(false)}>No</button>
+                    <button className="btn btn-danger" disabled={bulkBusy} onClick={deleteSelected}>{bulkBusy ? 'Deleting…' : 'Yes, delete'}</button>
+                  </>
+                ) : (
+                  <>
+                    <button className="btn btn-ghost" onClick={exitSelect}>Cancel</button>
+                    <button className="btn btn-danger" disabled={selectedIds.size === 0} onClick={() => setBulkConfirm(true)}>🗑 Delete selected</button>
+                  </>
+                )}
+              </div>
+            )}
             {loading ? (
               <div className="card" style={{ color: 'var(--muted)' }}>Loading…</div>
             ) : listGroups.length === 0 ? (
@@ -1075,7 +1160,9 @@ function ProjectPicker({ value, projects, onChange }) {
   );
 }
 
-function MeetingRow({ m, showDate, showAssignee, onToggle, onOpen, defaultReminder, meId, nowMs }) {
+function MeetingRow({ m, showDate, showAssignee, onToggle, onOpen, defaultReminder, meId, nowMs, onDelete, canDelete, selectMode, selectedIds, onSelect }) {
+  const [askDel, setAskDel] = useState(false);
+  const deletable = canDelete ? canDelete(m) : false;
   const status = statusOf(m);
   const overdue = isOverdue(m, nowMs);
   const active = status === 'pending';
@@ -1083,7 +1170,17 @@ function MeetingRow({ m, showDate, showAssignee, onToggle, onOpen, defaultRemind
   const rem = m.reminder_minutes ?? (m.assigned_to === meId ? defaultReminder : null);
   const done = status === 'completed';
   return (
-    <div className={`meeting-row mr-${status}${overdue ? ' mr-overdue' : ''}`}>
+    <div className={`meeting-row mr-${status}${overdue ? ' mr-overdue' : ''}${selectMode && selectedIds?.has(m.id) ? ' mr-selected' : ''}`}>
+      {selectMode && (
+        <input
+          type="checkbox"
+          className="row-check"
+          checked={selectedIds?.has(m.id) || false}
+          onChange={() => onSelect(m.id)}
+          aria-label={`Select ${meetingTitle(m)}`}
+          style={{ marginRight: 8 }}
+        />
+      )}
       <button
         className={`check${done ? ' on' : ''}`}
         aria-label={done ? 'Mark as pending' : 'Mark as completed'}
@@ -1115,6 +1212,17 @@ function MeetingRow({ m, showDate, showAssignee, onToggle, onOpen, defaultRemind
           <span className="avatar mr-avatar" title={m.assignee.full_name}>{initials(m.assignee.full_name)}</span>
         )}
       </button>
+      {deletable && !selectMode && (
+        askDel ? (
+          <span className="mr-confirm">
+            Delete?
+            <button className="btn btn-ghost" onClick={() => setAskDel(false)}>No</button>
+            <button className="btn btn-danger" onClick={() => { setAskDel(false); onDelete(m); }}>Yes</button>
+          </span>
+        ) : (
+          <button className="icon-btn danger mr-del" aria-label={`Delete ${meetingTitle(m)}`} title="Delete meeting" onClick={() => setAskDel(true)}>🗑</button>
+        )
+      )}
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabaseClient';
 import Sidebar from '@/components/Sidebar';
+import { deleteProject, canDeleteProject } from '@/lib/deleteProject';
 
 const STATUS_LABELS = { design: 'Design', tender: 'Tender', job_in_hand: 'Job in Hand' };
 const ROLE_LABELS = { contractor: 'Contractor', client: 'Client', consultant: 'Consultant', main_contractor: 'Main Contractor' };
@@ -46,6 +47,10 @@ export default function ProjectDetail() {
   const [files, setFiles] = useState([]);
   const [activity, setActivity] = useState([]);
   const [myRole, setMyRole] = useState(null);
+  const [myId, setMyId] = useState(null);
+  const [confirmDel, setConfirmDel] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [delError, setDelError] = useState('');
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -64,6 +69,7 @@ export default function ProjectDetail() {
 
     const { data: me } = await supabase.from('profiles').select('role').eq('id', user.id).single();
     setMyRole(me?.role);
+    setMyId(user.id);
 
     const [{ data: proj }, { data: c }, { data: q }, { data: m }, { data: fileList }, { data: log }] = await Promise.all([
       supabase.from('projects').select('*').eq('id', projectId).single(),
@@ -271,7 +277,7 @@ export default function ProjectDetail() {
   return (
     <div className="shell">
       <Sidebar active="dashboard" />
-      <div className="main" style={{ maxWidth: 1200 }}>
+      <div className="main">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
           {editing ? (
             <div style={{ flex: 1, marginRight: 20 }}>
@@ -305,9 +311,43 @@ export default function ProjectDetail() {
             {!editing && canManage && (
               <button className="btn btn-ghost" onClick={startEditing}>Edit</button>
             )}
+            {!editing && canDeleteProject(project, { id: myId, role: myRole }) && (
+              <button className="btn btn-ghost danger-text" onClick={() => { setDelError(''); setConfirmDel(true); }}>🗑 Delete</button>
+            )}
             <Link href="/dashboard"><button className="btn btn-ghost">← Back to Projects</button></Link>
           </div>
         </div>
+
+        {confirmDel && (
+          <div className="modal-backdrop" onClick={() => !deleting && setConfirmDel(false)}>
+            <div className="card modal" role="alertdialog" aria-modal="true" aria-label="Delete project" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-head"><h2>Delete this project?</h2></div>
+              <div className="del-names"><div>📁 {project.name}</div></div>
+              <p className="del-warn">
+                This will also permanently delete its <strong>{contacts.length}</strong> contact{contacts.length === 1 ? '' : 's'}, <strong>{quotations.length}</strong> quotation{quotations.length === 1 ? '' : 's'}, <strong>{meetings.length}</strong> meeting{meetings.length === 1 ? '' : 's'} and <strong>{files.length}</strong> uploaded file{files.length === 1 ? '' : 's'}.
+                <br />This can&apos;t be undone.
+              </p>
+              {delError && <div className="error-text" style={{ marginBottom: 10 }}>{delError}</div>}
+              <div className="modal-actions">
+                <span style={{ flex: 1 }} />
+                <button className="btn btn-ghost" disabled={deleting} onClick={() => setConfirmDel(false)}>Cancel</button>
+                <button
+                  className="btn btn-danger"
+                  disabled={deleting}
+                  onClick={async () => {
+                    setDeleting(true);
+                    const r = await deleteProject(supabase, projectId);
+                    setDeleting(false);
+                    if (!r.ok) { setDelError(r.error); return; }
+                    router.push('/dashboard');
+                  }}
+                >
+                  {deleting ? 'Deleting…' : 'Delete permanently'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Overview */}
         <div className="card" style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>

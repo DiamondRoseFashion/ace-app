@@ -133,7 +133,7 @@ const [quotation, setQuotation] = useState({
         <div className="eyebrow">New Entry</div>
         <h1 style={{ fontSize: 30, marginTop: 4, marginBottom: 24 }}>New Project</h1>
 
-        <div className="card" style={{ maxWidth: 680 }}>
+        <div className="card">
           <div style={{ display: 'flex', gap: 8, marginBottom: 24, fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>
             <span style={{ color: step >= 1 ? 'var(--violet)' : undefined }}>1. Project Details</span> →
             <span style={{ color: step >= 2 ? 'var(--violet)' : undefined }}>2. Quotation</span> →

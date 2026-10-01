@@ -200,7 +200,7 @@ export default function ExpensesPage() {
         </h1>
 
         {/* Add expense form */}
-        <div className="card" style={{ marginBottom: 20, maxWidth: 560 }}>
+        <div className="card" style={{ marginBottom: 20 }}>
           <form onSubmit={handleAdd}>
             {isManager ? (
               <div className="form-row-2" style={{ marginBottom: 12 }}>

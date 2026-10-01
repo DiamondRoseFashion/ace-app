@@ -134,7 +134,7 @@ export default function MyProfile() {
         <div className="eyebrow">Account</div>
         <h1 style={{ fontSize: 30, marginTop: 4, marginBottom: 24 }}>My Profile</h1>
 
-        <div className="card" style={{ maxWidth: 560 }}>
+        <div className="card">
           <div style={{ display: 'flex', alignItems: 'center', gap: 18, marginBottom: 28 }}>
             <div style={{ position: 'relative' }}>
               {avatarUrl ? (
