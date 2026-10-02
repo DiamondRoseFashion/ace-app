@@ -1,26 +1,114 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
 import Sidebar from '@/components/Sidebar';
 
 const ALLOWED_ROLES = ['owner', 'admin', 'manager'];
 
-function DataTable({ rows }) {
-  if (!rows || rows.length === 0) {
-    return <div style={{ padding: 24, color: 'var(--muted)' }}>No data yet.</div>;
-  }
-  const columns = Array.from(rows.reduce((set, r) => { Object.keys(r).forEach((k) => set.add(k)); return set; }, new Set()));
+const TABS = [
+  { key: 'projects', label: 'Projects' },
+  { key: 'quotations', label: 'Quotations' },
+  { key: 'contacts', label: 'Contacts' },
+];
 
+// Dropdown filters per tab (only shown when the column exists and has values)
+const FILTERS = {
+  projects: [
+    { col: 'status', label: 'Status' },
+    { col: 'created_by', label: 'Created by' },
+    { col: 'brands_required', label: 'Brands required' },
+    { col: 'quotation_status', label: 'Quotation status' },
+  ],
+  quotations: [
+    { col: 'quotation_status', label: 'Status' },
+    { col: 'issued_by', label: 'Issued by' },
+    { col: 'client', label: 'Client' },
+  ],
+  contacts: [
+    { col: 'role', label: 'Role' },
+    { col: 'project', label: 'Project' },
+    { col: 'company_name', label: 'Company' },
+    { col: 'designation', label: 'Designation' },
+  ],
+};
+
+// Which date column the From/To range applies to
+const DATE_COLS = {
+  projects: { col: 'created_at', label: 'Created' },
+  quotations: { col: 'quotation_date', label: 'Quotation date' },
+  contacts: { col: 'added_on', label: 'Added' },
+};
+
+const STATUS_LABELS = { design: 'Design', tender: 'Tender', job_in_hand: 'Job in Hand' };
+const EMPTY = '__empty__';
+
+function display(col, v) {
+  if (v === null || v === undefined || v === '') return '—';
+  if (col === 'status' && STATUS_LABELS[v]) return STATUS_LABELS[v];
+  return String(v);
+}
+
+// "29/07/2026" -> 20260729 (sortable number); anything else -> null
+function ddmmyyyy(v) {
+  const m = typeof v === 'string' && v.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  return m ? Number(`${m[3]}${m[2]}${m[1]}`) : null;
+}
+
+// "2026-07-29" (date input) -> 20260729
+function isoNum(v) {
+  return v ? Number(v.replace(/-/g, '')) : null;
+}
+
+function compare(a, b) {
+  const empty = (x) => x === null || x === undefined || x === '';
+  if (empty(a) && empty(b)) return 0;
+  if (empty(a)) return 1;
+  if (empty(b)) return -1;
+  const da = ddmmyyyy(a); const db = ddmmyyyy(b);
+  if (da !== null && db !== null) return da - db;
+  const na = Number(a); const nb = Number(b);
+  if (!Number.isNaN(na) && !Number.isNaN(nb) && String(a).trim() !== '' && String(b).trim() !== '') return na - nb;
+  return String(a).localeCompare(String(b), undefined, { sensitivity: 'base', numeric: true });
+}
+
+function emptyFilters() {
+  return { search: '', picks: {}, from: '', to: '', sortCol: null, sortDir: 'asc' };
+}
+
+function downloadCsv(rows, columns, filename) {
+  const esc = (v) => {
+    const t = v === null || v === undefined ? '' : String(v);
+    return /[",\n\r]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+  };
+  const lines = [columns.map(esc).join(',')].concat(rows.map((r) => columns.map((c) => esc(r[c])).join(',')));
+  const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+function DataTable({ rows, columns, sortCol, sortDir, onSort }) {
+  if (!rows || rows.length === 0) {
+    return <div style={{ padding: 24, color: 'var(--muted)' }}>No rows match. Try clearing a filter or the search.</div>;
+  }
   return (
-    <div style={{ overflowX: 'auto' }}>
-      <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 12.5 }}>
+    <div className="vd-table-wrap">
+      <table className="vd-table">
         <thead>
           <tr>
             {columns.map((col) => (
-              <th key={col} style={{ textAlign: 'left', padding: '8px 12px', borderBottom: '2px solid var(--line)', whiteSpace: 'nowrap', color: 'var(--ink)' }}>
-                {col}
+              <th key={col}>
+                <button type="button" onClick={() => onSort(col)} aria-label={`Sort by ${col}`}>
+                  {col}
+                  <span className="vd-sort">{sortCol === col ? (sortDir === 'asc' ? '▲' : '▼') : '↕'}</span>
+                </button>
               </th>
             ))}
           </tr>
@@ -29,9 +117,7 @@ function DataTable({ rows }) {
           {rows.map((row, idx) => (
             <tr key={idx}>
               {columns.map((col) => (
-                <td key={col} style={{ padding: '8px 12px', borderBottom: '1px solid var(--line)', whiteSpace: 'nowrap' }}>
-                  {row[col] === null || row[col] === undefined || row[col] === '' ? '—' : String(row[col])}
-                </td>
+                <td key={col}>{display(col, row[col])}</td>
               ))}
             </tr>
           ))}
@@ -43,16 +129,18 @@ function DataTable({ rows }) {
 
 export default function ViewData() {
   const router = useRouter();
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
 
   const [allowed, setAllowed] = useState(null);
   const [tab, setTab] = useState('projects');
   const [data, setData] = useState({ projects: [], quotations: [], contacts: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [filters, setFilters] = useState({ projects: emptyFilters(), quotations: emptyFilters(), contacts: emptyFilters() });
 
   useEffect(() => {
     checkAndLoad();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function checkAndLoad() {
@@ -88,6 +176,71 @@ export default function ViewData() {
     setLoading(false);
   }
 
+  const f = filters[tab];
+  const setF = (patch) => setFilters((all) => ({ ...all, [tab]: { ...all[tab], ...patch } }));
+  const rows = data[tab] || [];
+
+  const columns = useMemo(
+    () => Array.from(rows.reduce((set, r) => { Object.keys(r).forEach((k) => set.add(k)); return set; }, new Set())),
+    [rows]
+  );
+
+  // dropdown options from the data itself
+  const filterDefs = useMemo(() => (FILTERS[tab] || [])
+    .filter((d) => columns.includes(d.col))
+    .map((d) => {
+      const values = new Map();
+      let hasEmpty = false;
+      rows.forEach((r) => {
+        const v = r[d.col];
+        if (v === null || v === undefined || String(v).trim() === '') { hasEmpty = true; return; }
+        const key = String(v).trim();
+        values.set(key.toLowerCase(), key);
+      });
+      const options = [...values.values()].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+      return { ...d, options, hasEmpty };
+    })
+    .filter((d) => d.options.length > 0), [tab, rows, columns]);
+
+  const dateDef = DATE_COLS[tab] && columns.includes(DATE_COLS[tab].col) ? DATE_COLS[tab] : null;
+
+  const filtered = useMemo(() => {
+    const q = f.search.trim().toLowerCase();
+    const from = isoNum(f.from);
+    const to = isoNum(f.to);
+    let out = rows.filter((r) => {
+      for (const [col, val] of Object.entries(f.picks)) {
+        if (!val) continue;
+        const v = r[col];
+        const empty = v === null || v === undefined || String(v).trim() === '';
+        if (val === EMPTY ? !empty : empty || String(v).trim().toLowerCase() !== val.toLowerCase()) return false;
+      }
+      if (dateDef && (from || to)) {
+        const d = ddmmyyyy(r[dateDef.col]);
+        if (d === null) return false;
+        if (from && d < from) return false;
+        if (to && d > to) return false;
+      }
+      if (q) {
+        const hay = Object.entries(r).map(([k, v]) => display(k, v)).join(' ').toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+    if (f.sortCol) {
+      out = [...out].sort((a, b) => compare(a[f.sortCol], b[f.sortCol]) * (f.sortDir === 'asc' ? 1 : -1));
+    }
+    return out;
+  }, [rows, f, dateDef]);
+
+  const active = f.search.trim() || Object.values(f.picks).some(Boolean) || f.from || f.to || f.sortCol;
+
+  function onSort(col) {
+    if (f.sortCol !== col) setF({ sortCol: col, sortDir: 'asc' });
+    else if (f.sortDir === 'asc') setF({ sortDir: 'desc' });
+    else setF({ sortCol: null, sortDir: 'asc' });
+  }
+
   return (
     <div className="shell">
       <Sidebar active="dashboard" />
@@ -103,31 +256,76 @@ export default function ViewData() {
           <div className="card error-text">{error}</div>
         ) : (
           <div className="card" style={{ padding: 0 }}>
-            <div style={{ display: 'flex', gap: 4, padding: '16px 20px 0' }}>
+            <div style={{ display: 'flex', gap: 4, padding: '16px 20px 0', flexWrap: 'wrap' }}>
+              {TABS.map((t) => (
+                <button
+                  key={t.key}
+                  className={tab === t.key ? 'btn btn-primary' : 'btn btn-ghost'}
+                  onClick={() => setTab(t.key)}
+                  style={{ fontSize: 12.5 }}
+                >
+                  {t.label} ({(data[t.key] || []).length})
+                </button>
+              ))}
+            </div>
+
+            <div className="vd-filters">
+              <label className="vd-field vd-search">
+                <span>Search</span>
+                <input
+                  value={f.search}
+                  onChange={(e) => setF({ search: e.target.value })}
+                  placeholder={`Search all ${tab}…`}
+                />
+              </label>
+              {filterDefs.map((d) => (
+                <label className="vd-field" key={d.col}>
+                  <span>{d.label}</span>
+                  <select
+                    value={f.picks[d.col] || ''}
+                    onChange={(e) => setF({ picks: { ...f.picks, [d.col]: e.target.value } })}
+                  >
+                    <option value="">All</option>
+                    {d.options.map((o) => <option key={o} value={o}>{display(d.col, o)}</option>)}
+                    {d.hasEmpty && <option value={EMPTY}>(blank)</option>}
+                  </select>
+                </label>
+              ))}
+              {dateDef && (
+                <>
+                  <label className="vd-field vd-date">
+                    <span>{dateDef.label} from</span>
+                    <input type="date" value={f.from} onChange={(e) => setF({ from: e.target.value })} />
+                  </label>
+                  <label className="vd-field vd-date">
+                    <span>to</span>
+                    <input type="date" value={f.to} onChange={(e) => setF({ to: e.target.value })} />
+                  </label>
+                </>
+              )}
+            </div>
+
+            <div className="vd-toolbar">
+              <span>Showing <strong>{filtered.length}</strong> of {rows.length} {tab}</span>
+              {active && (
+                <button type="button" className="vd-clear" onClick={() => setFilters((all) => ({ ...all, [tab]: emptyFilters() }))}>
+                  Clear filters
+                </button>
+              )}
+              <span style={{ flex: 1 }} />
               <button
-                className={tab === 'projects' ? 'btn btn-primary' : 'btn btn-ghost'}
-                onClick={() => setTab('projects')}
+                type="button"
+                className="btn btn-ghost"
+                disabled={filtered.length === 0}
+                onClick={() => downloadCsv(filtered, columns, `ACE-${tab}${active ? '-filtered' : ''}.csv`)}
                 style={{ fontSize: 12.5 }}
               >
-                Projects ({data.projects.length})
-              </button>
-              <button
-                className={tab === 'quotations' ? 'btn btn-primary' : 'btn btn-ghost'}
-                onClick={() => setTab('quotations')}
-                style={{ fontSize: 12.5 }}
-              >
-                Quotations ({data.quotations.length})
-              </button>
-              <button
-                className={tab === 'contacts' ? 'btn btn-primary' : 'btn btn-ghost'}
-                onClick={() => setTab('contacts')}
-                style={{ fontSize: 12.5 }}
-              >
-                Contacts ({data.contacts.length})
+                ⬇ Download for Excel
               </button>
             </div>
-            <div style={{ padding: 20 }}>
-              <DataTable rows={tab === 'projects' ? data.projects : tab === 'contacts' ? data.contacts : data.quotations} />
+
+            <div style={{ padding: '0 20px 20px' }}>
+              <DataTable rows={filtered} columns={columns} sortCol={f.sortCol} sortDir={f.sortDir} onSort={onSort} />
             </div>
           </div>
         )}
