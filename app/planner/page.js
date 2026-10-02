@@ -12,6 +12,7 @@ import {
 } from '@/lib/planner';
 import { enablePush, disablePush, pushStatus } from '@/lib/pushClient';
 import { buildCalendar } from '@/lib/ics';
+import { downloadXlsx } from '@/lib/xlsxExport';
 
 const SELECT = '*, project:projects(id, name), assignee:profiles!assigned_to(id, full_name)';
 
@@ -116,28 +117,26 @@ function shortDate(key) {
   return parseKey(key).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-function downloadCsv(rows, filename) {
-  const head = ['Date', 'Start', 'End', 'Title', 'Employee', 'Status', 'Project', 'Venue', 'Notes', 'Course of actions'];
-  const esc = (v) => {
-    const t = v == null ? '' : String(v);
-    return /[",\n\r]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
-  };
+function downloadMeetingsXlsx(rows, filename) {
   const now = Date.now();
-  const lines = [head.join(',')].concat(rows.map((m) => [
-    m.meeting_date, m.start_time ? m.start_time.slice(0, 5) : '', m.end_time ? m.end_time.slice(0, 5) : '',
-    meetingTitle(m), m.assignee?.full_name || '', isOverdue(m, now) ? 'Overdue' : statusLabel(statusOf(m)),
-    projectLabel(m), m.venue || '', m.notes || '', m.actions || '',
-  ].map(esc).join(',')));
-  // BOM so Excel reads Arabic and other characters correctly
-  const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  const data = rows.map((m) => ({
+    date: m.meeting_date,
+    start: m.start_time ? m.start_time.slice(0, 5) : '',
+    end: m.end_time ? m.end_time.slice(0, 5) : '',
+    title: meetingTitle(m),
+    employee: m.assignee?.full_name || '',
+    status: isOverdue(m, now) ? 'Overdue' : statusLabel(statusOf(m)),
+    project: projectLabel(m),
+    venue: m.venue || '',
+    notes: m.notes || '',
+    actions: m.actions || '',
+  }));
+  return downloadXlsx(data, [
+    { key: 'date', header: 'Date' }, { key: 'start', header: 'Start' }, { key: 'end', header: 'End' },
+    { key: 'title', header: 'Title' }, { key: 'employee', header: 'Employee' }, { key: 'status', header: 'Status' },
+    { key: 'project', header: 'Project' }, { key: 'venue', header: 'Venue' }, { key: 'notes', header: 'Notes' },
+    { key: 'actions', header: 'Course of actions' },
+  ], filename, { sheetName: 'Meetings', textCols: ['start', 'end'] });
 }
 
 export default function PlannerPage() {
@@ -763,7 +762,7 @@ export default function PlannerPage() {
                 type="button"
                 className="btn btn-ghost"
                 disabled={listItems.length === 0}
-                onClick={() => downloadCsv(listItems, `ACE-meetings-${listFrom}-to-${listTo}.csv`)}
+                onClick={() => downloadMeetingsXlsx(listItems, `ACE-meetings-${listFrom}-to-${listTo}.xlsx`)}
               >
                 ⬇ Download for Excel
               </button>

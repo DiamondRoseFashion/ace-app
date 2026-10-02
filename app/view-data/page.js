@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
 import Sidebar from '@/components/Sidebar';
+import { downloadXlsx } from '@/lib/xlsxExport';
 
 const ALLOWED_ROLES = ['owner', 'admin', 'manager'];
 
@@ -75,23 +76,6 @@ function compare(a, b) {
 
 function emptyFilters() {
   return { search: '', picks: {}, from: '', to: '', sortCol: null, sortDir: 'asc' };
-}
-
-function downloadCsv(rows, columns, filename) {
-  const esc = (v) => {
-    const t = v === null || v === undefined ? '' : String(v);
-    return /[",\n\r]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
-  };
-  const lines = [columns.map(esc).join(',')].concat(rows.map((r) => columns.map((c) => esc(r[c])).join(',')));
-  const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
 function DataTable({ rows, columns, sortCol, sortDir, onSort }) {
@@ -317,7 +301,7 @@ export default function ViewData() {
                 type="button"
                 className="btn btn-ghost"
                 disabled={filtered.length === 0}
-                onClick={() => downloadCsv(filtered, columns, `ACE-${tab}${active ? '-filtered' : ''}.csv`)}
+                onClick={() => downloadXlsx(filtered.map((r) => ({ ...r, status: r.status !== undefined ? display('status', r.status) : r.status })), columns, `ACE-${tab}${active ? '-filtered' : ''}.xlsx`, { sheetName: TABS.find((t) => t.key === tab)?.label })}
                 style={{ fontSize: 12.5 }}
               >
                 ⬇ Download for Excel
