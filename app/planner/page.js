@@ -198,7 +198,7 @@ export default function PlannerPage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push('/login'); return; }
       const { data: prof } = await supabase
-        .from('profiles').select('id, role, full_name, reminder_default_minutes').eq('id', user.id).single();
+        .from('profiles').select('*').eq('id', user.id).single();
       const profile = prof || { id: user.id, role: 'employee', full_name: user.email };
       setMe(profile);
       const [{ data: projs }, { data: ppl }] = await Promise.all([
@@ -959,7 +959,7 @@ export default function PlannerPage() {
         <ReminderSettings
           me={me}
           onClose={() => setShowSettings(false)}
-          onSaved={(mins) => { setMe({ ...me, reminder_default_minutes: mins }); notifyMeetingsChanged(); }}
+          onSaved={(mins, rep) => { setMe({ ...me, reminder_default_minutes: mins, reminder_repeat: rep }); notifyMeetingsChanged(); }}
           supabase={supabase}
         />
       )}
@@ -1229,6 +1229,7 @@ function MeetingRow({ m, showDate, showAssignee, onToggle, onOpen, defaultRemind
 function ReminderSettings({ me, onClose, onSaved, supabase }) {
   const [mins, setMins] = useState(String(me.reminder_default_minutes ?? DEFAULT_REMINDER));
   const [popup, setPopup] = useState(true);
+  const [repeat, setRepeat] = useState(me.reminder_repeat !== false);
   const [sound, setSound] = useState(true);
   const [push, setPush] = useState('checking'); // on | off | denied | unsupported | needs-home-screen
   const [pushBusy, setPushBusy] = useState(false);
@@ -1249,12 +1250,14 @@ function ReminderSettings({ me, onClose, onSaved, supabase }) {
     setPref('alarm-popup', popup);
     setPref('alarm-sound', sound);
     const value = Number(mins);
+    const patch = { reminder_default_minutes: value };
+    if ('reminder_repeat' in me || repeat === false) patch.reminder_repeat = repeat;
     const { data, error } = await supabase
-      .from('profiles').update({ reminder_default_minutes: value }).eq('id', me.id).select('id');
+      .from('profiles').update(patch).eq('id', me.id).select('id');
     setSaving(false);
     if (error) { setErr(friendlyDbError(error.message)); return; }
     if (!data || data.length === 0) { setErr('Could not save your default. Please ask your admin to run the planner database update.'); return; }
-    onSaved(value);
+    onSaved(value, repeat);
     setMsg('Saved.');
   }
 
@@ -1321,6 +1324,10 @@ function ReminderSettings({ me, onClose, onSaved, supabase }) {
 
         <div className="notif-box">
           <div style={{ fontWeight: 600, marginBottom: 4 }}>Reminders when ACE is closed</div>
+          <label className="toggle-row" style={{ marginTop: 6 }}>
+            <input type="checkbox" checked={repeat} onChange={(e) => setRepeat(e.target.checked)} />
+            <span>Repeat the notification every minute until I tap Stop (up to 10 times)</span>
+          </label>
           {push === 'checking' && <div className="hint">Checking this device…</div>}
           {push === 'on' && (
             <>

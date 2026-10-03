@@ -206,20 +206,33 @@ export default function MeetingReminder() {
       if (t < r.fireAt || t > r.until) continue;
       if (storageGet('localStorage', alertKey(m, r.mins))) continue;
       if ((snoozeRef.current[m.id] || 0) > t) continue;
+      // already stopped / snoozed from a phone or computer notification
+      const ackAt = m.push_ack_at ? Date.parse(m.push_ack_at) : 0;
+      if (ackAt && ackAt >= r.fireAt - 60000) continue;
+      const snoozedTo = m.push_snooze_until ? Date.parse(m.push_snooze_until) : 0;
+      if (snoozedTo && t < snoozedTo) continue;
       trigger(m);
     }
+  }
+
+  // Tell the server, so the repeating phone/computer notifications stop too
+  function serverAck(m, snoozeMinutes = 0) {
+    if (m.isTest) return;
+    supabase().rpc('ack_meeting_reminder', { p_meeting: m.id, p_snooze_minutes: snoozeMinutes }).then(() => {}, () => {});
   }
 
   function close(m, { markSeen }) {
     if (markSeen && !m.isTest) {
       const r = reminderTimes(m, dataRef.current.def);
       if (r) storageSet('localStorage', alertKey(m, r.mins), '1');
+      serverAck(m);
     }
     setAlerts((list) => list.filter((a) => a.id !== m.id));
   }
 
   function snooze(m) {
     snoozeRef.current[m.id] = Date.now() + 5 * 60000;
+    serverAck(m, 5);
     try { window.sessionStorage.removeItem(`ace-notified:${m.id}:${m.meeting_date}:${m.start_time || 'anytime'}`); } catch { /* ignore */ }
     close(m, { markSeen: false });
   }

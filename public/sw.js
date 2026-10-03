@@ -1,7 +1,23 @@
 // ACE service worker — receives background meeting reminders (even
-// when ACE is closed) and opens the planner when one is tapped.
+// when ACE is closed), offers Stop / Snooze buttons, and tells ACE when
+// a reminder was answered so the repeating notifications stop.
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
+
+async function ack(meetingId, action) {
+  if (!meetingId) return;
+  try {
+    const sub = await self.registration.pushManager.getSubscription();
+    if (!sub) return;
+    await fetch('/api/reminder-ack', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpoint: sub.endpoint, meetingId, action }),
+    });
+  } catch {
+    /* offline — the repeats simply run their course */
+  }
+}
 
 self.addEventListener('push', (event) => {
   let data = {};
@@ -18,23 +34,38 @@ self.addEventListener('push', (event) => {
       windows.forEach((w) => w.postMessage({ type: 'ace-reminder', data }));
       return;
     }
-    await self.registration.showNotification(data.title || '🔔 ACE reminder', {
+    const options = {
       body: data.body || '',
       icon: '/icon-192.png',
       badge: '/icon-192.png',
       tag: data.tag || 'ace-reminder',
-      renotify: true,
+      renotify: true, // ring again on every repeat
       requireInteraction: true,
-      vibrate: [600, 250, 600, 250, 600, 250, 600],
-      data: { url: data.url || '/planner' },
-    });
+      silent: false,
+      vibrate: [800, 300, 800, 300, 800, 300, 800],
+      data: { url: data.url || '/planner', meetingId: data.meetingId || null },
+    };
+    if (data.meetingId && data.actions) {
+      options.actions = [
+        { action: 'stop', title: '🔕 Stop' },
+        { action: 'snooze', title: 'Snooze 5 min' },
+      ];
+    }
+    await self.registration.showNotification(data.title || '🔔 ACE reminder', options);
   })());
 });
 
 self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  const url = (event.notification.data && event.notification.data.url) || '/planner';
-  event.waitUntil(
+  const n = event.notification;
+  const { url = '/planner', meetingId = null } = n.data || {};
+  n.close();
+
+  if (event.action === 'stop') { event.waitUntil(ack(meetingId, 'stop')); return; }
+  if (event.action === 'snooze') { event.waitUntil(ack(meetingId, 'snooze')); return; }
+
+  // tapped the notification itself: stop repeating and open the planner
+  event.waitUntil(Promise.all([
+    ack(meetingId, 'open'),
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
       for (const w of windows) {
         if ('focus' in w) {
@@ -43,6 +74,12 @@ self.addEventListener('notificationclick', (event) => {
         }
       }
       return self.clients.openWindow(url);
-    })
-  );
+    }),
+  ]));
+});
+
+// swiped away / dismissed = "I've seen it"
+self.addEventListener('notificationclose', (event) => {
+  const { meetingId = null } = event.notification.data || {};
+  event.waitUntil(ack(meetingId, 'stop'));
 });

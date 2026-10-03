@@ -3,7 +3,7 @@
 // person's registered phones/computers — works even when ACE is closed.
 import { NextResponse } from 'next/server';
 import { adminClient, configurePush, sendToUser } from '@/lib/pushServer';
-import { isDue, notificationFor, localDateKey, shiftDateKey } from '@/lib/reminderSchedule';
+import { pushAction, notificationFor, localDateKey, shiftDateKey, MAX_REPEATS } from '@/lib/reminderSchedule';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -41,25 +41,53 @@ async function handle(req) {
 
   const userIds = [...new Set((meetings || []).map((m) => m.assigned_to))];
   const defaults = {};
+  const repeatOn = {};
   if (userIds.length) {
-    const { data: profs } = await admin.from('profiles').select('id, reminder_default_minutes').in('id', userIds);
-    (profs || []).forEach((p) => { defaults[p.id] = p.reminder_default_minutes; });
+    const { data: profs } = await admin.from('profiles').select('*').in('id', userIds);
+    (profs || []).forEach((p) => {
+      defaults[p.id] = p.reminder_default_minutes;
+      repeatOn[p.id] = p.reminder_repeat !== false; // on unless switched off
+    });
   }
 
   const results = [];
+  const nowIso = new Date(now).toISOString();
   for (const m of meetings || []) {
-    const w = isDue(m, defaults[m.assigned_to], now);
-    if (!w) continue;
-    // Claim this reminder first so overlapping runs never double-send
-    const { data: claimed } = await admin
-      .from('meetings')
-      .update({ push_sent_key: w.key })
-      .eq('id', m.id)
-      .or(`push_sent_key.is.null,push_sent_key.neq.${w.key}`)
-      .select('id');
+    const action = pushAction(m, defaults[m.assigned_to], repeatOn[m.assigned_to], now);
+    if (!action) continue;
+    const { w } = action;
+
+    // Claim first, so overlapping runs never double-send
+    let claim;
+    if (action.type === 'first') {
+      claim = admin.from('meetings')
+        .update({ push_sent_key: w.key, push_repeat_count: 0, push_last_sent_at: nowIso })
+        .eq('id', m.id)
+        .or(`push_sent_key.is.null,push_sent_key.neq.${w.key}`);
+    } else {
+      const count = m.push_repeat_count || 0;
+      claim = admin.from('meetings')
+        .update({ push_repeat_count: count + 1, push_last_sent_at: nowIso })
+        .eq('id', m.id)
+        .eq('push_sent_key', w.key)
+        .eq('push_repeat_count', count);
+    }
+    const { data: claimed } = await claim.select('id');
     if (!claimed || claimed.length === 0) continue;
-    const r = await sendToUser(admin, m.assigned_to, notificationFor(m, w, now));
-    results.push({ meeting: m.id, ...r });
+
+    const note = notificationFor(m, w, now);
+    const repeatNo = action.type === 'repeat' ? (m.push_repeat_count || 0) + 1 : 0;
+    const payload = {
+      ...note,
+      meetingId: m.id,
+      repeat: repeatNo,
+      actions: true,
+      body: repeatOn[m.assigned_to] !== false && repeatNo < MAX_REPEATS
+        ? `${note.body}\nRepeats every minute until you tap Stop`
+        : note.body,
+    };
+    const r = await sendToUser(admin, m.assigned_to, payload);
+    results.push({ meeting: m.id, type: action.type, repeat: repeatNo, ...r });
   }
 
   return NextResponse.json({ ok: true, checked: (meetings || []).length, sent: results });
