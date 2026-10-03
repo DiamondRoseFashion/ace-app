@@ -165,6 +165,7 @@ export default function MeetingReminder() {
       const sb = supabase();
       const { data: { user } } = await sb.auth.getUser();
       if (!user) return;
+      syncPush(sb, user.id); // device belongs to whoever is signed in now
       const today = todayKey();
       const [{ data: prof }, { data: meetings, error }] = await Promise.all([
         sb.from('profiles').select('reminder_default_minutes').eq('id', user.id).single(),
@@ -260,7 +261,6 @@ export default function MeetingReminder() {
       navigator.serviceWorker.register('/sw.js').catch(() => {});
     }
     load();
-    syncPush(supabase());
     const onSwMessage = (e) => { if (e.data?.type === 'ace-reminder') load(); };
     try { navigator.serviceWorker?.addEventListener('message', onSwMessage); } catch { /* ignore */ }
     const checkTimer = setInterval(check, CHECK_EVERY_MS);

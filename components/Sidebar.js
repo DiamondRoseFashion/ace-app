@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
 import MeetingReminder from '@/components/MeetingReminder';
+import { releasePush } from '@/lib/pushClient';
 
 export default function Sidebar({ active }) {
   const router = useRouter();
@@ -24,6 +25,7 @@ export default function Sidebar({ active }) {
   }, []);
 
   async function handleLogout() {
+    await releasePush(supabase); // this device stops getting my reminders
     await supabase.auth.signOut();
     router.push('/login');
   }

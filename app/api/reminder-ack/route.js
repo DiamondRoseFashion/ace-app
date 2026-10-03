@@ -14,7 +14,16 @@ const SNOOZE_MINUTES = 5;
 export async function POST(req) {
   let body;
   try { body = await req.json(); } catch { body = {}; }
-  const { endpoint, meetingId, action } = body || {};
+  const { endpoint, meetingId, action, userId } = body || {};
+
+  // A device now used by someone else got a reminder meant for its
+  // previous owner: unregister it from that previous owner.
+  if (action === 'release') {
+    if (!endpoint || !userId) return NextResponse.json({ error: 'bad request' }, { status: 400 });
+    await adminClient().from('push_subscriptions').delete().eq('endpoint', endpoint).eq('user_id', userId);
+    return NextResponse.json({ ok: true, action });
+  }
+
   if (!endpoint || !meetingId || !['stop', 'snooze', 'open'].includes(action)) {
     return NextResponse.json({ error: 'bad request' }, { status: 400 });
   }

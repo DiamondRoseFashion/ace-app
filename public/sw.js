@@ -4,6 +4,47 @@
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
 
+// Who is signed in on this device (told to us by the ACE page)
+const STATE_CACHE = 'ace-state';
+const USER_KEY = '/__ace_signed_in_user';
+let currentUser; // undefined = not loaded yet
+
+async function getDeviceUser() {
+  if (currentUser !== undefined) return currentUser;
+  try {
+    const cache = await caches.open(STATE_CACHE);
+    const res = await cache.match(USER_KEY);
+    currentUser = res ? (await res.json()).userId : null;
+  } catch {
+    currentUser = null;
+  }
+  return currentUser;
+}
+
+async function setDeviceUser(userId) {
+  currentUser = userId || '';
+  try {
+    const cache = await caches.open(STATE_CACHE);
+    await cache.put(USER_KEY, new Response(JSON.stringify({ userId: currentUser })));
+  } catch { /* ignore */ }
+}
+
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'ace-user') event.waitUntil(setDeviceUser(event.data.userId));
+});
+
+async function release(userId) {
+  try {
+    const sub = await self.registration.pushManager.getSubscription();
+    if (!sub) return;
+    await fetch('/api/reminder-ack', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpoint: sub.endpoint, userId, action: 'release' }),
+    });
+  } catch { /* ignore */ }
+}
+
 async function ack(meetingId, action) {
   if (!meetingId) return;
   try {
@@ -27,6 +68,14 @@ self.addEventListener('push', (event) => {
     data = { title: '🔔 ACE reminder', body: event.data ? event.data.text() : '' };
   }
   event.waitUntil((async () => {
+    // Meant for a different person than the one signed in here (or
+    // nobody is signed in)? Don't show it, and unregister this device
+    // from that person.
+    const deviceUser = await getDeviceUser();
+    if (data.userId && deviceUser !== null && deviceUser !== data.userId) {
+      await release(data.userId);
+      return;
+    }
     const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     const visible = windows.find((w) => w.focused && w.visibilityState === 'visible');
     if (visible && data.tag !== 'ace-test') {
