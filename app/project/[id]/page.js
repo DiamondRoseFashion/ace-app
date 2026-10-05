@@ -464,22 +464,9 @@ export default function ProjectDetail() {
                     </select>
                     <input placeholder="Win %" value={q.win_percentage || ''} onChange={(e) => updateEditQuotation(idx, 'win_percentage', e.target.value)} />
                   </div>
-                  <div className="form-row-2" style={{ marginBottom: 8 }}>
+                  <div className="field-group" style={{ marginBottom: 0 }}>
                     <input placeholder="Issued By" value={q.issued_by || ''} onChange={(e) => updateEditQuotation(idx, 'issued_by', e.target.value)} />
-                    <input placeholder="Opportunity Ref." value={q.opportunity_ref || ''} onChange={(e) => updateEditQuotation(idx, 'opportunity_ref', e.target.value)} />
                   </div>
-                  <div className="form-row-2" style={{ marginBottom: 8 }}>
-                    <input placeholder="Customer Name" value={q.customer_name || ''} onChange={(e) => updateEditQuotation(idx, 'customer_name', e.target.value)} />
-                    <input placeholder="Client" value={q.client || ''} onChange={(e) => updateEditQuotation(idx, 'client', e.target.value)} />
-                  </div>
-                  <div className="form-row-2" style={{ marginBottom: 8 }}>
-                    <input placeholder="Consultant" value={q.consultant || ''} onChange={(e) => updateEditQuotation(idx, 'consultant', e.target.value)} />
-                    <input placeholder="Contractor" value={q.contractor || ''} onChange={(e) => updateEditQuotation(idx, 'contractor', e.target.value)} />
-                  </div>
-                  <div className="field-group" style={{ marginBottom: 8 }}>
-                    <input placeholder="Item" value={q.item || ''} onChange={(e) => updateEditQuotation(idx, 'item', e.target.value)} />
-                  </div>
-                  <textarea placeholder="Remarks" rows={2} value={q.remarks || ''} onChange={(e) => updateEditQuotation(idx, 'remarks', e.target.value)} />
                 </div>
               ))}
               <span onClick={addEditQuotation} style={{ fontSize: 12, color: 'var(--violet-2)', fontWeight: 600, cursor: 'pointer' }}>
@@ -496,14 +483,7 @@ export default function ProjectDetail() {
               <div style={{ fontSize: 12.5, marginTop: 6, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 16px' }}>
                 {q.win_percentage && <div><span style={{ color: 'var(--muted)' }}>Win %:</span> {q.win_percentage}%</div>}
                 {q.issued_by && <div><span style={{ color: 'var(--muted)' }}>Issued by:</span> {q.issued_by}</div>}
-                {q.opportunity_ref && <div><span style={{ color: 'var(--muted)' }}>Opportunity ref:</span> {q.opportunity_ref}</div>}
-                {q.customer_name && <div><span style={{ color: 'var(--muted)' }}>Customer:</span> {q.customer_name}</div>}
-                {q.client && <div><span style={{ color: 'var(--muted)' }}>Client:</span> {q.client}</div>}
-                {q.consultant && <div><span style={{ color: 'var(--muted)' }}>Consultant:</span> {q.consultant}</div>}
-                {q.contractor && <div><span style={{ color: 'var(--muted)' }}>Contractor:</span> {q.contractor}</div>}
-                {q.item && <div><span style={{ color: 'var(--muted)' }}>Item:</span> {q.item}</div>}
               </div>
-              {q.remarks && <div style={{ fontSize: 12.5, marginTop: 6, color: 'var(--muted)' }}>Remarks: {q.remarks}</div>}
             </div>
           ))}
         </div>

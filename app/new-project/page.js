@@ -241,34 +241,6 @@ const [quotation, setQuotation] = useState({
                 <label>Issued By</label>
                 <input value={quotation.issued_by} onChange={(e) => setQuotation({ ...quotation, issued_by: e.target.value })} />
               </div>
-              <div className="field-group">
-                <label>Opportunity Ref. (Project Name/Details)</label>
-                <input value={quotation.opportunity_ref} onChange={(e) => setQuotation({ ...quotation, opportunity_ref: e.target.value })} />
-              </div>
-              <div className="field-group">
-                <label>Customer Name</label>
-                <input value={quotation.customer_name} onChange={(e) => setQuotation({ ...quotation, customer_name: e.target.value })} />
-              </div>
-              <div className="field-group">
-                <label>Client</label>
-                <input value={quotation.client} onChange={(e) => setQuotation({ ...quotation, client: e.target.value })} />
-              </div>
-              <div className="field-group">
-                <label>Consultant</label>
-                <input value={quotation.consultant} onChange={(e) => setQuotation({ ...quotation, consultant: e.target.value })} />
-              </div>
-              <div className="field-group">
-                <label>Contractor</label>
-                <input value={quotation.contractor} onChange={(e) => setQuotation({ ...quotation, contractor: e.target.value })} />
-              </div>
-              <div className="field-group">
-                <label>Item</label>
-                <input value={quotation.item} onChange={(e) => setQuotation({ ...quotation, item: e.target.value })} />
-              </div>
-              <div className="field-group">
-                <label>Remarks</label>
-                <textarea rows={3} value={quotation.remarks} onChange={(e) => setQuotation({ ...quotation, remarks: e.target.value })} />
-              </div>
               {error && <div className="error-text">{error}</div>}
               <button className="btn btn-primary" onClick={saveStep2} disabled={saving}>
                 {saving ? 'Saving…' : 'Save & Continue →'}
