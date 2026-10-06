@@ -69,6 +69,10 @@ function buildAlarmBuffer(ctx) {
 }
 
 function startAlarmSound() {
+  // Only the ACE tab you're looking at chimes. A tab hidden behind other
+  // windows stays silent (the system notification makes the sound),
+  // so a forgotten tab can never ring unseen.
+  if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
   wantAlarm = true;
   const ctx = getCtx();
   if (!ctx || alarmSource) return;
@@ -82,6 +86,8 @@ function startAlarmSound() {
     src.connect(ctx.destination);
     src.start();
     alarmSource = src;
+    // hard stop: never longer than one chime, whatever happens
+    setTimeout(() => { if (alarmSource === src) stopAlarmSound(); }, 3000);
   } catch { /* ignore */ }
 }
 
@@ -268,7 +274,10 @@ export default function MeetingReminder() {
     const checkTimer = setInterval(check, CHECK_EVERY_MS);
     const reloadTimer = setInterval(load, RELOAD_EVERY_MS);
     const onChange = () => load();
-    const onVisible = () => { if (document.visibilityState === 'visible') load(); };
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') load();
+      else stopAlarmSound();
+    };
     const onTest = () => {
       unlockAudio();
       const start = new Date(Date.now() + 60 * 60000);

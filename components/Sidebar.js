@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
 import MeetingReminder from '@/components/MeetingReminder';
+import AutoUpdate from '@/components/AutoUpdate';
 import { releasePush } from '@/lib/pushClient';
 
 export default function Sidebar({ active }) {
@@ -51,6 +52,7 @@ export default function Sidebar({ active }) {
   return (
     <div className="sidebar">
       <MeetingReminder />
+      <AutoUpdate />
       <div className="sidebar-top">
         <img src="/logo.png" alt="ACE" className="sidebar-logo" />
         <button
