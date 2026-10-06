@@ -7,6 +7,7 @@ import Sidebar from '@/components/Sidebar';
 import DownloadBackupButton from '@/components/DownloadBackupButton';
 import ViewDataButton from '@/components/ViewDataButton';
 import { deleteProject, canDeleteProject } from '@/lib/deleteProject';
+import ProgressBar from '@/components/ProgressBar';
 import { PROJECT_STATUSES, PROJECT_STATUS_LABELS, DEFAULT_PROJECT_STATUS } from '@/lib/projectStatus';
 
 const STATUS_LABELS = PROJECT_STATUS_LABELS;
@@ -52,6 +53,27 @@ export default function Dashboard() {
   }
 
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+
+  // Live: when anyone changes a project (status/progress, new, deleted),
+  // refresh the list straight away — plus on returning to the tab.
+  useEffect(() => {
+    let timer = null;
+    const refresh = () => { clearTimeout(timer); timer = setTimeout(load, 300); };
+    const channel = supabase
+      .channel('dashboard-projects')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, refresh)
+      .subscribe();
+    const onVisible = () => { if (document.visibilityState === 'visible') refresh(); };
+    document.addEventListener('visibilitychange', onVisible);
+    const poll = setInterval(refresh, 60 * 1000); // safety net
+    return () => {
+      clearTimeout(timer);
+      clearInterval(poll);
+      document.removeEventListener('visibilitychange', onVisible);
+      supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const filteredProjects = projects.filter((p) => {
     const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
@@ -208,7 +230,7 @@ export default function Dashboard() {
                   )}
                   <div className="pr-name" style={{ fontWeight: 600 }}>{p.name}</div>
                   <div><span className={`pill pill-${p.status}`}>{STATUS_LABELS[p.status] || p.status}</span></div>
-                  <div className="mono" style={{ fontSize: 13 }}>{p.percent_complete}%</div>
+                  <div style={{ paddingRight: 12 }}><ProgressBar status={p.status} /></div>
                   <div>{p.location}</div>
                   <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>{p.creator?.full_name || '—'}</div>
                   <div className="pr-actions">

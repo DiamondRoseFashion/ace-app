@@ -552,3 +552,13 @@ input:focus, select:focus, textarea:focus{
   background: #fff; color: #1e1b4b; border: 0; border-radius: 8px;
   padding: 7px 14px; font-weight: 700; cursor: pointer; white-space: nowrap;
 }
+
+/* ---------- project progress bar ---------- */
+.pbar { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.pbar-track { flex: 1; min-width: 50px; height: 6px; background: #ECE7F3; border-radius: 99px; overflow: hidden; }
+.pbar-fill { height: 100%; background: linear-gradient(90deg, var(--violet), var(--violet-2)); border-radius: 99px; transition: width .5s ease; }
+.pbar-fill.done { background: var(--ok); }
+.pbar-pct { font-size: 13px; font-weight: 700; min-width: 38px; text-align: right; }
+.pbar-lg { min-width: 220px; }
+.pbar-lg .pbar-track { height: 10px; }
+.pbar-lg .pbar-pct { font-size: 16px; color: var(--violet); }

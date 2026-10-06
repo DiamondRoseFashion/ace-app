@@ -83,7 +83,7 @@ const [quotation, setQuotation] = useState({
 
     const { data, error } = await supabase
       .from('projects')
-      .insert({ ...project, percent_complete: 10, created_by: user.id })
+      .insert({ ...project, created_by: user.id })
       .select()
       .single();
 
@@ -102,7 +102,6 @@ const [quotation, setQuotation] = useState({
     }
 
     setProjectId(data.id);
-    await supabase.from('projects').update({ percent_complete: 20 }).eq('id', data.id);
     await logActivity(data.id, 'created the project');
     setSaving(false);
     setStep(2);
@@ -112,7 +111,6 @@ const [quotation, setQuotation] = useState({
     setError(''); setSaving(true);
     const { error } = await supabase.from('quotations').insert({ ...quotation, project_id: projectId });
     if (error) { setError(error.message); setSaving(false); return; }
-    await supabase.from('projects').update({ percent_complete: 30 }).eq('id', projectId);
     await logActivity(projectId, `added quotation ${quotation.quotation_number || '(no number)'}`);
     setSaving(false);
     setStep(3);

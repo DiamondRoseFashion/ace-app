@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabaseClient';
 import Sidebar from '@/components/Sidebar';
 import { deleteProject, canDeleteProject } from '@/lib/deleteProject';
+import ProgressBar from '@/components/ProgressBar';
 import { PROJECT_STATUSES, PROJECT_STATUS_LABELS, DEFAULT_PROJECT_STATUS } from '@/lib/projectStatus';
 
 const STATUS_LABELS = PROJECT_STATUS_LABELS;
@@ -55,6 +56,7 @@ export default function ProjectDetail() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+  const [statusError, setStatusError] = useState('');
   const [editing, setEditing] = useState(false);
   const [editForm, setEditForm] = useState({ name: '', location: '', brands_required: '' });
   const [editContacts, setEditContacts] = useState({ contractor: [], client: [], consultant: [], main_contractor: [] });
@@ -63,6 +65,18 @@ export default function ProjectDetail() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => { load(); }, [projectId]);
+
+  // Live: if someone else changes this project's status, show it at once
+  useEffect(() => {
+    if (!projectId) return undefined;
+    const channel = supabase
+      .channel(`project-${projectId}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'projects', filter: `id=eq.${projectId}` },
+        (payload) => setProject((p) => (p ? { ...p, ...payload.new } : p)))
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId]);
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -99,7 +113,17 @@ export default function ProjectDetail() {
   }
 
   async function updateStatus(newStatus) {
-    await supabase.from('projects').update({ status: newStatus }).eq('id', projectId);
+    const before = project.status;
+    setStatusError('');
+    setProject((p) => ({ ...p, status: newStatus })); // progress moves instantly
+    const { error: err } = await supabase.from('projects').update({ status: newStatus }).eq('id', projectId);
+    if (err) {
+      setProject((p) => ({ ...p, status: before }));
+      setStatusError(/check constraint/i.test(err.message)
+        ? 'This status needs a one-time database update. Please ask your admin to run the "project stages" update in Supabase.'
+        : err.message);
+      return;
+    }
     load();
   }
 
@@ -361,10 +385,11 @@ export default function ProjectDetail() {
             ) : (
               <div style={{ fontWeight: 600 }}>{STATUS_LABELS[project.status]}</div>
             )}
+            {statusError && <div className="error-text" style={{ marginTop: 6, maxWidth: 360 }}>{statusError}</div>}
           </div>
           <div>
             <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>Progress</div>
-            <div className="mono" style={{ fontWeight: 700, color: 'var(--violet)', fontSize: 15 }}>{project.percent_complete}%</div>
+            <ProgressBar status={project.status} size="lg" />
           </div>
           <div>
             <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>Brands Required</div>
