@@ -92,7 +92,7 @@ export default function ProjectDetail() {
       supabase.from('quotations').select('*').eq('project_id', projectId).order('created_at', { ascending: false }),
       supabase.from('meetings').select('*').eq('project_id', projectId).order('meeting_date', { ascending: false }),
       supabase.storage.from('project-files').list(projectId),
-      supabase.from('audit_log').select('*, actor:profiles!changed_by(full_name)').eq('project_id', projectId).order('changed_at', { ascending: false }).limit(50),
+      Promise.resolve({ data: [] }), // project history isn't recorded yet (no audit_log table)
     ]);
 
     setActivity(log || []);

@@ -3,6 +3,7 @@
 // person's registered phones/computers — works even when ACE is closed.
 import { NextResponse } from 'next/server';
 import { adminClient, configurePush, sendToUser } from '@/lib/pushServer';
+import { logEvent, heartbeat } from '@/lib/monitor';
 import { pushAction, notificationFor, localDateKey, shiftDateKey, MAX_REPEATS } from '@/lib/reminderSchedule';
 
 export const dynamic = 'force-dynamic';
@@ -20,13 +21,14 @@ async function handle(req) {
   if (!authorized(req)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
+  const admin = adminClient();
   try {
     configurePush();
   } catch (e) {
+    await logEvent(admin, { level: 'critical', source: 'reminders', message: `Reminders can't be sent: ${e.message}`, fingerprint: 'reminders-config' });
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 
-  const admin = adminClient();
   const now = Date.now();
   const today = localDateKey(now);
 
@@ -37,7 +39,10 @@ async function handle(req) {
     .not('assigned_to', 'is', null)
     .gte('meeting_date', shiftDateKey(today, -1))
     .lte('meeting_date', shiftDateKey(today, 1));
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    await logEvent(admin, { level: 'critical', source: 'reminders', message: `Reminders job can't read meetings: ${error.message}`, fingerprint: 'reminders-db' });
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 
   const userIds = [...new Set((meetings || []).map((m) => m.assigned_to))];
   const defaults = {};
@@ -88,7 +93,17 @@ async function handle(req) {
     };
     const r = await sendToUser(admin, m.assigned_to, payload);
     results.push({ meeting: m.id, type: action.type, repeat: repeatNo, ...r });
+    if (r.failures?.length) {
+      await logEvent(admin, {
+        level: 'warning', source: 'reminders',
+        message: `A reminder notification couldn't be delivered to ${r.failures.length} device(s)`,
+        detail: { meeting: m.id, title: m.title || null, failures: r.failures },
+        userId: m.assigned_to, fingerprint: `push-fail|${r.failures[0]?.status || ''}`,
+      });
+    }
   }
+
+  await heartbeat(admin, 'reminders', { checked: (meetings || []).length, sent: results.length });
 
   return NextResponse.json({ ok: true, checked: (meetings || []).length, sent: results });
 }

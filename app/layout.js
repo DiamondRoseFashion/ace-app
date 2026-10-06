@@ -1,4 +1,5 @@
 import './globals.css';
+import ErrorReporter from '@/components/ErrorReporter';
 
 export const metadata = {
   title: 'ACE — Project Control',
@@ -14,7 +15,7 @@ export const metadata = {
 };
 
 export const viewport = {
-  themeColor: '#3D1250',
+  themeColor: '#0F1F3D',
 };
 
 export default function RootLayout({ children }) {
@@ -27,7 +28,10 @@ export default function RootLayout({ children }) {
           rel="stylesheet"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <ErrorReporter />
+        {children}
+      </body>
     </html>
   );
 }
