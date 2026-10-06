@@ -6,8 +6,9 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabaseClient';
 import Sidebar from '@/components/Sidebar';
 import { deleteProject, canDeleteProject } from '@/lib/deleteProject';
+import { PROJECT_STATUSES, PROJECT_STATUS_LABELS, DEFAULT_PROJECT_STATUS } from '@/lib/projectStatus';
 
-const STATUS_LABELS = { design: 'Design', tender: 'Tender', job_in_hand: 'Job in Hand' };
+const STATUS_LABELS = PROJECT_STATUS_LABELS;
 const ROLE_LABELS = { contractor: 'Contractor', client: 'Client', consultant: 'Consultant', main_contractor: 'Main Contractor' };
 const CONTACT_ROLES = [
   { key: 'contractor', label: 'Contractor' },
@@ -355,9 +356,7 @@ export default function ProjectDetail() {
             <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>Status</div>
             {canManage ? (
               <select value={project.status} onChange={(e) => updateStatus(e.target.value)}>
-                <option value="design">Design</option>
-                <option value="tender">Tender</option>
-                <option value="job_in_hand">Job in Hand</option>
+                {PROJECT_STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
             ) : (
               <div style={{ fontWeight: 600 }}>{STATUS_LABELS[project.status]}</div>

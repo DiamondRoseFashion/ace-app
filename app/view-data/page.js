@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
 import Sidebar from '@/components/Sidebar';
 import { downloadXlsx } from '@/lib/xlsxExport';
+import { PROJECT_STATUS_LABELS, projectStatusRank } from '@/lib/projectStatus';
 
 const ALLOWED_ROLES = ['owner', 'admin', 'manager'];
 
@@ -42,7 +43,7 @@ const DATE_COLS = {
   contacts: { col: 'added_on', label: 'Added' },
 };
 
-const STATUS_LABELS = { design: 'Design', tender: 'Tender', job_in_hand: 'Job in Hand' };
+const STATUS_LABELS = PROJECT_STATUS_LABELS;
 const EMPTY = '__empty__';
 
 function display(col, v) {
@@ -181,7 +182,9 @@ export default function ViewData() {
         const key = String(v).trim();
         values.set(key.toLowerCase(), key);
       });
-      const options = [...values.values()].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+      const options = [...values.values()].sort((a, b) => (d.col === 'status'
+        ? projectStatusRank(a) - projectStatusRank(b) // project stages in their real order
+        : 0) || a.localeCompare(b, undefined, { sensitivity: 'base' }));
       return { ...d, options, hasEmpty };
     })
     .filter((d) => d.options.length > 0), [tab, rows, columns]);
@@ -212,10 +215,13 @@ export default function ViewData() {
       return true;
     });
     if (f.sortCol) {
-      out = [...out].sort((a, b) => compare(a[f.sortCol], b[f.sortCol]) * (f.sortDir === 'asc' ? 1 : -1));
+      const cmp = f.sortCol === 'status' && tab === 'projects'
+        ? (a, b) => projectStatusRank(a) - projectStatusRank(b) // by stage, not A–Z
+        : compare;
+      out = [...out].sort((a, b) => cmp(a[f.sortCol], b[f.sortCol]) * (f.sortDir === 'asc' ? 1 : -1));
     }
     return out;
-  }, [rows, f, dateDef]);
+  }, [rows, f, dateDef, tab]);
 
   const active = f.search.trim() || Object.values(f.picks).some(Boolean) || f.from || f.to || f.sortCol;
 

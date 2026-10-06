@@ -154,6 +154,14 @@ input:focus, select:focus, textarea:focus{
 .pill-design{background:#F1E7F8; color:var(--violet);}
 .pill-tender{background:var(--warn-bg); color:var(--warn);}
 .pill-job_in_hand{background:var(--ok-bg); color:var(--ok);}
+.pill-letter_of_intent{background:#E0F2FE; color:#0369A1;}
+.pill-submittal{background:#EDE9FE; color:#6D28D9;}
+.pill-samples_comments{background:#FCE7F3; color:#BE185D;}
+.pill-approval_code_b{background:#DCFCE7; color:#15803D;}
+.pill-lpo_order_confirmation{background:#CCFBF1; color:#0F766E;}
+.pill-delivery{background:#FFEDD5; color:#C2410C;}
+.pill-invoice_payment{background:#FEF9C3; color:#A16207;}
+.pill-om_manual_warranty{background:#E2E8F0; color:#334155;}
 /* aliases for older markup */
 .status-pill{font-size:11px; padding:3px 10px; border-radius:20px; font-weight:600; width:fit-content; letter-spacing:.2px;}
 .status-design{background:#F1E7F8; color:var(--violet);}

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
 import Sidebar from '@/components/Sidebar';
+import { PROJECT_STATUSES, PROJECT_STATUS_LABELS, DEFAULT_PROJECT_STATUS } from '@/lib/projectStatus';
 
 const CONTACT_ROLES = [
   { key: 'contractor', label: 'Contractor' },
@@ -29,7 +30,7 @@ export default function NewProject() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const [project, setProject] = useState({ name: '', status: 'design', location: '', brands_required: 'European' });
+  const [project, setProject] = useState({ name: '', status: DEFAULT_PROJECT_STATUS, location: '', brands_required: 'European' });
 
   // one array of contacts per role
   const [contacts, setContacts] = useState({
@@ -149,9 +150,7 @@ const [quotation, setQuotation] = useState({
               <div className="field-group">
                 <label>Status *</label>
                 <select value={project.status} onChange={(e) => setProject({ ...project, status: e.target.value })}>
-                  <option value="design">Design</option>
-                  <option value="tender">Tender</option>
-                  <option value="job_in_hand">Job in Hand</option>
+                  {PROJECT_STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
                 </select>
               </div>
               <div className="field-group">

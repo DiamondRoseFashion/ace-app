@@ -7,8 +7,9 @@ import Sidebar from '@/components/Sidebar';
 import DownloadBackupButton from '@/components/DownloadBackupButton';
 import ViewDataButton from '@/components/ViewDataButton';
 import { deleteProject, canDeleteProject } from '@/lib/deleteProject';
+import { PROJECT_STATUSES, PROJECT_STATUS_LABELS, DEFAULT_PROJECT_STATUS } from '@/lib/projectStatus';
 
-const STATUS_LABELS = { design: 'Design', tender: 'Tender', job_in_hand: 'Job in Hand' };
+const STATUS_LABELS = PROJECT_STATUS_LABELS;
 
 export default function Dashboard() {
   const router = useRouter();
@@ -139,9 +140,7 @@ export default function Dashboard() {
           />
           <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ width: 'auto' }}>
             <option value="all">All statuses</option>
-            <option value="design">Design</option>
-            <option value="tender">Tender</option>
-            <option value="job_in_hand">Job in Hand</option>
+            {PROJECT_STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
           {deletable.length > 0 && !selecting && (
             <button className="btn btn-ghost" onClick={() => setSelecting(true)}>Select</button>

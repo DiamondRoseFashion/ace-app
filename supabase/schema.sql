@@ -62,8 +62,9 @@ $$ language plpgsql security definer;
 create table projects (
   id uuid default gen_random_uuid() primary key,
   name text not null,
-  status text not null default 'design'
-    check (status in ('design','tender','job_in_hand')),
+  status text not null default 'tender'
+    check (status in ('tender','job_in_hand','letter_of_intent','submittal','samples_comments',
+                      'approval_code_b','lpo_order_confirmation','delivery','invoice_payment','om_manual_warranty')),
   location text,
   brands_required text,
   percent_complete int default 10,
