@@ -46,7 +46,7 @@ async function handle(req) {
     const { data: profs } = await admin.from('profiles').select('*').in('id', userIds);
     (profs || []).forEach((p) => {
       defaults[p.id] = p.reminder_default_minutes;
-      repeatOn[p.id] = p.reminder_repeat !== false; // on unless switched off
+      repeatOn[p.id] = false; // reminders ring once (no every-minute repeats)
     });
   }
 

@@ -1324,10 +1324,6 @@ function ReminderSettings({ me, onClose, onSaved, supabase }) {
 
         <div className="notif-box">
           <div style={{ fontWeight: 600, marginBottom: 4 }}>Reminders when ACE is closed</div>
-          <label className="toggle-row" style={{ marginTop: 6 }}>
-            <input type="checkbox" checked={repeat} onChange={(e) => setRepeat(e.target.checked)} />
-            <span>Repeat the notification every minute until I tap Stop (up to 10 times)</span>
-          </label>
           {push === 'checking' && <div className="hint">Checking this device…</div>}
           {push === 'on' && (
             <>

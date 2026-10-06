@@ -2,8 +2,8 @@
 
 // Alarm-style meeting reminder. Mounted in the sidebar, so it runs
 // on every ACE page while the app is open (phone or computer).
-// Shows a floating pop-up, rings a looping alarm and vibrates until
-// the person stops it (Stop / Snooze / Done / Open), and, if the
+// Shows a floating pop-up (it stays until the person answers it),
+// rings the alarm chime once and vibrates once. The person stops it (Stop / Snooze / Done / Open), and, if the
 // person allowed it, shows a system notification.
 
 import { useEffect, useRef, useState } from 'react';
@@ -77,7 +77,8 @@ function startAlarmSound() {
     if (!alarmBuffer) alarmBuffer = buildAlarmBuffer(ctx);
     const src = ctx.createBufferSource();
     src.buffer = alarmBuffer;
-    src.loop = true;
+    src.loop = false; // ring once, not continuously
+    src.onended = () => { if (alarmSource === src) { alarmSource = null; wantAlarm = false; } };
     src.connect(ctx.destination);
     src.start();
     alarmSource = src;
@@ -245,15 +246,16 @@ export default function MeetingReminder() {
     window.dispatchEvent(new Event('ace-meetings-changed'));
   }
 
-  // Ring (and vibrate) for as long as any reminder is on screen
+  // Ring (and vibrate) once when a new reminder pops up; the pop-up
+  // itself stays on screen quietly until the person answers it
+  const rungRef = useRef(0);
   useEffect(() => {
-    if (alerts.length === 0) { stopAlarmSound(); return undefined; }
-    if (!getPref('alarm-sound', true)) return undefined;
+    if (alerts.length === 0) { stopAlarmSound(); rungRef.current = 0; return; }
+    if (alerts.length <= rungRef.current) { rungRef.current = alerts.length; return; }
+    rungRef.current = alerts.length;
+    if (!getPref('alarm-sound', true)) return;
     startAlarmSound();
-    const vib = () => { try { navigator.vibrate?.(VIBRATE_PATTERN); } catch { /* ignore */ } };
-    vib();
-    const timer = setInterval(vib, 3000);
-    return () => clearInterval(timer);
+    try { navigator.vibrate?.(VIBRATE_PATTERN); } catch { /* ignore */ }
   }, [alerts.length]);
 
   useEffect(() => {
