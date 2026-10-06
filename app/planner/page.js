@@ -349,8 +349,9 @@ export default function PlannerPage() {
     loadMeetings();
   }
 
-  function canDeleteMeeting(m) {
-    return isManager || m.created_by === me.id;
+  // employees can't delete meetings (they can mark them Cancelled instead)
+  function canDeleteMeeting() {
+    return isManager;
   }
 
   async function deleteOne(m) {
@@ -934,7 +935,7 @@ export default function PlannerPage() {
               </div>
               {formError && <div className="error-text" style={{ marginBottom: 12 }}>{formError}</div>}
               <div className="modal-actions">
-                {form.id && (
+                {form.id && isManager && (
                   confirmDelete ? (
                     <button type="button" className="btn btn-danger" disabled={saving} onClick={deleteMeeting}>Yes, delete</button>
                   ) : (
