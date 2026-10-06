@@ -112,9 +112,9 @@ self.addEventListener('notificationclick', (event) => {
   if (event.action === 'stop') { event.waitUntil(ack(meetingId, 'stop')); return; }
   if (event.action === 'snooze') { event.waitUntil(ack(meetingId, 'snooze')); return; }
 
-  // tapped the notification itself: stop repeating and open the planner
+  // tapped the notification itself: open ACE, where the reminder
+  // pop-up is shown so it can be answered there
   event.waitUntil(Promise.all([
-    ack(meetingId, 'open'),
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
       for (const w of windows) {
         if ('focus' in w) {
