@@ -565,7 +565,7 @@ input:focus, select:focus, textarea:focus{
 .pbar-lg .pbar-pct { font-size: 16px; color: var(--violet); }
 
 /* ---------- My Projects register table ---------- */
-html, body { overscroll-behavior-x: none; } /* no accidental swipe-back while scrolling sideways */
+
 .reg-wrap { overflow: auto; max-height: calc(100vh - 230px); border-radius: var(--radius);
   overscroll-behavior: contain; /* sideways swipes scroll the table, never go Back / reload */
   -webkit-overflow-scrolling: touch; }
@@ -597,3 +597,9 @@ html, body { overscroll-behavior-x: none; } /* no accidental swipe-back while sc
 .reg-table .pill { white-space: nowrap; }
 .reg-pct { font-weight: 700; color: var(--violet); }
 .reg-prog > div.done { background: var(--ok); }
+
+/* ---------- scrolling, everywhere ---------- */
+/* a sideways swipe never triggers the browser's Back / reload gesture */
+html, body { overscroll-behavior-x: none; }
+/* scrolling inside a box stays inside it (doesn't drag the page along) */
+.modal-backdrop, .modal, .pp-menu, .del-names, .status-chips, .vd-table-wrap, .reg-wrap { overscroll-behavior: contain; }

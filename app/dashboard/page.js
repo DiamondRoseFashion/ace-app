@@ -7,7 +7,6 @@ import Sidebar from '@/components/Sidebar';
 import DownloadBackupButton from '@/components/DownloadBackupButton';
 import ViewDataButton from '@/components/ViewDataButton';
 import { deleteProject, canDeleteProject } from '@/lib/deleteProject';
-import useArrowScroll from '@/lib/useArrowScroll';
 import {
   REGISTER_COLUMNS, EMPTY, toRegisterRow, cellText, selectOptions, matchesFilter, compareRows, formatDate, formatValue,
 } from '@/lib/projectTable';
@@ -106,8 +105,6 @@ export default function Dashboard() {
     });
   }, [rows, filters, search, sort]);
   const filteredProjects = filteredRows.map((r) => r.project);
-
-  useArrowScroll(tableRef); // ← → ↑ ↓ scroll the table
 
   const activeFilters = Object.values(filters).filter((f) => f && (typeof f !== 'object' || f.from || f.to)).length + (search.trim() ? 1 : 0);
   const setFilter = (key, value) => setFilters((f) => ({ ...f, [key]: value }));

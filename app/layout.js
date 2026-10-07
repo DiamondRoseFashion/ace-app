@@ -1,5 +1,6 @@
 import './globals.css';
 import ErrorReporter from '@/components/ErrorReporter';
+import ArrowScroll from '@/components/ArrowScroll';
 
 export const metadata = {
   title: 'ACE — Project Control',
@@ -30,6 +31,7 @@ export default function RootLayout({ children }) {
       </head>
       <body>
         <ErrorReporter />
+        <ArrowScroll />
         {children}
       </body>
     </html>
