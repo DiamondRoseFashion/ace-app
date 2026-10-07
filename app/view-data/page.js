@@ -19,15 +19,15 @@ const TABS = [
 const FILTERS = {
   projects: [
     { col: 'status', label: 'Status' },
-    { col: 'created_by', label: 'Created by' },
-    { col: 'brands_required', label: 'Brands required' },
-    { col: 'quotation_status', label: 'Quotation status' },
     { col: 'sales_person', label: 'Sales person' },
     { col: 'headed_by', label: 'Headed by' },
+    { col: 'quotation_status', label: 'Quotation status' },
+    { col: 'brands_required', label: 'Brands required' },
+    { col: 'created_by', label: 'Created by' },
   ],
   quotations: [
     { col: 'quotation_status', label: 'Status' },
-    { col: 'client', label: 'Client' },
+    { col: 'project', label: 'Project' },
   ],
   contacts: [
     { col: 'role', label: 'Role' },
@@ -39,7 +39,7 @@ const FILTERS = {
 
 // Which date column the From/To range applies to
 const DATE_COLS = {
-  projects: { col: 'created_at', label: 'Created' },
+  projects: { col: 'date', label: 'Date' },
   quotations: { col: 'quotation_date', label: 'Quotation date' },
   contacts: { col: 'added_on', label: 'Added' },
 };

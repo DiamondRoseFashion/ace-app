@@ -564,7 +564,12 @@ input:focus, select:focus, textarea:focus{
 .pbar-lg .pbar-pct { font-size: 16px; color: var(--violet); }
 
 /* ---------- My Projects register table ---------- */
-.reg-wrap { overflow: auto; max-height: calc(100vh - 230px); border-radius: var(--radius); }
+html, body { overscroll-behavior-x: none; } /* no accidental swipe-back while scrolling sideways */
+.reg-wrap { overflow: auto; max-height: calc(100vh - 230px); border-radius: var(--radius);
+  overscroll-behavior: contain; /* sideways swipes scroll the table, never go Back / reload */
+  -webkit-overflow-scrolling: touch; }
+.reg-wrap:focus { outline: none; }
+.reg-wrap:focus-visible { box-shadow: 0 0 0 2px var(--violet-2) inset; }
 .reg-table { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; table-layout: fixed; font-size: 13px; }
 .reg-table th, .reg-table td { padding: 9px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; overflow: hidden; text-overflow: ellipsis; }
 .reg-table thead th { position: sticky; top: 0; z-index: 2; background: #FBF7FD; font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); font-weight: 700; white-space: nowrap; }

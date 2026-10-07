@@ -23,6 +23,8 @@ export default function Dashboard() {
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState({});
   const [sort, setSort] = useState({ key: 'date', dir: 'desc' });
+  const lastSigRef = useRef('');
+  const tableRef = useRef(null);
 
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState(new Set());
@@ -48,7 +50,11 @@ export default function Dashboard() {
       .select('*, creator:profiles!created_by(full_name), quotations(*), contacts(contact_role, company_name, name)')
       .order('created_at', { ascending: false });
 
-    if (!err) setProjects(data || []);
+    if (!err) {
+      const next = data || [];
+      const sig = JSON.stringify(next);
+      if (sig !== lastSigRef.current) { lastSigRef.current = sig; setProjects(next); } // only redraw on real changes
+    }
     setLoading(false);
   }
 
@@ -99,6 +105,29 @@ export default function Dashboard() {
     });
   }, [rows, filters, search, sort]);
   const filteredProjects = filteredRows.map((r) => r.project);
+
+  // Arrow keys / Page Up / Page Down / Home / End scroll the table,
+  // unless you're typing in a box
+  useEffect(() => {
+    const onKey = (e) => {
+      const el = tableRef.current;
+      if (!el || e.altKey || e.ctrlKey || e.metaKey) return;
+      const t = e.target;
+      if (t && (t.closest?.('input, select, textarea, [contenteditable="true"]') || document.querySelector('.modal-backdrop'))) return;
+      const step = { ArrowLeft: [-160, 0], ArrowRight: [160, 0], ArrowUp: [0, -60], ArrowDown: [0, 60],
+        PageUp: [0, -(el.clientHeight - 80)], PageDown: [0, el.clientHeight - 80] }[e.key];
+      if (step) {
+        e.preventDefault();
+        el.scrollBy({ left: step[0], top: step[1], behavior: e.repeat ? 'auto' : 'smooth' });
+      } else if (e.key === 'Home' && !t?.closest?.('input')) {
+        e.preventDefault(); el.scrollTo({ left: 0, top: 0, behavior: 'smooth' });
+      } else if (e.key === 'End' && !t?.closest?.('input')) {
+        e.preventDefault(); el.scrollTo({ left: el.scrollWidth, top: el.scrollHeight, behavior: 'smooth' });
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   const activeFilters = Object.values(filters).filter((f) => f && (typeof f !== 'object' || f.from || f.to)).length + (search.trim() ? 1 : 0);
   const setFilter = (key, value) => setFilters((f) => ({ ...f, [key]: value }));
@@ -221,7 +250,7 @@ export default function Dashboard() {
               No projects yet. Click &quot;New Project&quot; to add your first one.
             </div>
           ) : (
-            <div className="reg-wrap">
+            <div className="reg-wrap" ref={tableRef} tabIndex={0} role="region" aria-label="Projects table — use the arrow keys to scroll">
               <table className="reg-table">
                 <colgroup>
                   {selecting && <col style={{ width: 40 }} />}
