@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabaseClient';
 import Sidebar from '@/components/Sidebar';
 import { deleteProject, canDeleteProject } from '@/lib/deleteProject';
 import ProgressBar from '@/components/ProgressBar';
+import { HEADED_BY_OPTIONS } from '@/lib/projectFields';
 import { PROJECT_STATUSES, PROJECT_STATUS_LABELS, DEFAULT_PROJECT_STATUS } from '@/lib/projectStatus';
 
 const STATUS_LABELS = PROJECT_STATUS_LABELS;
@@ -58,7 +59,7 @@ export default function ProjectDetail() {
   const [error, setError] = useState('');
   const [statusError, setStatusError] = useState('');
   const [editing, setEditing] = useState(false);
-  const [editForm, setEditForm] = useState({ name: '', location: '', brands_required: '' });
+  const [editForm, setEditForm] = useState({ name: '', location: '', brands_required: '', sales_person: '', headed_by: '', lead_by: '', item: '', note: '' });
   const [editContacts, setEditContacts] = useState({ contractor: [], client: [], consultant: [], main_contractor: [] });
   const [editQuotations, setEditQuotations] = useState([]);
   const [editMeetings, setEditMeetings] = useState([]);
@@ -103,6 +104,11 @@ export default function ProjectDetail() {
         name: proj.name || '',
         location: proj.location || '',
         brands_required: proj.brands_required || '',
+        sales_person: proj.sales_person || '',
+        headed_by: proj.headed_by || '',
+        lead_by: proj.lead_by || '',
+        item: proj.item || '',
+        note: proj.note || '',
       });
     }
     setContacts(c || []);
@@ -192,6 +198,11 @@ export default function ProjectDetail() {
       name: editForm.name,
       location: editForm.location,
       brands_required: editForm.brands_required,
+      sales_person: editForm.sales_person || null,
+      headed_by: editForm.headed_by || null,
+      lead_by: editForm.lead_by || null,
+      item: editForm.item || null,
+      note: editForm.note || null,
     }).eq('id', projectId);
     if (projErr) { setError(projErr.message); setSaving(false); return; }
 
@@ -323,6 +334,33 @@ export default function ProjectDetail() {
                   <option>PRC</option>
                 </select>
               </div>
+              <div className="form-row-2">
+                <div className="field-group">
+                  <label>Sales Person</label>
+                  <input value={editForm.sales_person} onChange={(e) => setEditForm({ ...editForm, sales_person: e.target.value })} />
+                </div>
+                <div className="field-group">
+                  <label>Headed By</label>
+                  <select value={editForm.headed_by} onChange={(e) => setEditForm({ ...editForm, headed_by: e.target.value })}>
+                    <option value="">—</option>
+                    {HEADED_BY_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="form-row-2">
+                <div className="field-group">
+                  <label>Lead By</label>
+                  <input value={editForm.lead_by} onChange={(e) => setEditForm({ ...editForm, lead_by: e.target.value })} />
+                </div>
+                <div className="field-group">
+                  <label>Item</label>
+                  <input value={editForm.item} onChange={(e) => setEditForm({ ...editForm, item: e.target.value })} />
+                </div>
+              </div>
+              <div className="field-group">
+                <label>Note</label>
+                <textarea rows={3} value={editForm.note} onChange={(e) => setEditForm({ ...editForm, note: e.target.value })} />
+              </div>
             </div>
           ) : (
             <div>
@@ -394,6 +432,22 @@ export default function ProjectDetail() {
           <div>
             <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>Brands Required</div>
             <div style={{ fontWeight: 600 }}>{project.brands_required || '—'}</div>
+          </div>
+        </div>
+
+        {/* Project details */}
+        <div className="card" style={{ marginBottom: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16 }}>
+            {[['Sales Person', project.sales_person], ['Headed By', project.headed_by], ['Lead By', project.lead_by], ['Item', project.item]].map(([label, value]) => (
+              <div key={label}>
+                <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>{label}</div>
+                <div style={{ fontWeight: 600 }}>{value || '—'}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 14 }}>
+            <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>Note</div>
+            <div style={{ whiteSpace: 'pre-line' }}>{project.note || '—'}</div>
           </div>
         </div>
 
@@ -488,9 +542,6 @@ export default function ProjectDetail() {
                     </select>
                     <input placeholder="Win %" value={q.win_percentage || ''} onChange={(e) => updateEditQuotation(idx, 'win_percentage', e.target.value)} />
                   </div>
-                  <div className="field-group" style={{ marginBottom: 0 }}>
-                    <input placeholder="Issued By" value={q.issued_by || ''} onChange={(e) => updateEditQuotation(idx, 'issued_by', e.target.value)} />
-                  </div>
                 </div>
               ))}
               <span onClick={addEditQuotation} style={{ fontSize: 12, color: 'var(--violet-2)', fontWeight: 600, cursor: 'pointer' }}>
@@ -506,7 +557,6 @@ export default function ProjectDetail() {
               </div>
               <div style={{ fontSize: 12.5, marginTop: 6, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 16px' }}>
                 {q.win_percentage && <div><span style={{ color: 'var(--muted)' }}>Win %:</span> {q.win_percentage}%</div>}
-                {q.issued_by && <div><span style={{ color: 'var(--muted)' }}>Issued by:</span> {q.issued_by}</div>}
               </div>
             </div>
           ))}
@@ -590,6 +640,7 @@ export default function ProjectDetail() {
 const TABLE_LABELS = { projects: 'the project', contacts: 'a contact', quotations: 'a quotation', meetings: 'a meeting' };
 const FIELD_LABELS = {
   name: 'Name', location: 'Location', status: 'Status', brands_required: 'Brands Required',
+  sales_person: 'Sales Person', headed_by: 'Headed By', lead_by: 'Lead By', item: 'Item', note: 'Note',
   percent_complete: 'Progress', quotation_number: 'Quotation Number', quotation_value: 'Value',
   meeting_date: 'Meeting Date', venue: 'Venue', notes: 'Notes', actions: 'Actions',
 };

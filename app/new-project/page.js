@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
 import Sidebar from '@/components/Sidebar';
+import { HEADED_BY_OPTIONS } from '@/lib/projectFields';
 import { PROJECT_STATUSES, PROJECT_STATUS_LABELS, DEFAULT_PROJECT_STATUS } from '@/lib/projectStatus';
 
 const CONTACT_ROLES = [
@@ -30,7 +31,7 @@ export default function NewProject() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const [project, setProject] = useState({ name: '', status: DEFAULT_PROJECT_STATUS, location: '', brands_required: 'European' });
+  const [project, setProject] = useState({ name: '', status: DEFAULT_PROJECT_STATUS, location: '', brands_required: 'European', sales_person: '', headed_by: '', lead_by: '', item: '', note: '' });
 
   // one array of contacts per role
   const [contacts, setContacts] = useState({
@@ -163,6 +164,33 @@ const [quotation, setQuotation] = useState({
                   <option>PRC</option>
                 </select>
               </div>
+              <div className="form-row-2">
+                <div className="field-group">
+                  <label>Sales Person</label>
+                  <input value={project.sales_person} onChange={(e) => setProject({ ...project, sales_person: e.target.value })} />
+                </div>
+                <div className="field-group">
+                  <label>Headed By</label>
+                  <select value={project.headed_by} onChange={(e) => setProject({ ...project, headed_by: e.target.value })}>
+                    <option value="">Select…</option>
+                    {HEADED_BY_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="form-row-2">
+                <div className="field-group">
+                  <label>Lead By</label>
+                  <input value={project.lead_by} onChange={(e) => setProject({ ...project, lead_by: e.target.value })} />
+                </div>
+                <div className="field-group">
+                  <label>Item</label>
+                  <input value={project.item} onChange={(e) => setProject({ ...project, item: e.target.value })} />
+                </div>
+              </div>
+              <div className="field-group">
+                <label>Note</label>
+                <textarea rows={3} value={project.note} onChange={(e) => setProject({ ...project, note: e.target.value })} />
+              </div>
 
               {CONTACT_ROLES.map(({ key, label }) => (
                 <div className="field-group" key={key}>
@@ -233,10 +261,6 @@ const [quotation, setQuotation] = useState({
               <div className="field-group">
                 <label>Win %</label>
                 <input value={quotation.win_percentage} onChange={(e) => setQuotation({ ...quotation, win_percentage: e.target.value })} />
-              </div>
-              <div className="field-group">
-                <label>Issued By</label>
-                <input value={quotation.issued_by} onChange={(e) => setQuotation({ ...quotation, issued_by: e.target.value })} />
               </div>
               {error && <div className="error-text">{error}</div>}
               <button className="btn btn-primary" onClick={saveStep2} disabled={saving}>
