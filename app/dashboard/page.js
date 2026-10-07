@@ -103,7 +103,7 @@ export default function Dashboard() {
   const activeFilters = Object.values(filters).filter((f) => f && (typeof f !== 'object' || f.from || f.to)).length + (search.trim() ? 1 : 0);
   const setFilter = (key, value) => setFilters((f) => ({ ...f, [key]: value }));
   function clickSort(key) {
-    setSort((s) => (s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: key === 'date' || key === 'value' || key === 'win' ? 'desc' : 'asc' }));
+    setSort((s) => (s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: key === 'date' || key === 'value' || key === 'progress' ? 'desc' : 'asc' }));
   }
 
   const deletable = filteredProjects.filter((p) => canDeleteProject(p, me));
@@ -300,9 +300,11 @@ export default function Dashboard() {
                         <td className="mono">{r.quotation_no || '—'}{r.moreQuotes > 0 && <span className="reg-dim"> +{r.moreQuotes}</span>}</td>
                         <td>
                           <span className={`pill pill-${r.status}`}>{r.status_label}</span>
-                          <div className="reg-prog"><div style={{ width: `${r.progress}%` }} /></div>
                         </td>
-                        <td className="mono">{r.win === null ? '—' : `${r.win}%`}</td>
+                        <td title={`${r.progress}% complete`}>
+                          <span className="mono reg-pct">{r.progress}%</span>
+                          <div className="reg-prog"><div className={r.progress === 100 ? 'done' : ''} style={{ width: `${r.progress}%` }} /></div>
+                        </td>
                         <td>{r.sales_person || '—'}</td>
                         <td>{r.headed_by || '—'}</td>
                         <td>
@@ -334,7 +336,7 @@ export default function Dashboard() {
         </div>
         {!loading && projects.length > 0 && (
           <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 10 }}>
-            Showing {filteredRows.length} of {projects.length} projects · Date, Quotation No, Win % and Value come from each project&apos;s latest quotation (<span className="reg-dim">*</span> = no quotation yet, date the project was added)
+            Showing {filteredRows.length} of {projects.length} projects · Progress follows the status automatically · Date, Quotation No and Value come from each project&apos;s latest quotation (<span className="reg-dim">*</span> = no quotation yet, date the project was added)
           </div>
         )}
       </div>

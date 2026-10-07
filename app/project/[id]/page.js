@@ -29,7 +29,7 @@ function emptyContact() {
 function emptyQuotation() {
   return {
     id: null, quotation_number: '', quotation_date: '', target_submission_date: '', quotation_value: '',
-    quotation_status: '', win_percentage: '', issued_by: '', opportunity_ref: '', customer_name: '',
+    quotation_status: '', issued_by: '', opportunity_ref: '', customer_name: '',
     client: '', consultant: '', item: '', remarks: '', contractor: '',
   };
 }
@@ -243,7 +243,7 @@ export default function ProjectDetail() {
       const payload = {
         quotation_number: q.quotation_number, quotation_date: q.quotation_date || null,
         target_submission_date: q.target_submission_date || null, quotation_value: q.quotation_value,
-        quotation_status: q.quotation_status, win_percentage: q.win_percentage, issued_by: q.issued_by,
+        quotation_status: q.quotation_status, issued_by: q.issued_by,
         opportunity_ref: q.opportunity_ref, customer_name: q.customer_name, client: q.client,
         consultant: q.consultant, item: q.item, remarks: q.remarks, contractor: q.contractor,
       };
@@ -533,14 +533,13 @@ export default function ProjectDetail() {
                       <input type="date" value={q.target_submission_date || ''} onChange={(e) => updateEditQuotation(idx, 'target_submission_date', e.target.value)} />
                     </div>
                   </div>
-                  <div className="form-row-2" style={{ marginBottom: 8 }}>
-                    <select value={q.quotation_status || ''} onChange={(e) => updateEditQuotation(idx, 'quotation_status', e.target.value)}>
+                  <div className="field-group" style={{ marginBottom: 8 }}>
+                    <select value={q.quotation_status || ''} onChange={(e) => updateEditQuotation(idx, 'quotation_status', e.target.value)} aria-label="Quotation status">
                       <option value="">Status…</option>
                       <option value="pending">Pending</option>
                       <option value="win">Win</option>
                       <option value="lost">Lost</option>
                     </select>
-                    <input placeholder="Win %" value={q.win_percentage || ''} onChange={(e) => updateEditQuotation(idx, 'win_percentage', e.target.value)} />
                   </div>
                 </div>
               ))}
@@ -556,7 +555,6 @@ export default function ProjectDetail() {
                 Dated {q.quotation_date || '—'}, target submission {q.target_submission_date || '—'}
               </div>
               <div style={{ fontSize: 12.5, marginTop: 6, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 16px' }}>
-                {q.win_percentage && <div><span style={{ color: 'var(--muted)' }}>Win %:</span> {q.win_percentage}%</div>}
               </div>
             </div>
           ))}

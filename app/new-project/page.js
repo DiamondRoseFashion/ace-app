@@ -47,7 +47,6 @@ const [quotation, setQuotation] = useState({
   target_submission_date: '',
   quotation_value: '',
   quotation_status: '',
-  win_percentage: '',
   issued_by: '',
   opportunity_ref: '',
   customer_name: '',
@@ -257,10 +256,6 @@ const [quotation, setQuotation] = useState({
                   <option value="win">Win</option>
                   <option value="lost">Lost</option>
                 </select>
-              </div>
-              <div className="field-group">
-                <label>Win %</label>
-                <input value={quotation.win_percentage} onChange={(e) => setQuotation({ ...quotation, win_percentage: e.target.value })} />
               </div>
               {error && <div className="error-text">{error}</div>}
               <button className="btn btn-primary" onClick={saveStep2} disabled={saving}>

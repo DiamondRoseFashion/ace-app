@@ -589,3 +589,5 @@ input:focus, select:focus, textarea:focus{
 .reg-actions { text-align: center; }
 .reg-empty { text-align: center; color: var(--muted); padding: 28px !important; }
 .reg-table .pill { white-space: nowrap; }
+.reg-pct { font-weight: 700; color: var(--violet); }
+.reg-prog > div.done { background: var(--ok); }
