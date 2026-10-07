@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabaseClient';
@@ -7,10 +7,9 @@ import Sidebar from '@/components/Sidebar';
 import DownloadBackupButton from '@/components/DownloadBackupButton';
 import ViewDataButton from '@/components/ViewDataButton';
 import { deleteProject, canDeleteProject } from '@/lib/deleteProject';
-import ProgressBar from '@/components/ProgressBar';
-import { PROJECT_STATUSES, PROJECT_STATUS_LABELS, DEFAULT_PROJECT_STATUS } from '@/lib/projectStatus';
-
-const STATUS_LABELS = PROJECT_STATUS_LABELS;
+import {
+  REGISTER_COLUMNS, EMPTY, toRegisterRow, cellText, selectOptions, matchesFilter, compareRows, formatDate, formatValue,
+} from '@/lib/projectTable';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -22,7 +21,8 @@ export default function Dashboard() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [filters, setFilters] = useState({});
+  const [sort, setSort] = useState({ key: 'date', dir: 'desc' });
 
   const [selecting, setSelecting] = useState(false);
   const [selected, setSelected] = useState(new Set());
@@ -45,7 +45,7 @@ export default function Dashboard() {
     // (Employees only see their own; owner/admin/manager see everyone's.)
     const { data, error: err } = await supabase
       .from('projects')
-      .select('*, creator:profiles!created_by(full_name)')
+      .select('*, creator:profiles!created_by(full_name), quotations(*), contacts(contact_role, company_name, name)')
       .order('created_at', { ascending: false });
 
     if (!err) setProjects(data || []);
@@ -75,16 +75,36 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const filteredProjects = projects.filter((p) => {
-    const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
+  const rows = useMemo(() => projects.map(toRegisterRow), [projects]);
+  const options = useMemo(() => Object.fromEntries(
+    REGISTER_COLUMNS.filter((c) => c.filter === 'select').map((c) => [c.key, selectOptions(rows, c.key)])
+  ), [rows]);
+
+  const filteredRows = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const matchesSearch =
-      !q ||
-      p.name?.toLowerCase().includes(q) ||
-      p.location?.toLowerCase().includes(q) ||
-      p.creator?.full_name?.toLowerCase().includes(q);
-    return matchesStatus && matchesSearch;
-  });
+    const out = rows.filter((r) => {
+      for (const col of REGISTER_COLUMNS) if (!matchesFilter(r, col, filters[col.key])) return false;
+      if (q) {
+        const hay = REGISTER_COLUMNS.map((c) => cellText(r, c.key)).concat(r.project.location || '').join(' ').toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+    return out.sort((a, b) => {
+      const c = compareRows(a, b, sort.key);
+      const blankA = a[sort.key] === '' || a[sort.key] === null;
+      const blankB = b[sort.key] === '' || b[sort.key] === null;
+      if (blankA !== blankB) return c; // blanks stay last either way
+      return sort.dir === 'asc' ? c : -c;
+    });
+  }, [rows, filters, search, sort]);
+  const filteredProjects = filteredRows.map((r) => r.project);
+
+  const activeFilters = Object.values(filters).filter((f) => f && (typeof f !== 'object' || f.from || f.to)).length + (search.trim() ? 1 : 0);
+  const setFilter = (key, value) => setFilters((f) => ({ ...f, [key]: value }));
+  function clickSort(key) {
+    setSort((s) => (s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: key === 'date' || key === 'value' || key === 'win' ? 'desc' : 'asc' }));
+  }
 
   const deletable = filteredProjects.filter((p) => canDeleteProject(p, me));
 
@@ -152,18 +172,20 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 10, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
           <input
             type="text"
-            placeholder="Search by name, location, or creator…"
+            placeholder="Search every column…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{ flex: '1 1 260px', minWidth: 0 }}
+            aria-label="Search projects"
           />
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} style={{ width: 'auto' }}>
-            <option value="all">All statuses</option>
-            {PROJECT_STATUSES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-          </select>
+          {activeFilters > 0 && (
+            <button className="btn btn-ghost" onClick={() => { setFilters({}); setSearch(''); }}>
+              Clear filters ({activeFilters})
+            </button>
+          )}
           {deletable.length > 0 && !selecting && (
             <button className="btn btn-ghost" onClick={() => setSelecting(true)}>Select</button>
           )}
@@ -198,61 +220,121 @@ export default function Dashboard() {
             <div style={{ padding: 32, color: 'var(--muted)', textAlign: 'center' }}>
               No projects yet. Click &quot;New Project&quot; to add your first one.
             </div>
-          ) : filteredProjects.length === 0 ? (
-            <div style={{ padding: 32, color: 'var(--muted)', textAlign: 'center' }}>
-              No projects match your search.
-            </div>
           ) : (
-            filteredProjects.map((p) => {
-              const canDel = canDeleteProject(p, me);
-              const isSel = selected.has(p.id);
-              return (
-                <div
-                  key={p.id}
-                  className={`project-row pr-grid pr-clickable${selecting ? ' selecting' : ''}${isSel ? ' pr-selected' : ''}`}
-                  role="link"
-                  tabIndex={0}
-                  onClick={() => (selecting ? canDel && toggle(p.id) : router.push(`/project/${p.id}`))}
-                  onKeyDown={(e) => { if (e.key === 'Enter') router.push(`/project/${p.id}`); }}
-                >
-                  {selecting && (
-                    <div className="pr-check" onClick={(e) => e.stopPropagation()}>
-                      <input
-                        type="checkbox"
-                        className="row-check"
-                        disabled={!canDel}
-                        checked={isSel}
-                        onChange={() => toggle(p.id)}
-                        aria-label={`Select ${p.name}`}
-                        title={canDel ? '' : 'Only the creator or a manager can delete this project'}
-                      />
-                    </div>
-                  )}
-                  <div className="pr-name" style={{ fontWeight: 600 }}>{p.name}</div>
-                  <div><span className={`pill pill-${p.status}`}>{STATUS_LABELS[p.status] || p.status}</span></div>
-                  <div style={{ paddingRight: 12 }}><ProgressBar status={p.status} /></div>
-                  <div>{p.location}</div>
-                  <div style={{ fontSize: 12.5, color: 'var(--muted)' }}>{p.creator?.full_name || '—'}</div>
-                  <div className="pr-actions">
-                    {canDel && !selecting && (
-                      <button
-                        className="icon-btn danger"
-                        aria-label={`Delete ${p.name}`}
-                        title="Delete project"
-                        onClick={(e) => { e.stopPropagation(); askDelete([p.id]); }}
-                      >
-                        🗑
-                      </button>
-                    )}
-                  </div>
-                </div>
-              );
-            })
+            <div className="reg-wrap">
+              <table className="reg-table">
+                <colgroup>
+                  {selecting && <col style={{ width: 40 }} />}
+                  {REGISTER_COLUMNS.map((c) => <col key={c.key} style={{ width: c.width }} />)}
+                  <col style={{ width: 48 }} />
+                </colgroup>
+                <thead>
+                  <tr>
+                    {selecting && <th aria-label="Select" />}
+                    {REGISTER_COLUMNS.map((c) => (
+                      <th key={c.key} aria-sort={sort.key === c.key ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}>
+                        <button type="button" className="reg-sort" onClick={() => clickSort(c.key)}>
+                          {c.label}
+                          <span className="reg-arrow">{sort.key === c.key ? (sort.dir === 'asc' ? '▲' : '▼') : '↕'}</span>
+                        </button>
+                      </th>
+                    ))}
+                    <th aria-label="Actions" />
+                  </tr>
+                  <tr className="reg-filters">
+                    {selecting && <th />}
+                    {REGISTER_COLUMNS.map((c) => (
+                      <th key={c.key}>
+                        {c.filter === 'select' ? (
+                          <select
+                            value={filters[c.key] || ''}
+                            onChange={(e) => setFilter(c.key, e.target.value)}
+                            aria-label={`Filter ${c.label}`}
+                            className={filters[c.key] ? 'on' : ''}
+                          >
+                            <option value="">All</option>
+                            {(options[c.key] || []).map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                            <option value={EMPTY}>(blank)</option>
+                          </select>
+                        ) : c.filter === 'date' ? (
+                          <div className="reg-dates">
+                            <input type="date" aria-label="Date from" value={filters.date?.from || ''} className={filters.date?.from ? 'on' : ''}
+                              onChange={(e) => setFilter('date', { ...(filters.date || {}), from: e.target.value })} />
+                            <input type="date" aria-label="Date to" value={filters.date?.to || ''} className={filters.date?.to ? 'on' : ''}
+                              onChange={(e) => setFilter('date', { ...(filters.date || {}), to: e.target.value })} />
+                          </div>
+                        ) : (
+                          <input
+                            type="text"
+                            placeholder="Filter…"
+                            value={filters[c.key] || ''}
+                            onChange={(e) => setFilter(c.key, e.target.value)}
+                            aria-label={`Filter ${c.label}`}
+                            className={filters[c.key] ? 'on' : ''}
+                          />
+                        )}
+                      </th>
+                    ))}
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredRows.length === 0 ? (
+                    <tr><td colSpan={REGISTER_COLUMNS.length + (selecting ? 2 : 1)} className="reg-empty">No projects match these filters.</td></tr>
+                  ) : filteredRows.map((r) => {
+                    const p = r.project;
+                    const canDel = canDeleteProject(p, me);
+                    const isSel = selected.has(p.id);
+                    const open = () => (selecting ? canDel && toggle(p.id) : router.push(`/project/${p.id}`));
+                    return (
+                      <tr key={p.id} className={`reg-row${isSel ? ' sel' : ''}`} onClick={open}>
+                        {selecting && (
+                          <td onClick={(e) => e.stopPropagation()}>
+                            <input type="checkbox" className="row-check" disabled={!canDel} checked={isSel}
+                              onChange={() => toggle(p.id)} aria-label={`Select ${p.name}`} />
+                          </td>
+                        )}
+                        <td className="mono" title={r.dateIsQuote ? 'Quotation date' : 'No quotation yet — date the project was added'}>
+                          {formatDate(r.date) || '—'}{!r.dateIsQuote && r.date ? <span className="reg-dim"> *</span> : null}
+                        </td>
+                        <td className="mono">{r.quotation_no || '—'}{r.moreQuotes > 0 && <span className="reg-dim"> +{r.moreQuotes}</span>}</td>
+                        <td>
+                          <span className={`pill pill-${r.status}`}>{r.status_label}</span>
+                          <div className="reg-prog"><div style={{ width: `${r.progress}%` }} /></div>
+                        </td>
+                        <td className="mono">{r.win === null ? '—' : `${r.win}%`}</td>
+                        <td>{r.sales_person || '—'}</td>
+                        <td>{r.headed_by || '—'}</td>
+                        <td>
+                          <Link href={`/project/${p.id}`} className="reg-name" onClick={(e) => { if (selecting) e.preventDefault(); e.stopPropagation(); if (selecting && canDel) toggle(p.id); }}>
+                            {r.name}
+                          </Link>
+                        </td>
+                        <td>{r.contractor || '—'}</td>
+                        <td>{r.client || '—'}</td>
+                        <td>{r.consultant || '—'}</td>
+                        <td className="mono reg-num">{r.value === null ? '—' : formatValue(r.value)}</td>
+                        <td>{r.item || '—'}</td>
+                        <td className="reg-note" title={r.note}>{r.note || '—'}</td>
+                        <td className="reg-actions">
+                          {canDel && !selecting && (
+                            <button className="icon-btn danger" aria-label={`Delete ${p.name}`} title="Delete project"
+                              onClick={(e) => { e.stopPropagation(); askDelete([p.id]); }}>
+                              🗑
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
         {!loading && projects.length > 0 && (
           <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 10 }}>
-            Showing {filteredProjects.length} of {projects.length} projects
+            Showing {filteredRows.length} of {projects.length} projects · Date, Quotation No, Win % and Value come from each project&apos;s latest quotation (<span className="reg-dim">*</span> = no quotation yet, date the project was added)
           </div>
         )}
       </div>

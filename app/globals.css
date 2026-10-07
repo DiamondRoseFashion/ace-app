@@ -562,3 +562,30 @@ input:focus, select:focus, textarea:focus{
 .pbar-lg { min-width: 220px; }
 .pbar-lg .pbar-track { height: 10px; }
 .pbar-lg .pbar-pct { font-size: 16px; color: var(--violet); }
+
+/* ---------- My Projects register table ---------- */
+.reg-wrap { overflow: auto; max-height: calc(100vh - 230px); border-radius: var(--radius); }
+.reg-table { border-collapse: separate; border-spacing: 0; width: max-content; min-width: 100%; table-layout: fixed; font-size: 13px; }
+.reg-table th, .reg-table td { padding: 9px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; overflow: hidden; text-overflow: ellipsis; }
+.reg-table thead th { position: sticky; top: 0; z-index: 2; background: #FBF7FD; font-size: 11px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); font-weight: 700; white-space: nowrap; }
+.reg-table thead tr.reg-filters th { top: 38px; padding: 6px 6px 8px; background: #FBF7FD; text-transform: none; letter-spacing: 0; }
+.reg-sort { all: unset; cursor: pointer; display: inline-flex; gap: 5px; align-items: center; }
+.reg-sort:focus-visible { outline: 2px solid var(--violet-2); outline-offset: 2px; border-radius: 4px; }
+.reg-arrow { font-size: 10px; opacity: .55; }
+.reg-filters input, .reg-filters select { width: 100%; box-sizing: border-box; font-size: 12px; padding: 5px 6px; border-radius: 7px; min-height: 30px; }
+.reg-filters .on { border-color: var(--violet-2); background: #F6EEFB; }
+.reg-dates { display: flex; flex-direction: column; gap: 4px; }
+.reg-dates input { font-size: 11px; padding: 3px 4px; min-height: 26px; }
+.reg-row { cursor: pointer; }
+.reg-row:hover td { background: #FBF8FD; }
+.reg-row.sel td { background: #F3E9FA; }
+.reg-name { font-weight: 700; color: var(--deep); text-decoration: none; }
+.reg-name:hover { text-decoration: underline; }
+.reg-num { text-align: right; white-space: nowrap; }
+.reg-note { white-space: nowrap; color: var(--muted); }
+.reg-dim { color: var(--muted); font-size: 11px; }
+.reg-prog { height: 4px; background: #ECE7F3; border-radius: 99px; margin-top: 6px; overflow: hidden; }
+.reg-prog > div { height: 100%; background: var(--violet-2); border-radius: 99px; }
+.reg-actions { text-align: center; }
+.reg-empty { text-align: center; color: var(--muted); padding: 28px !important; }
+.reg-table .pill { white-space: nowrap; }
