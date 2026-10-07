@@ -7,6 +7,7 @@ import Sidebar from '@/components/Sidebar';
 import DownloadBackupButton from '@/components/DownloadBackupButton';
 import ViewDataButton from '@/components/ViewDataButton';
 import { deleteProject, canDeleteProject } from '@/lib/deleteProject';
+import useArrowScroll from '@/lib/useArrowScroll';
 import {
   REGISTER_COLUMNS, EMPTY, toRegisterRow, cellText, selectOptions, matchesFilter, compareRows, formatDate, formatValue,
 } from '@/lib/projectTable';
@@ -106,28 +107,7 @@ export default function Dashboard() {
   }, [rows, filters, search, sort]);
   const filteredProjects = filteredRows.map((r) => r.project);
 
-  // Arrow keys / Page Up / Page Down / Home / End scroll the table,
-  // unless you're typing in a box
-  useEffect(() => {
-    const onKey = (e) => {
-      const el = tableRef.current;
-      if (!el || e.altKey || e.ctrlKey || e.metaKey) return;
-      const t = e.target;
-      if (t && (t.closest?.('input, select, textarea, [contenteditable="true"]') || document.querySelector('.modal-backdrop'))) return;
-      const step = { ArrowLeft: [-160, 0], ArrowRight: [160, 0], ArrowUp: [0, -60], ArrowDown: [0, 60],
-        PageUp: [0, -(el.clientHeight - 80)], PageDown: [0, el.clientHeight - 80] }[e.key];
-      if (step) {
-        e.preventDefault();
-        el.scrollBy({ left: step[0], top: step[1], behavior: e.repeat ? 'auto' : 'smooth' });
-      } else if (e.key === 'Home' && !t?.closest?.('input')) {
-        e.preventDefault(); el.scrollTo({ left: 0, top: 0, behavior: 'smooth' });
-      } else if (e.key === 'End' && !t?.closest?.('input')) {
-        e.preventDefault(); el.scrollTo({ left: el.scrollWidth, top: el.scrollHeight, behavior: 'smooth' });
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  useArrowScroll(tableRef); // ← → ↑ ↓ scroll the table
 
   const activeFilters = Object.values(filters).filter((f) => f && (typeof f !== 'object' || f.from || f.to)).length + (search.trim() ? 1 : 0);
   const setFilter = (key, value) => setFilters((f) => ({ ...f, [key]: value }));

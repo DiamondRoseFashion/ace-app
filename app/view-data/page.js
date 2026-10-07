@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
 import Sidebar from '@/components/Sidebar';
 import { downloadXlsx } from '@/lib/xlsxExport';
+import useArrowScroll from '@/lib/useArrowScroll';
 import { PROJECT_STATUS_LABELS, projectStatusRank } from '@/lib/projectStatus';
 
 const ALLOWED_ROLES = ['owner', 'admin', 'manager'];
@@ -81,11 +82,13 @@ function emptyFilters() {
 }
 
 function DataTable({ rows, columns, sortCol, sortDir, onSort }) {
+  const wrapRef = useRef(null);
+  useArrowScroll(wrapRef); // ← → scroll the table sideways
   if (!rows || rows.length === 0) {
     return <div style={{ padding: 24, color: 'var(--muted)' }}>No rows match. Try clearing a filter or the search.</div>;
   }
   return (
-    <div className="vd-table-wrap">
+    <div className="vd-table-wrap" ref={wrapRef} tabIndex={0} role="region" aria-label="Data table — use the arrow keys to scroll">
       <table className="vd-table">
         <thead>
           <tr>
