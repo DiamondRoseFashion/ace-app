@@ -9,6 +9,8 @@ import { deleteProject, canDeleteProject } from '@/lib/deleteProject';
 import ProgressBar from '@/components/ProgressBar';
 import { HEADED_BY_OPTIONS } from '@/lib/projectFields';
 import { PROJECT_STATUSES, PROJECT_STATUS_LABELS, DEFAULT_PROJECT_STATUS } from '@/lib/projectStatus';
+import DateInput from '@/components/DateInput';
+import { fmtDate, fmtDateTime } from '@/lib/dates';
 
 const STATUS_LABELS = PROJECT_STATUS_LABELS;
 const ROLE_LABELS = { contractor: 'Contractor', client: 'Client', consultant: 'Consultant', main_contractor: 'Main Contractor' };
@@ -526,11 +528,11 @@ export default function ProjectDetail() {
                   <div className="form-row-2" style={{ marginBottom: 8 }}>
                     <div>
                       <label style={{ fontSize: 11 }}>Quotation Date</label>
-                      <input type="date" value={q.quotation_date || ''} onChange={(e) => updateEditQuotation(idx, 'quotation_date', e.target.value)} />
+                      <DateInput value={q.quotation_date || ''} onChange={(e) => updateEditQuotation(idx, 'quotation_date', e.target.value)} />
                     </div>
                     <div>
                       <label style={{ fontSize: 11 }}>Target Submission</label>
-                      <input type="date" value={q.target_submission_date || ''} onChange={(e) => updateEditQuotation(idx, 'target_submission_date', e.target.value)} />
+                      <DateInput value={q.target_submission_date || ''} onChange={(e) => updateEditQuotation(idx, 'target_submission_date', e.target.value)} />
                     </div>
                   </div>
                   <div className="field-group" style={{ marginBottom: 8 }}>
@@ -552,7 +554,7 @@ export default function ProjectDetail() {
               <strong>{q.quotation_number || 'Untitled'}</strong> — {q.quotation_value ? `AED ${q.quotation_value}` : 'no value set'}
               {q.quotation_status && <span className={`pill pill-${q.quotation_status}`} style={{ marginLeft: 8 }}>{q.quotation_status}</span>}
               <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
-                Dated {q.quotation_date || '—'}, target submission {q.target_submission_date || '—'}
+                Dated {fmtDate(q.quotation_date) || '—'}, target submission {fmtDate(q.target_submission_date) || '—'}
               </div>
               <div style={{ fontSize: 12.5, marginTop: 6, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 16px' }}>
               </div>
@@ -572,7 +574,7 @@ export default function ProjectDetail() {
                     <span onClick={() => removeEditMeeting(idx)} style={{ fontSize: 11, color: '#B33A3A', cursor: 'pointer', fontWeight: 600 }}>Remove</span>
                   </div>
                   <div className="form-row-2" style={{ marginBottom: 8 }}>
-                    <input type="date" value={m.meeting_date || ''} onChange={(e) => updateEditMeeting(idx, 'meeting_date', e.target.value)} />
+                    <DateInput value={m.meeting_date || ''} onChange={(e) => updateEditMeeting(idx, 'meeting_date', e.target.value)} />
                     <input placeholder="Venue" value={m.venue || ''} onChange={(e) => updateEditMeeting(idx, 'venue', e.target.value)} />
                   </div>
                   <textarea placeholder="Notes" rows={2} value={m.notes || ''} onChange={(e) => updateEditMeeting(idx, 'notes', e.target.value)} style={{ marginBottom: 8 }} />
@@ -586,7 +588,7 @@ export default function ProjectDetail() {
           ) : meetings.length === 0 ? <Empty text="No meetings logged yet." /> : meetings.map((m) => (
             <div key={m.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--line)', fontSize: 13.5 }}>
               {m.title && <div style={{ fontWeight: 600 }}>{m.title}{m.is_done ? ' ✓' : ''}</div>}
-              <strong>{m.meeting_date || 'Undated'}</strong>{m.start_time ? `, ${m.start_time.slice(0, 5)}` : ''}{m.venue ? ` at ${m.venue}` : ''}
+              <strong>{fmtDate(m.meeting_date) || 'Undated'}</strong>{m.start_time ? `, ${m.start_time.slice(0, 5)}` : ''}{m.venue ? ` at ${m.venue}` : ''}
               {m.notes && <div style={{ fontSize: 12.5, marginTop: 2 }}>{m.notes}</div>}
               {m.actions && <div style={{ fontSize: 12.5, color: 'var(--violet-2)', marginTop: 2 }}>Actions: {m.actions}</div>}
             </div>
@@ -625,7 +627,7 @@ export default function ProjectDetail() {
             <div key={a.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--line)', fontSize: 13 }}>
               <span>{describeActivity(a)}</span>
               <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
-                {a.actor?.full_name || 'Someone'} · {new Date(a.changed_at).toLocaleString()}
+                {a.actor?.full_name || 'Someone'} · {fmtDateTime(a.changed_at)}
               </div>
             </div>
           ))}

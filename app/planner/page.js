@@ -13,6 +13,8 @@ import {
 import { enablePush, disablePush, pushStatus } from '@/lib/pushClient';
 import { buildCalendar } from '@/lib/ics';
 import { downloadXlsx } from '@/lib/xlsxExport';
+import DateInput from '@/components/DateInput';
+import { fmtDate } from '@/lib/dates';
 
 const SELECT = '*, project:projects(id, name), assignee:profiles!assigned_to(id, full_name)';
 
@@ -114,7 +116,7 @@ function rangeDates(range, today, customFrom, customTo) {
 }
 
 function shortDate(key) {
-  return parseKey(key).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  return fmtDate(key); // dd/mm/yyyy
 }
 
 function downloadMeetingsXlsx(rows, filename) {
@@ -500,7 +502,7 @@ export default function PlannerPage() {
   const heading = view === 'list'
     ? 'Meetings overview'
     : view === 'week'
-      ? `${parseKey(days[0]).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} – ${parseKey(days[6]).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
+      ? `${fmtDate(days[0])} – ${fmtDate(days[6])}`
       : date === today ? (effectiveWho === 'mine' ? 'My Day' : 'Today') : formatDayLong(date);
 
   if (!me) {
@@ -596,8 +598,8 @@ export default function PlannerPage() {
                 </label>
                 {range === 'custom' && (
                   <>
-                    <label className="fb-field"><span>From</span><input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} /></label>
-                    <label className="fb-field"><span>To</span><input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} /></label>
+                    <label className="fb-field"><span>From</span><DateInput value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} /></label>
+                    <label className="fb-field"><span>To</span><DateInput value={customTo} onChange={(e) => setCustomTo(e.target.value)} /></label>
                   </>
                 )}
                 <label className="fb-field">
@@ -871,8 +873,7 @@ export default function PlannerPage() {
               <div className="form-row-3" style={{ marginBottom: 14 }}>
                 <div>
                   <label>Date</label>
-                  <input
-                    type="date"
+                  <DateInput
                     value={form.meeting_date}
                     onChange={(e) => setForm({
                       ...form,

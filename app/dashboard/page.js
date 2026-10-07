@@ -7,6 +7,7 @@ import Sidebar from '@/components/Sidebar';
 import DownloadBackupButton from '@/components/DownloadBackupButton';
 import ViewDataButton from '@/components/ViewDataButton';
 import { deleteProject, canDeleteProject } from '@/lib/deleteProject';
+import DateInput from '@/components/DateInput';
 import {
   REGISTER_COLUMNS, EMPTY, toRegisterRow, cellText, selectOptions, matchesFilter, compareRows, formatDate, formatValue,
 } from '@/lib/projectTable';
@@ -264,9 +265,9 @@ export default function Dashboard() {
                           </select>
                         ) : c.filter === 'date' ? (
                           <div className="reg-dates">
-                            <input type="date" aria-label="Date from" value={filters.date?.from || ''} className={filters.date?.from ? 'on' : ''}
+                            <DateInput aria-label="Date from" value={filters.date?.from || ''} className={filters.date?.from ? 'on' : ''}
                               onChange={(e) => setFilter('date', { ...(filters.date || {}), from: e.target.value })} />
-                            <input type="date" aria-label="Date to" value={filters.date?.to || ''} className={filters.date?.to ? 'on' : ''}
+                            <DateInput aria-label="Date to" value={filters.date?.to || ''} className={filters.date?.to ? 'on' : ''}
                               onChange={(e) => setFilter('date', { ...(filters.date || {}), to: e.target.value })} />
                           </div>
                         ) : (

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabaseClient';
 import Sidebar from '@/components/Sidebar';
+import { fmtDate } from '@/lib/dates';
 import MonitorPanel from '@/components/MonitorPanel';
 
 const ROLES = ['owner', 'admin', 'manager', 'employee'];
@@ -72,7 +73,7 @@ export default function TeamPage() {
               {profiles.map((p) => (
                 <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1.6fr 1fr', padding: '13px 20px', borderBottom: '1px solid var(--line)', alignItems: 'center' }}>
                   <div style={{ fontWeight: 600 }}>{p.full_name || '(no name set)'}</div>
-                  <div style={{ fontSize: 13, color: 'var(--muted)' }}>{new Date(p.created_at).toLocaleDateString()}</div>
+                  <div style={{ fontSize: 13, color: 'var(--muted)' }}>{fmtDate(p.created_at)}</div>
                   <div>
                     {canManage ? (
                       <select value={p.role} onChange={(e) => changeRole(p.id, e.target.value)} style={{ padding: '6px 8px', fontSize: 13 }}>

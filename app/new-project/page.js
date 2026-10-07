@@ -6,6 +6,8 @@ import { createClient } from '@/lib/supabaseClient';
 import Sidebar from '@/components/Sidebar';
 import { HEADED_BY_OPTIONS } from '@/lib/projectFields';
 import { PROJECT_STATUSES, PROJECT_STATUS_LABELS, DEFAULT_PROJECT_STATUS } from '@/lib/projectStatus';
+import DateInput from '@/components/DateInput';
+import { fmtDate } from '@/lib/dates';
 
 const CONTACT_ROLES = [
   { key: 'contractor', label: 'Contractor' },
@@ -120,7 +122,7 @@ const [quotation, setQuotation] = useState({
     setError(''); setSaving(true);
     const { error } = await supabase.from('meetings').insert({ ...meeting, project_id: projectId });
     if (error) { setError(error.message); setSaving(false); return; }
-    await logActivity(projectId, `logged a meeting${meeting.meeting_date ? ' on ' + meeting.meeting_date : ''}`);
+    await logActivity(projectId, `logged a meeting${meeting.meeting_date ? ' on ' + fmtDate(meeting.meeting_date) : ''}`);
     setSaving(false);
     router.push(`/project/${projectId}`);
   }
@@ -238,11 +240,11 @@ const [quotation, setQuotation] = useState({
               </div>
               <div className="field-group">
                 <label>Quotation Date</label>
-                <input type="date" value={quotation.quotation_date} onChange={(e) => setQuotation({ ...quotation, quotation_date: e.target.value })} />
+                <DateInput value={quotation.quotation_date} onChange={(e) => setQuotation({ ...quotation, quotation_date: e.target.value })} />
               </div>
               <div className="field-group">
                 <label>Target Date for Submission</label>
-                <input type="date" value={quotation.target_submission_date} onChange={(e) => setQuotation({ ...quotation, target_submission_date: e.target.value })} />
+                <DateInput value={quotation.target_submission_date} onChange={(e) => setQuotation({ ...quotation, target_submission_date: e.target.value })} />
               </div>
               <div className="field-group">
                 <label>Quotation Value</label>
@@ -268,7 +270,7 @@ const [quotation, setQuotation] = useState({
             <>
               <div className="field-group">
                 <label>Meeting Date</label>
-                <input type="date" value={meeting.meeting_date} onChange={(e) => setMeeting({ ...meeting, meeting_date: e.target.value })} />
+                <DateInput value={meeting.meeting_date} onChange={(e) => setMeeting({ ...meeting, meeting_date: e.target.value })} />
               </div>
               <div className="field-group">
                 <label>Meeting Venue</label>

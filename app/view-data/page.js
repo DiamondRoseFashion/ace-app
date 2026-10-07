@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabaseClient';
 import Sidebar from '@/components/Sidebar';
 import { downloadXlsx } from '@/lib/xlsxExport';
 import { PROJECT_STATUS_LABELS, projectStatusRank } from '@/lib/projectStatus';
+import DateInput from '@/components/DateInput';
 
 const ALLOWED_ROLES = ['owner', 'admin', 'manager'];
 
@@ -287,11 +288,11 @@ export default function ViewData() {
                 <>
                   <label className="vd-field vd-date">
                     <span>{dateDef.label} from</span>
-                    <input type="date" value={f.from} onChange={(e) => setF({ from: e.target.value })} />
+                    <DateInput value={f.from} onChange={(e) => setF({ from: e.target.value })} />
                   </label>
                   <label className="vd-field vd-date">
                     <span>to</span>
-                    <input type="date" value={f.to} onChange={(e) => setF({ to: e.target.value })} />
+                    <DateInput value={f.to} onChange={(e) => setF({ to: e.target.value })} />
                   </label>
                 </>
               )}

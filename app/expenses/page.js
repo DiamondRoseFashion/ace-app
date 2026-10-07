@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
 import Sidebar from '@/components/Sidebar';
+import DateInput from '@/components/DateInput';
+import { fmtDate } from '@/lib/dates';
 
 const MANAGEMENT_ROLES = ['owner', 'admin', 'manager'];
 const PIE_COLORS = ['#6B2D82', '#D8B968', '#3E8E5A', '#2F6FED', '#B33A3A', '#E07A3E', '#1FA2A6', '#C2478B', '#4A1863', '#9A7213'];function monthKey(dateStr) {
@@ -227,7 +229,7 @@ export default function ExpensesPage() {
             <div className="form-row-2" style={{ marginBottom: 12 }}>
               <div>
                 <label>Date</label>
-                <input type="date" value={form.expense_date} onChange={(e) => setForm({ ...form, expense_date: e.target.value })} />
+                <DateInput value={form.expense_date} onChange={(e) => setForm({ ...form, expense_date: e.target.value })} />
               </div>
               <div>
                 <label>Category</label>
@@ -319,7 +321,7 @@ export default function ExpensesPage() {
               <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 20px', borderBottom: '1px solid var(--line)', fontSize: 13 }}>
                 <div>
                   {isManager && <strong>{e.employee?.full_name || 'Unknown'}</strong>}
-                  <span style={{ color: 'var(--muted)' }}> {isManager ? '· ' : ''}{e.expense_date} {e.category ? `· ${e.category}` : ''}</span>
+                  <span style={{ color: 'var(--muted)' }}> {isManager ? '· ' : ''}{fmtDate(e.expense_date)} {e.category ? `· ${e.category}` : ''}</span>
                   {e.notes && <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>{e.notes}</div>}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
