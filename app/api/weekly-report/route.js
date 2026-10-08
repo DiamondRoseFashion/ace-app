@@ -90,7 +90,7 @@ async function handle(req) {
 
     // ----- backup attachments -----
     const attachments = [];
-    const xlsx = await buildBackupWorkbook(admin);
+    const xlsx = await buildBackupWorkbook(admin, { full: true });
     if (xlsx.buffer) attachments.push({ filename: `ACE-backup-${today}.xlsx`, content: xlsx.buffer });
     const full = await buildFullBackup(admin);
     attachments.push({ filename: `ACE-full-backup-${today}.json`, content: Buffer.from(JSON.stringify(full)) });
@@ -133,8 +133,8 @@ async function handle(req) {
         : '<div>No projects yet.</div>')}
 
       ${section('Backup attached', `<div>This email carries this week's backup:<br>
-        • <b>ACE-backup-${today}.xlsx</b>: projects, quotations and contacts to open in Excel<br>
-        • <b>ACE-full-backup-${today}.json</b>: a complete copy of every table, which can restore ACE if data is ever lost<br>
+        • <b>ACE-backup-${today}.xlsx</b>: open in Excel to read everything: Projects, Quotations, Contacts, Meetings, Expenses and Team<br>
+        • <b>ACE-full-backup-${today}.json</b>: the restore file, for Claude to load back into ACE if data is ever lost (not meant for reading)<br>
         <span style="color:#7A6C86;font-size:13px">Keep these emails; each one is a restore point.</span></div>`)}
     `;
 

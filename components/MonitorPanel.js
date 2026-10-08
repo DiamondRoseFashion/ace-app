@@ -1,6 +1,6 @@
 'use client';
 
-// Owner/admin: check that ACE's alert emails reach you
+// Owner / admin / manager: check that ACE's alert emails reach you
 import { useState } from 'react';
 import { createClient } from '@/lib/supabaseClient';
 
@@ -31,7 +31,8 @@ export default function MonitorPanel() {
       <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 0 }}>
         ACE watches itself around the clock. You get an <strong>instant email</strong> if anything goes wrong
         (errors, reminders stopping, a failed backup, several projects deleted at once) and a{' '}
-        <strong>weekly report every Monday at 8:00 AM</strong> with that week&apos;s backup attached.
+        <strong>weekly report every Monday at 8:00 AM</strong> with that week&apos;s backup attached
+        (an Excel file you can open, plus a restore file).
       </p>
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
         <button type="button" className="btn btn-ghost" disabled={!!busy} onClick={() => run('alert')}>

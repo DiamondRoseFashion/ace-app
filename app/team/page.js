@@ -89,7 +89,7 @@ export default function TeamPage() {
           )}
         </div>
 
-        {(myRole === 'owner' || myRole === 'admin') && <MonitorPanel />}
+        {canManage && <MonitorPanel />}
 
         <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 16 }}>
           <strong>Employees</strong> only see projects they created themselves.

@@ -1,4 +1,5 @@
-// Owner/admin only: send a test alert, or the weekly report right now.
+// Owner / admin / manager: send a test alert, or the weekly report right now.
+// (Emails always go to ALERT_EMAIL, whoever clicks.)
 import { NextResponse } from 'next/server';
 import { adminClient } from '@/lib/pushServer';
 import { sendEmail, emailShell, emailConfigured, uaeTime } from '@/lib/monitor';
@@ -14,7 +15,7 @@ export async function POST(req) {
   const { data: { user } = {} } = await admin.auth.getUser(token);
   if (!user) return NextResponse.json({ error: 'Not signed in' }, { status: 401 });
   const { data: prof } = await admin.from('profiles').select('role, full_name').eq('id', user.id).single();
-  if (!prof || !['owner', 'admin'].includes(prof.role)) return NextResponse.json({ error: 'Only the owner or an admin can do this' }, { status: 403 });
+  if (!prof || !['owner', 'admin', 'manager'].includes(prof.role)) return NextResponse.json({ error: 'Only the owner, an admin or a manager can do this' }, { status: 403 });
 
   if (!emailConfigured()) {
     return NextResponse.json({ error: 'Email is not set up yet: add RESEND_API_KEY and ALERT_EMAIL in Vercel, then redeploy.' }, { status: 400 });
