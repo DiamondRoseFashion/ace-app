@@ -42,7 +42,6 @@ export default function Sidebar({ active }) {
     { key: 'new-project', href: '/new-project', label: 'New Project', icon: '➕' },
     { key: 'planner', href: '/planner', label: 'Meetings', icon: '📅' },
     { key: 'team', href: '/team', label: 'Team & Access', icon: '👥' },
-    { key: 'expenses', href: '/expenses', label: isManagerRole ? 'Expenses' : 'My Expenses', icon: '💰' },
     { key: 'profile', href: '/profile', label: 'My Profile', icon: '👤' },
   ];
 
