@@ -244,7 +244,9 @@ export default function ProjectDetail() {
     for (const q of editQuotations) {
       const payload = {
         quotation_number: q.quotation_number, quotation_date: q.quotation_date || null,
-        target_submission_date: q.target_submission_date || null, quotation_value: q.quotation_value,
+        target_submission_date: q.target_submission_date || null,
+        quotation_value: q.quotation_value === '' || q.quotation_value === null || q.quotation_value === undefined
+          ? null : (Number(String(q.quotation_value).replace(/[^0-9.]/g, '')) || null),
         quotation_status: q.quotation_status, issued_by: q.issued_by,
         opportunity_ref: q.opportunity_ref, customer_name: q.customer_name, client: q.client,
         consultant: q.consultant, item: q.item, remarks: q.remarks, contractor: q.contractor,

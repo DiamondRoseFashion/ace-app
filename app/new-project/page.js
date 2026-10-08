@@ -7,7 +7,6 @@ import Sidebar from '@/components/Sidebar';
 import { HEADED_BY_OPTIONS } from '@/lib/projectFields';
 import { PROJECT_STATUSES, PROJECT_STATUS_LABELS, DEFAULT_PROJECT_STATUS } from '@/lib/projectStatus';
 import DateInput from '@/components/DateInput';
-import { fmtDate } from '@/lib/dates';
 
 const CONTACT_ROLES = [
   { key: 'contractor', label: 'Contractor' },
@@ -74,10 +73,13 @@ const [quotation, setQuotation] = useState({
     });
   }
 
-  async function logActivity(pid, action) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) await supabase.from('activity_log').insert({ project_id: pid, actor_id: user.id, action });
+  // empty boxes are saved as "nothing", never as "" (the database rejects "" for dates and numbers)
+  function clean(obj) {
+    const out = {};
+    for (const [k, v] of Object.entries(obj)) out[k] = typeof v === 'string' && v.trim() === '' ? null : v;
+    return out;
   }
+  const isBlank = (obj) => Object.values(obj).every((v) => v === null || v === undefined || String(v).trim() === '');
 
   async function saveStep1() {
     setError(''); setSaving(true);
@@ -104,25 +106,38 @@ const [quotation, setQuotation] = useState({
     }
 
     setProjectId(data.id);
-    await logActivity(data.id, 'created the project');
     setSaving(false);
     setStep(2);
   }
 
   async function saveStep2() {
-    setError(''); setSaving(true);
-    const { error } = await supabase.from('quotations').insert({ ...quotation, project_id: projectId });
+    setError('');
+    if (isBlank(quotation)) { setStep(3); return; } // nothing entered: same as Skip
+    setSaving(true);
+    const payload = clean(quotation);
+    if (payload.quotation_value !== null) {
+      const n = Number(String(payload.quotation_value).replace(/[^0-9.]/g, ''));
+      if (!Number.isFinite(n) || String(payload.quotation_value).replace(/[^0-9.]/g, '') === '') {
+        setError('Quotation Value must be a number, for example 250000.'); setSaving(false); return;
+      }
+      payload.quotation_value = n;
+    }
+    const { error } = await supabase.from('quotations').insert({ ...payload, project_id: projectId });
     if (error) { setError(error.message); setSaving(false); return; }
-    await logActivity(projectId, `added quotation ${quotation.quotation_number || '(no number)'}`);
     setSaving(false);
     setStep(3);
   }
 
   async function saveStep3() {
-    setError(''); setSaving(true);
-    const { error } = await supabase.from('meetings').insert({ ...meeting, project_id: projectId });
+    setError('');
+    if (isBlank(meeting)) { router.push(`/project/${projectId}`); return; } // nothing entered: same as Skip
+    if (!meeting.meeting_date) {
+      setError('Please choose the meeting date, or click Skip if there is no meeting yet.');
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase.from('meetings').insert({ ...clean(meeting), project_id: projectId });
     if (error) { setError(error.message); setSaving(false); return; }
-    await logActivity(projectId, `logged a meeting${meeting.meeting_date ? ' on ' + fmtDate(meeting.meeting_date) : ''}`);
     setSaving(false);
     router.push(`/project/${projectId}`);
   }
@@ -260,9 +275,14 @@ const [quotation, setQuotation] = useState({
                 </select>
               </div>
               {error && <div className="error-text">{error}</div>}
-              <button className="btn btn-primary" onClick={saveStep2} disabled={saving}>
-                {saving ? 'Saving…' : 'Save & Continue →'}
-              </button>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <button className="btn btn-primary" onClick={saveStep2} disabled={saving}>
+                  {saving ? 'Saving…' : 'Save & Continue →'}
+                </button>
+                <button type="button" className="btn btn-ghost" onClick={() => { setError(''); setStep(3); }} disabled={saving}>
+                  Skip — no quotation yet
+                </button>
+              </div>
             </>
           )}
 
@@ -285,9 +305,14 @@ const [quotation, setQuotation] = useState({
                 <textarea rows={3} value={meeting.actions} onChange={(e) => setMeeting({ ...meeting, actions: e.target.value })} />
               </div>
               {error && <div className="error-text">{error}</div>}
-              <button className="btn btn-primary" onClick={saveStep3} disabled={saving}>
-                {saving ? 'Saving…' : 'Save & Finish ✓'}
-              </button>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <button className="btn btn-primary" onClick={saveStep3} disabled={saving}>
+                  {saving ? 'Saving…' : 'Save & Finish ✓'}
+                </button>
+                <button type="button" className="btn btn-ghost" onClick={() => router.push(`/project/${projectId}`)} disabled={saving}>
+                  Skip — finish without a meeting
+                </button>
+              </div>
             </>
           )}
         </div>
