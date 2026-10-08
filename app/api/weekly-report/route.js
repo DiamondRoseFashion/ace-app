@@ -133,7 +133,7 @@ async function handle(req) {
         : '<div>No projects yet.</div>')}
 
       ${section('Backup attached', `<div>This email carries this week's backup:<br>
-        • <b>ACE-backup-${today}.xlsx</b>: open in Excel to read everything: Projects, Quotations, Contacts, Meetings, Expenses and Team<br>
+        • <b>ACE-backup-${today}.xlsx</b>: open in Excel to read everything: Projects, Quotations, Contacts, Meetings and Team<br>
         • <b>ACE-full-backup-${today}.json</b>: the restore file, for Claude to load back into ACE if data is ever lost (not meant for reading)<br>
         <span style="color:#7A6C86;font-size:13px">Keep these emails; each one is a restore point.</span></div>`)}
     `;
