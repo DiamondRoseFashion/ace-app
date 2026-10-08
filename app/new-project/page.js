@@ -57,7 +57,6 @@ const [quotation, setQuotation] = useState({
   remarks: '',
   contractor: '',
 }); 
-  const [meeting, setMeeting] = useState({ meeting_date: '', venue: '', notes: '', actions: '' });
 
   function addContact(roleKey) {
     setContacts((c) => ({ ...c, [roleKey]: [...c[roleKey], emptyContact()] }));
@@ -112,7 +111,7 @@ const [quotation, setQuotation] = useState({
 
   async function saveStep2() {
     setError('');
-    if (isBlank(quotation)) { setStep(3); return; } // nothing entered: same as Skip
+    if (isBlank(quotation)) { router.push(`/project/${projectId}`); return; } // nothing entered: same as Skip
     setSaving(true);
     const payload = clean(quotation);
     if (payload.quotation_value !== null) {
@@ -123,20 +122,6 @@ const [quotation, setQuotation] = useState({
       payload.quotation_value = n;
     }
     const { error } = await supabase.from('quotations').insert({ ...payload, project_id: projectId });
-    if (error) { setError(error.message); setSaving(false); return; }
-    setSaving(false);
-    setStep(3);
-  }
-
-  async function saveStep3() {
-    setError('');
-    if (isBlank(meeting)) { router.push(`/project/${projectId}`); return; } // nothing entered: same as Skip
-    if (!meeting.meeting_date) {
-      setError('Please choose the meeting date, or click Skip if there is no meeting yet.');
-      return;
-    }
-    setSaving(true);
-    const { error } = await supabase.from('meetings').insert({ ...clean(meeting), project_id: projectId });
     if (error) { setError(error.message); setSaving(false); return; }
     setSaving(false);
     router.push(`/project/${projectId}`);
@@ -152,8 +137,7 @@ const [quotation, setQuotation] = useState({
         <div className="card">
           <div style={{ display: 'flex', gap: 8, marginBottom: 24, fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>
             <span style={{ color: step >= 1 ? 'var(--violet)' : undefined }}>1. Project Details</span> →
-            <span style={{ color: step >= 2 ? 'var(--violet)' : undefined }}>2. Quotation</span> →
-            <span style={{ color: step >= 3 ? 'var(--violet)' : undefined }}>3. Meetings</span>
+            <span style={{ color: step >= 2 ? 'var(--violet)' : undefined }}>2. Quotation</span>
           </div>
 
           {step === 1 && (
@@ -277,44 +261,15 @@ const [quotation, setQuotation] = useState({
               {error && <div className="error-text">{error}</div>}
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <button className="btn btn-primary" onClick={saveStep2} disabled={saving}>
-                  {saving ? 'Saving…' : 'Save & Continue →'}
+                  {saving ? 'Saving…' : 'Save & Finish ✓'}
                 </button>
-                <button type="button" className="btn btn-ghost" onClick={() => { setError(''); setStep(3); }} disabled={saving}>
-                  Skip — no quotation yet
+                <button type="button" className="btn btn-ghost" onClick={() => router.push(`/project/${projectId}`)} disabled={saving}>
+                  Skip — finish without a quotation
                 </button>
               </div>
             </>
           )}
 
-          {step === 3 && (
-            <>
-              <div className="field-group">
-                <label>Meeting Date</label>
-                <DateInput value={meeting.meeting_date} onChange={(e) => setMeeting({ ...meeting, meeting_date: e.target.value })} />
-              </div>
-              <div className="field-group">
-                <label>Meeting Venue</label>
-                <input value={meeting.venue} onChange={(e) => setMeeting({ ...meeting, venue: e.target.value })} />
-              </div>
-              <div className="field-group">
-                <label>Notes</label>
-                <textarea rows={3} value={meeting.notes} onChange={(e) => setMeeting({ ...meeting, notes: e.target.value })} />
-              </div>
-              <div className="field-group">
-                <label>Course of Actions</label>
-                <textarea rows={3} value={meeting.actions} onChange={(e) => setMeeting({ ...meeting, actions: e.target.value })} />
-              </div>
-              {error && <div className="error-text">{error}</div>}
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <button className="btn btn-primary" onClick={saveStep3} disabled={saving}>
-                  {saving ? 'Saving…' : 'Save & Finish ✓'}
-                </button>
-                <button type="button" className="btn btn-ghost" onClick={() => router.push(`/project/${projectId}`)} disabled={saving}>
-                  Skip — finish without a meeting
-                </button>
-              </div>
-            </>
-          )}
         </div>
       </div>
     </div>
