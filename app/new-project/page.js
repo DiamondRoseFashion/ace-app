@@ -7,6 +7,7 @@ import Sidebar from '@/components/Sidebar';
 import { HEADED_BY_OPTIONS } from '@/lib/projectFields';
 import { PROJECT_STATUSES, PROJECT_STATUS_LABELS, DEFAULT_PROJECT_STATUS } from '@/lib/projectStatus';
 import DateInput from '@/components/DateInput';
+import BrandPicker from '@/components/BrandPicker';
 
 const CONTACT_ROLES = [
   { key: 'contractor', label: 'Contractor' },
@@ -32,7 +33,7 @@ export default function NewProject() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const [project, setProject] = useState({ name: '', status: DEFAULT_PROJECT_STATUS, location: '', brands_required: 'European', sales_person: '', headed_by: '', lead_by: '', item: '', note: '' });
+  const [project, setProject] = useState({ name: '', status: DEFAULT_PROJECT_STATUS, location: '', brands_required: '', sales_person: '', headed_by: '', lead_by: '', item: '', note: '' });
 
   // one array of contacts per role
   const [contacts, setContacts] = useState({
@@ -158,11 +159,7 @@ const [quotation, setQuotation] = useState({
               </div>
               <div className="field-group">
                 <label>Brands Required</label>
-                <select value={project.brands_required} onChange={(e) => setProject({ ...project, brands_required: e.target.value })}>
-                  <option>European</option>
-                  <option>Local</option>
-                  <option>PRC</option>
-                </select>
+                <BrandPicker value={project.brands_required} onChange={(v) => setProject({ ...project, brands_required: v })} />
               </div>
               <div className="form-row-2">
                 <div className="field-group">

@@ -614,3 +614,12 @@ html, body { overscroll-behavior-x: none; }
 .date-input-err { position: absolute; left: 2px; top: 100%; font-size: 11px; color: var(--err); white-space: nowrap; }
 .reg-dates .date-input > input[type="text"] { padding-right: 26px; }
 .reg-dates .date-input-cal { font-size: 12px; padding: 2px 4px; }
+
+/* ---------- Brands Required (multi-select) ---------- */
+.brand-picker { position: relative; }
+.bp-box { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; min-height: 46px; padding: 6px 8px; border: 1.5px solid var(--line); border-radius: var(--radius-sm); background: #fff; cursor: text; }
+.bp-box:focus-within { border-color: var(--violet-2); box-shadow: 0 0 0 3px rgba(143,63,168,.12); }
+.bp-box input { flex: 1 1 160px; min-width: 120px; border: 0 !important; outline: none; box-shadow: none !important; padding: 6px 4px !important; background: transparent; }
+.bp-chip { display: inline-flex; align-items: center; gap: 4px; background: #F1E7F8; color: var(--violet); font-weight: 600; font-size: 13px; padding: 4px 6px 4px 10px; border-radius: 99px; }
+.bp-chip button { border: 0; background: none; color: var(--violet); cursor: pointer; font-size: 11px; padding: 2px 4px; border-radius: 99px; line-height: 1; }
+.bp-chip button:hover { background: #E2CFF0; }

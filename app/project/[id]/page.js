@@ -10,6 +10,7 @@ import ProgressBar from '@/components/ProgressBar';
 import { HEADED_BY_OPTIONS } from '@/lib/projectFields';
 import { PROJECT_STATUSES, PROJECT_STATUS_LABELS, DEFAULT_PROJECT_STATUS } from '@/lib/projectStatus';
 import DateInput from '@/components/DateInput';
+import BrandPicker from '@/components/BrandPicker';
 import { fmtDate, fmtDateTime } from '@/lib/dates';
 
 const STATUS_LABELS = PROJECT_STATUS_LABELS;
@@ -199,7 +200,7 @@ export default function ProjectDetail() {
     const { error: projErr } = await supabase.from('projects').update({
       name: editForm.name,
       location: editForm.location,
-      brands_required: editForm.brands_required,
+      brands_required: editForm.brands_required || null,
       sales_person: editForm.sales_person || null,
       headed_by: editForm.headed_by || null,
       lead_by: editForm.lead_by || null,
@@ -331,12 +332,7 @@ export default function ProjectDetail() {
               </div>
               <div className="field-group">
                 <label>Brands Required</label>
-                <select value={editForm.brands_required} onChange={(e) => setEditForm({ ...editForm, brands_required: e.target.value })}>
-                  <option value="">—</option>
-                  <option>European</option>
-                  <option>Local</option>
-                  <option>PRC</option>
-                </select>
+                <BrandPicker value={editForm.brands_required} onChange={(v) => setEditForm({ ...editForm, brands_required: v })} />
               </div>
               <div className="form-row-2">
                 <div className="field-group">
