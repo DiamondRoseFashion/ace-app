@@ -62,7 +62,7 @@ export default function ProjectDetail() {
   const [error, setError] = useState('');
   const [statusError, setStatusError] = useState('');
   const [editing, setEditing] = useState(false);
-  const [editForm, setEditForm] = useState({ name: '', location: '', brands_required: '', sales_person: '', headed_by: '', lead_by: '', item: '', note: '' });
+  const [editForm, setEditForm] = useState({ name: '', location: '', brands_required: '', sales_person: '', headed_by: '', lead_by: '', note: '' });
   const [editContacts, setEditContacts] = useState({ contractor: [], client: [], consultant: [], main_contractor: [] });
   const [editQuotations, setEditQuotations] = useState([]);
   const [editMeetings, setEditMeetings] = useState([]);
@@ -107,7 +107,6 @@ export default function ProjectDetail() {
         sales_person: proj.sales_person || '',
         headed_by: proj.headed_by || '',
         lead_by: proj.lead_by || '',
-        item: proj.item || '',
         note: proj.note || '',
       });
     }
@@ -201,7 +200,6 @@ export default function ProjectDetail() {
       sales_person: editForm.sales_person || null,
       headed_by: editForm.headed_by || null,
       lead_by: editForm.lead_by || null,
-      item: editForm.item || null,
       note: editForm.note || null,
     }).eq('id', projectId);
     if (projErr) { setError(projErr.message); setSaving(false); return; }
@@ -347,15 +345,9 @@ export default function ProjectDetail() {
                   </select>
                 </div>
               </div>
-              <div className="form-row-2">
-                <div className="field-group">
-                  <label>Lead By</label>
-                  <input value={editForm.lead_by} onChange={(e) => setEditForm({ ...editForm, lead_by: e.target.value })} />
-                </div>
-                <div className="field-group">
-                  <label>Item</label>
-                  <input value={editForm.item} onChange={(e) => setEditForm({ ...editForm, item: e.target.value })} />
-                </div>
+              <div className="field-group">
+                <label>Lead By</label>
+                <input value={editForm.lead_by} onChange={(e) => setEditForm({ ...editForm, lead_by: e.target.value })} />
               </div>
               <div className="field-group">
                 <label>Note</label>
@@ -438,7 +430,7 @@ export default function ProjectDetail() {
         {/* Project details */}
         <div className="card" style={{ marginBottom: 20 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16 }}>
-            {[['Sales Person', project.sales_person], ['Headed By', project.headed_by], ['Lead By', project.lead_by], ['Item', project.item]].map(([label, value]) => (
+            {[['Sales Person', project.sales_person], ['Headed By', project.headed_by], ['Lead By', project.lead_by], ['Brands', project.brands_required]].map(([label, value]) => (
               <div key={label}>
                 <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>{label}</div>
                 <div style={{ fontWeight: 600 }}>{value || '—'}</div>

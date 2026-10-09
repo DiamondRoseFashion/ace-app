@@ -23,7 +23,7 @@ const FILTERS = {
     { col: 'sales_person', label: 'Sales person' },
     { col: 'headed_by', label: 'Headed by' },
     { col: 'quotation_status', label: 'Quotation status' },
-    { col: 'brands_required', label: 'Brands required' },
+    { col: 'brands', label: 'Brands' },
     { col: 'created_by', label: 'Created by' },
   ],
   quotations: [
@@ -182,8 +182,9 @@ export default function ViewData() {
       rows.forEach((r) => {
         const v = r[d.col];
         if (v === null || v === undefined || String(v).trim() === '') { hasEmpty = true; return; }
-        const key = String(v).trim();
-        values.set(key.toLowerCase(), key);
+        // a cell can hold several brands ("Philips, Thorn"): offer each one
+        const parts = d.col === 'brands' ? String(v).split(',') : [String(v)];
+        parts.map((x) => x.trim()).filter(Boolean).forEach((key) => values.set(key.toLowerCase(), key));
       });
       const options = [...values.values()].sort((a, b) => (d.col === 'status'
         ? projectStatusRank(a) - projectStatusRank(b) // project stages in their real order
@@ -203,7 +204,8 @@ export default function ViewData() {
         if (!val) continue;
         const v = r[col];
         const empty = v === null || v === undefined || String(v).trim() === '';
-        if (val === EMPTY ? !empty : empty || String(v).trim().toLowerCase() !== val.toLowerCase()) return false;
+        const cellVals = col === 'brands' ? String(v ?? '').split(',').map((x) => x.trim().toLowerCase()) : [String(v ?? '').trim().toLowerCase()];
+        if (val === EMPTY ? !empty : empty || !cellVals.includes(val.toLowerCase())) return false;
       }
       if (dateDef && (from || to)) {
         const d = ddmmyyyy(r[dateDef.col]);

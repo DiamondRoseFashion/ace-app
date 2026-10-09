@@ -323,7 +323,7 @@ export default function Dashboard() {
                         <td>{r.client || '—'}</td>
                         <td>{r.consultant || '—'}</td>
                         <td className="mono reg-num">{r.value === null ? '—' : formatValue(r.value)}</td>
-                        <td>{r.item || '—'}</td>
+                        <td>{r.brands ? r.brands.split(' | ').join(', ') : '—'}</td>
                         <td className="reg-note" title={r.note}>{r.note || '—'}</td>
                         <td className="reg-actions">
                           {canDel && !selecting && (
