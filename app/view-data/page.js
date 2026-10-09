@@ -21,12 +21,10 @@ const FILTERS = {
     { col: 'status', label: 'Status' },
     { col: 'sales_person', label: 'Sales person' },
     { col: 'headed_by', label: 'Headed by' },
-    { col: 'quotation_status', label: 'Quotation status' },
     { col: 'brands', label: 'Brands' },
     { col: 'created_by', label: 'Created by' },
   ],
   quotations: [
-    { col: 'quotation_status', label: 'Status' },
     { col: 'project', label: 'Project' },
   ],
   contacts: [

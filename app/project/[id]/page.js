@@ -525,14 +525,6 @@ export default function ProjectDetail() {
                       <DateInput value={q.target_submission_date || ''} onChange={(e) => updateEditQuotation(idx, 'target_submission_date', e.target.value)} />
                     </div>
                   </div>
-                  <div className="field-group" style={{ marginBottom: 8 }}>
-                    <select value={q.quotation_status || ''} onChange={(e) => updateEditQuotation(idx, 'quotation_status', e.target.value)} aria-label="Quotation status">
-                      <option value="">Status…</option>
-                      <option value="pending">Pending</option>
-                      <option value="win">Win</option>
-                      <option value="lost">Lost</option>
-                    </select>
-                  </div>
                 </div>
               ))}
               <span onClick={addEditQuotation} style={{ fontSize: 12, color: 'var(--violet-2)', fontWeight: 600, cursor: 'pointer' }}>
@@ -542,7 +534,6 @@ export default function ProjectDetail() {
           ) : quotations.length === 0 ? <Empty text="No quotations yet." /> : quotations.map((q) => (
             <div key={q.id} style={{ padding: '10px 0', borderBottom: '1px solid var(--line)', fontSize: 13.5 }}>
               <strong>{q.quotation_number || 'Untitled'}</strong> — {q.quotation_value ? `AED ${q.quotation_value}` : 'no value set'}
-              {q.quotation_status && <span className={`pill pill-${q.quotation_status}`} style={{ marginLeft: 8 }}>{q.quotation_status}</span>}
               <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
                 Dated {fmtDate(q.quotation_date) || '—'}, target submission {fmtDate(q.target_submission_date) || '—'}
               </div>

@@ -48,7 +48,6 @@ const [quotation, setQuotation] = useState({
   quotation_date: '',
   target_submission_date: '',
   quotation_value: '',
-  quotation_status: '',
   issued_by: '',
   opportunity_ref: '',
   customer_name: '',
@@ -242,15 +241,6 @@ const [quotation, setQuotation] = useState({
               <div className="field-group">
                 <label>Quotation Value</label>
                 <input value={quotation.quotation_value} onChange={(e) => setQuotation({ ...quotation, quotation_value: e.target.value })} />
-              </div>
-	<div className="field-group">
-                <label>Quotation Status</label>
-                <select value={quotation.quotation_status} onChange={(e) => setQuotation({ ...quotation, quotation_status: e.target.value })}>
-                  <option value="">Select…</option>
-                  <option value="pending">Pending</option>
-                  <option value="win">Win</option>
-                  <option value="lost">Lost</option>
-                </select>
               </div>
               {error && <div className="error-text">{error}</div>}
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
