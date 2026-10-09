@@ -316,7 +316,7 @@ export default function ProjectDetail() {
       <div className="main">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
           {editing ? (
-            <div style={{ flex: 1, marginRight: 20 }}>
+            <div className="edit-head" style={{ flex: 1, marginRight: 20 }}>
               <div className="field-group">
                 <label>Project Name</label>
                 <input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} required />
