@@ -52,7 +52,7 @@ export default function Sidebar({ active }) {
     { key: 'dashboard', href: '/dashboard', label: 'My Projects', icon: '📁' },
     { key: 'new-project', href: '/new-project', label: 'New Project', icon: '➕' },
     { key: 'planner', href: '/planner', label: 'Meetings', icon: '📅' },
-    { key: 'team', href: '/team', label: 'Team & Access', icon: '👥' },
+    ...(isManagerRole ? [{ key: 'team', href: '/team', label: 'Team & Access', icon: '👥' }] : []), // management only
     { key: 'profile', href: '/profile', label: 'My Profile', icon: '👤' },
   ];
 

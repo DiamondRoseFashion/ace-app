@@ -28,6 +28,7 @@ export default function TeamPage() {
     if (!user) { router.push('/login'); return; }
 
     const { data: me } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+    if (!['owner', 'admin', 'manager'].includes(me?.role)) { router.replace('/dashboard'); return; } // management only
     setMyRole(me?.role);
     setMyId(user.id);
 
