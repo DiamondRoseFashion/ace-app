@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
 import Sidebar from '@/components/Sidebar';
-import { HEADED_BY_OPTIONS } from '@/lib/projectFields';
+import { HEADED_BY_OPTIONS, SALES_PEOPLE } from '@/lib/projectFields';
 import { PROJECT_STATUSES, PROJECT_STATUS_LABELS, DEFAULT_PROJECT_STATUS } from '@/lib/projectStatus';
 import DateInput from '@/components/DateInput';
 import BrandPicker from '@/components/BrandPicker';
@@ -164,7 +164,10 @@ const [quotation, setQuotation] = useState({
               <div className="form-row-2">
                 <div className="field-group">
                   <label>Sales Person</label>
-                  <input value={project.sales_person} onChange={(e) => setProject({ ...project, sales_person: e.target.value })} />
+                  <select value={project.sales_person} onChange={(e) => setProject({ ...project, sales_person: e.target.value })}>
+                    <option value="">Select…</option>
+                    {SALES_PEOPLE.map((n) => <option key={n} value={n}>{n}</option>)}
+                  </select>
                 </div>
                 <div className="field-group">
                   <label>Headed By</label>

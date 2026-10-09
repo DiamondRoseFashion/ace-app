@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabaseClient';
 import Sidebar from '@/components/Sidebar';
 import { deleteProject, canDeleteProject } from '@/lib/deleteProject';
 import ProgressBar from '@/components/ProgressBar';
-import { HEADED_BY_OPTIONS } from '@/lib/projectFields';
+import { HEADED_BY_OPTIONS, salesPeopleWith } from '@/lib/projectFields';
 import { PROJECT_STATUSES, PROJECT_STATUS_LABELS, DEFAULT_PROJECT_STATUS } from '@/lib/projectStatus';
 import DateInput from '@/components/DateInput';
 import BrandPicker from '@/components/BrandPicker';
@@ -337,7 +337,10 @@ export default function ProjectDetail() {
               <div className="form-row-2">
                 <div className="field-group">
                   <label>Sales Person</label>
-                  <input value={editForm.sales_person} onChange={(e) => setEditForm({ ...editForm, sales_person: e.target.value })} />
+                  <select value={editForm.sales_person} onChange={(e) => setEditForm({ ...editForm, sales_person: e.target.value })}>
+                    <option value="">—</option>
+                    {salesPeopleWith(editForm.sales_person).map((n) => <option key={n} value={n}>{n}</option>)}
+                  </select>
                 </div>
                 <div className="field-group">
                   <label>Headed By</label>
