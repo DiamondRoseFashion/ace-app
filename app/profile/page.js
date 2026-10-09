@@ -96,6 +96,7 @@ export default function MyProfile() {
       setError('Your photo was uploaded but could not be saved to your profile. Please contact an admin.');
     } else {
       setAvatarUrl(freshUrl);
+      window.dispatchEvent(new CustomEvent('ace-avatar', { detail: freshUrl })); // update the sidebar photo
     }
     setUploading(false);
   }

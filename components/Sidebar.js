@@ -13,16 +13,24 @@ export default function Sidebar({ active }) {
   const supabase = createClient();
   const [name, setName] = useState('');
   const [role, setRole] = useState('');
+  const [photo, setPhoto] = useState('');
+  const [photoBroken, setPhotoBroken] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data } = await supabase.from('profiles').select('full_name, role').eq('id', user.id).single();
+      const { data } = await supabase.from('profiles').select('full_name, role, avatar_url').eq('id', user.id).single();
       setName(data?.full_name || user.email);
       setRole(data?.role || '');
+      setPhoto(data?.avatar_url || '');
     })();
+    // a new photo on My Profile shows here straight away
+    const onPhoto = (e) => { setPhotoBroken(false); setPhoto(e.detail || ''); };
+    window.addEventListener('ace-avatar', onPhoto);
+    return () => window.removeEventListener('ace-avatar', onPhoto);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleLogout() {
@@ -79,7 +87,12 @@ export default function Sidebar({ active }) {
       <div className="sidebar-spacer" />
 
       <button className={`user-chip${menuOpen ? ' mobile-open' : ''}`} onClick={handleLogout} title="Log out">
-        <span className="avatar">{initials}</span>
+        {photo && !photoBroken ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img className="avatar avatar-img" src={photo} alt="" onError={() => setPhotoBroken(true)} />
+        ) : (
+          <span className="avatar">{initials}</span>
+        )}
         <span className="user-chip-text">
           <span className="user-chip-name">{name || '\u00A0'}</span>
           <span className="user-chip-role">{role ? `${role} · Log out` : 'Log out'}</span>
