@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
+import { shrinkImage } from '@/lib/shrinkImage';
 import Sidebar from '@/components/Sidebar';
 
 export default function MyProfile() {
@@ -54,15 +55,24 @@ export default function MyProfile() {
     const file = e.target.files?.[0];
     if (!file || !userId) return;
 
+    e.target.value = ''; // lets the same file be picked again later
     setError('');
     setUploading(true);
 
-    const ext = file.name.split('.').pop();
-    const path = `${userId}/avatar.${ext}`;
+    // Any size works: the photo is shrunk to a small JPEG first.
+    let photo;
+    try {
+      photo = await shrinkImage(file);
+    } catch {
+      setError("This picture couldn't be opened. Please choose a JPG, PNG or WEBP photo (iPhone HEIC photos: take a screenshot of it, or set the camera to \"Most Compatible\").");
+      setUploading(false);
+      return;
+    }
+    const path = `${userId}/avatar.jpg`;
 
     const { error: uploadError } = await supabase.storage
       .from('avatars')
-      .upload(path, file, { upsert: true });
+      .upload(path, photo, { upsert: true, contentType: 'image/jpeg', cacheControl: '60' });
 
     if (uploadError) {
       setError(uploadError.message);
@@ -172,7 +182,7 @@ export default function MyProfile() {
                 disabled={uploading}
                 style={{ display: 'none' }}
               />
-              <p style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 8 }}>JPG or PNG, up to a few MB</p>
+              <p style={{ fontSize: 11.5, color: 'var(--muted)', marginTop: 8 }}>Any photo, any size</p>
             </div>
           </div>
 
