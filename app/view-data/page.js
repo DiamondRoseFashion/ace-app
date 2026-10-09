@@ -8,7 +8,6 @@ import { downloadXlsx } from '@/lib/xlsxExport';
 import { PROJECT_STATUS_LABELS, projectStatusRank } from '@/lib/projectStatus';
 import DateInput from '@/components/DateInput';
 
-const ALLOWED_ROLES = ['owner', 'admin', 'manager'];
 
 const TABS = [
   { key: 'projects', label: 'Projects' },
@@ -120,6 +119,7 @@ export default function ViewData() {
   const [supabase] = useState(() => createClient());
 
   const [allowed, setAllowed] = useState(null);
+  const [scope, setScope] = useState('all'); // 'own' = an employee's own projects only
   const [tab, setTab] = useState('projects');
   const [data, setData] = useState({ projects: [], quotations: [], contacts: [] });
   const [loading, setLoading] = useState(true);
@@ -141,7 +141,7 @@ export default function ViewData() {
       .eq('id', user.id)
       .single();
 
-    if (!profile || !ALLOWED_ROLES.includes(profile.role)) {
+    if (!profile) {
       setAllowed(false);
       setLoading(false);
       return;
@@ -160,6 +160,7 @@ export default function ViewData() {
     }
 
     const json = await res.json();
+    setScope(json.scope === 'own' ? 'own' : 'all');
     setData({ projects: [], quotations: [], contacts: [], ...json });
     setLoading(false);
   }
@@ -241,7 +242,8 @@ export default function ViewData() {
       <Sidebar active="dashboard" />
       <div className="main">
         <div className="eyebrow">Live Data</div>
-        <h1 style={{ fontSize: 30, marginTop: 4, marginBottom: 24 }}>View Backup Data</h1>
+        <h1 style={{ fontSize: 30, marginTop: 4, marginBottom: scope === 'own' ? 6 : 24 }}>{scope === 'own' ? 'My Projects Data' : 'View Backup Data'}</h1>
+        {scope === 'own' && <p style={{ color: 'var(--muted)', marginBottom: 20 }}>Only the projects you created are shown here.</p>}
 
         {loading ? (
           <div className="card">Loading…</div>

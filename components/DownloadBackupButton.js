@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabaseClient';
+import { MANAGEMENT_ROLES } from '@/lib/dataAccess';
 
-const ALLOWED_ROLES = ['owner', 'admin', 'manager'];
+// Everyone gets it: management downloads all projects, employees their own.
 
 export default function DownloadBackupButton() {
   const supabase = createClient();
-  const [allowed, setAllowed] = useState(false);
+  const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -21,12 +22,13 @@ export default function DownloadBackupButton() {
         .eq('id', user.id)
         .single();
 
-      if (profile && ALLOWED_ROLES.includes(profile.role)) {
-        setAllowed(true);
-      }
+      if (profile) setRole(profile.role || 'employee');
     };
     checkRole();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const all = MANAGEMENT_ROLES.includes(role);
 
   const handleDownload = async () => {
     setLoading(true);
@@ -37,7 +39,7 @@ export default function DownloadBackupButton() {
       });
 
       if (!res.ok) {
-        alert('You are not authorized to download this backup.');
+        alert('Download failed. Please try again.');
         return;
       }
 
@@ -45,7 +47,7 @@ export default function DownloadBackupButton() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'projects-backup.xlsx';
+      a.download = all ? 'projects-backup.xlsx' : 'my-projects.xlsx';
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
@@ -55,7 +57,7 @@ export default function DownloadBackupButton() {
     }
   };
 
-  if (!allowed) return null;
+  if (!role) return null;
 
   return (
     <button
@@ -72,7 +74,7 @@ export default function DownloadBackupButton() {
         opacity: loading ? 0.7 : 1,
       }}
     >
-      {loading ? 'Preparing file...' : 'Download Backup (Excel)'}
+      {loading ? 'Preparing file...' : all ? 'Download Backup (Excel)' : 'Download My Projects (Excel)'}
     </button>
   );
 }
