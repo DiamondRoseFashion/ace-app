@@ -11,7 +11,8 @@ import { HEADED_BY_OPTIONS, salesPeopleWith } from '@/lib/projectFields';
 import { PROJECT_STATUSES, PROJECT_STATUS_LABELS, DEFAULT_PROJECT_STATUS } from '@/lib/projectStatus';
 import DateInput from '@/components/DateInput';
 import BrandPicker from '@/components/BrandPicker';
-import { fmtDate, fmtDateTime } from '@/lib/dates';
+import ActivityLog from '@/components/ActivityLog';
+import { fmtDate } from '@/lib/dates';
 
 const STATUS_LABELS = PROJECT_STATUS_LABELS;
 const ROLE_LABELS = { contractor: 'Contractor', client: 'Client', consultant: 'Consultant', main_contractor: 'Main Contractor' };
@@ -51,7 +52,6 @@ export default function ProjectDetail() {
   const [quotations, setQuotations] = useState([]);
   const [meetings, setMeetings] = useState([]);
   const [files, setFiles] = useState([]);
-  const [activity, setActivity] = useState([]);
   const [myRole, setMyRole] = useState(null);
   const [myId, setMyId] = useState(null);
   const [confirmDel, setConfirmDel] = useState(false);
@@ -90,16 +90,13 @@ export default function ProjectDetail() {
     setMyRole(me?.role);
     setMyId(user.id);
 
-    const [{ data: proj }, { data: c }, { data: q }, { data: m }, { data: fileList }, { data: log }] = await Promise.all([
+    const [{ data: proj }, { data: c }, { data: q }, { data: m }, { data: fileList }] = await Promise.all([
       supabase.from('projects').select('*').eq('id', projectId).single(),
       supabase.from('contacts').select('*').eq('project_id', projectId).order('contact_role'),
       supabase.from('quotations').select('*').eq('project_id', projectId).order('created_at', { ascending: false }),
       supabase.from('meetings').select('*').eq('project_id', projectId).order('meeting_date', { ascending: false }),
       supabase.storage.from('project-files').list(projectId),
-      Promise.resolve({ data: [] }), // project history isn't recorded yet (no audit_log table)
     ]);
-
-    setActivity(log || []);
 
     setProject(proj);
     if (proj) {
@@ -623,47 +620,10 @@ export default function ProjectDetail() {
 
         {/* Activity */}
         <SectionTitle>Activity</SectionTitle>
-        <div className="card">
-          {activity.length === 0 ? <Empty text="No activity recorded yet." /> : activity.map((a) => (
-            <div key={a.id} style={{ padding: '8px 0', borderBottom: '1px solid var(--line)', fontSize: 13 }}>
-              <span>{describeActivity(a)}</span>
-              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
-                {a.actor?.full_name || 'Someone'} · {fmtDateTime(a.changed_at)}
-              </div>
-            </div>
-          ))}
-        </div>
+        <ActivityLog projectId={projectId} myId={myId} myRole={myRole} />
       </div>
     </div>
   );
-}
-
-const TABLE_LABELS = { projects: 'the project', contacts: 'a contact', quotations: 'a quotation', meetings: 'a meeting' };
-const FIELD_LABELS = {
-  name: 'Name', location: 'Location', status: 'Status', brands_required: 'Brands Required',
-  sales_person: 'Sales Person', headed_by: 'Headed By', lead_by: 'Lead By', item: 'Item', note: 'Note',
-  percent_complete: 'Progress', quotation_number: 'Quotation Number', quotation_value: 'Value',
-  meeting_date: 'Meeting Date', venue: 'Venue', notes: 'Notes', actions: 'Actions',
-};
-const SKIP_FIELDS = new Set(['id', 'created_at', 'updated_at', 'project_id']);
-
-function describeActivity(a) {
-  const thing = TABLE_LABELS[a.table_name] || a.table_name;
-  if (a.action === 'insert') return `Added ${thing}`;
-  if (a.action === 'delete') return `Removed ${thing}`;
-
-  const before = a.old_data || {};
-  const after = a.new_data || {};
-  const changes = Object.keys(after)
-    .filter((k) => !SKIP_FIELDS.has(k) && JSON.stringify(before[k]) !== JSON.stringify(after[k]))
-    .map((k) => {
-      const label = FIELD_LABELS[k] || k;
-      const from = before[k] ?? '—';
-      const to = after[k] ?? '—';
-      return `${label}: ${from} → ${to}`;
-    });
-  if (changes.length === 0) return `Updated ${thing}`;
-  return `Updated ${thing} — ${changes.join(', ')}`;
 }
 
 function SectionTitle({ children }) {

@@ -623,3 +623,17 @@ html, body { overscroll-behavior-x: none; }
 .bp-chip { display: inline-flex; align-items: center; gap: 4px; background: #F1E7F8; color: var(--violet); font-weight: 600; font-size: 13px; padding: 4px 6px 4px 10px; border-radius: 99px; }
 .bp-chip button { border: 0; background: none; color: var(--violet); cursor: pointer; font-size: 11px; padding: 2px 4px; border-radius: 99px; line-height: 1; }
 .bp-chip button:hover { background: #E2CFF0; }
+
+/* ---------- project Activity ---------- */
+.activity-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.activity-hint { flex: 1 1 260px; font-size: 13px; color: var(--muted); }
+.activity-card textarea { width: 100%; box-sizing: border-box; }
+.activity-list { margin-top: 16px; }
+.activity-item { padding: 12px 0; border-top: 1px solid var(--line); }
+.activity-meta { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); margin-bottom: 4px; }
+.activity-meta strong { color: var(--ink); }
+.activity-body { white-space: pre-wrap; font-size: 14px; color: var(--ink); }
+.activity-empty { font-size: 13px; color: var(--muted); padding: 10px 0 2px; }
+.link-btn { border: 0; background: none; color: var(--violet); font-weight: 600; font-size: 12.5px; cursor: pointer; padding: 4px 6px; border-radius: 6px; }
+.link-btn:hover { background: #F4ECF9; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
