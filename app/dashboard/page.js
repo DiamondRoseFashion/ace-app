@@ -231,9 +231,9 @@ export default function Dashboard() {
             <div className="reg-wrap" ref={tableRef} tabIndex={0} role="region" aria-label="Projects table — use the arrow keys to scroll">
               <table className="reg-table">
                 <colgroup>
-                  {selecting && <col style={{ width: 40 }} />}
-                  {REGISTER_COLUMNS.map((c) => <col key={c.key} style={{ width: c.width }} />)}
-                  <col style={{ width: 48 }} />
+                  {selecting && <col style={{ width: 34 }} />}
+                  {REGISTER_COLUMNS.map((c) => <col key={c.key} style={{ width: `${c.pct}%` }} />)}
+                  <col style={{ width: 34 }} />
                 </colgroup>
                 <thead>
                   <tr>
@@ -301,30 +301,29 @@ export default function Dashboard() {
                               onChange={() => toggle(p.id)} aria-label={`Select ${p.name}`} />
                           </td>
                         )}
-                        <td className="mono" title={r.dateIsQuote ? 'Quotation date' : 'No quotation yet — date the project was added'}>
+                        <td className="mono" title={r.dateIsQuote ? 'Quotation date' : 'No quotation yet: date the project was added'}>
                           {formatDate(r.date) || '—'}{!r.dateIsQuote && r.date ? <span className="reg-dim"> *</span> : null}
                         </td>
-                        <td className="mono">{r.quotation_no || '—'}{r.moreQuotes > 0 && <span className="reg-dim"> +{r.moreQuotes}</span>}</td>
-                        <td>
+                        <td className="mono" title={r.quotation_no + (r.moreQuotes ? ` (+${r.moreQuotes} more)` : '')}>{r.quotation_no || '—'}{r.moreQuotes > 0 && <span className="reg-dim"> +{r.moreQuotes}</span>}</td>
+                        <td title={r.status_label}>
                           <span className={`pill pill-${r.status}`}>{r.status_label}</span>
                         </td>
                         <td title={`${r.progress}% complete`}>
                           <span className="mono reg-pct">{r.progress}%</span>
                           <div className="reg-prog"><div className={r.progress === 100 ? 'done' : ''} style={{ width: `${r.progress}%` }} /></div>
                         </td>
-                        <td>{r.sales_person || '—'}</td>
-                        <td>{r.headed_by || '—'}</td>
-                        <td>
+                        <td title={r.sales_person}>{r.sales_person || '—'}</td>
+                        <td title={r.headed_by}>{r.headed_by || '—'}</td>
+                        <td title={r.name}>
                           <Link href={`/project/${p.id}`} className="reg-name" onClick={(e) => { if (selecting) e.preventDefault(); e.stopPropagation(); if (selecting && canDel) toggle(p.id); }}>
                             {r.name}
                           </Link>
                         </td>
-                        <td>{r.contractor || '—'}</td>
-                        <td>{r.client || '—'}</td>
-                        <td>{r.consultant || '—'}</td>
-                        <td className="mono reg-num">{r.value === null ? '—' : formatValue(r.value)}</td>
-                        <td>{r.brands ? r.brands.split(' | ').join(', ') : '—'}</td>
-                        <td className="reg-note" title={r.note}>{r.note || '—'}</td>
+                        <td title={r.contractor}>{r.contractor || '—'}</td>
+                        <td title={r.client}>{r.client || '—'}</td>
+                        <td title={r.consultant}>{r.consultant || '—'}</td>
+                        <td className="mono reg-num" title={r.value === null ? '' : formatValue(r.value)}>{r.value === null ? '—' : formatValue(r.value).replace('AED ', '')}</td>
+                        <td title={r.brands ? r.brands.split(' | ').join(', ') : ''}>{r.brands ? r.brands.split(' | ').join(', ') : '—'}</td>
                         <td className="reg-actions">
                           {canDel && !selecting && (
                             <button className="icon-btn danger" aria-label={`Delete ${p.name}`} title="Delete project"

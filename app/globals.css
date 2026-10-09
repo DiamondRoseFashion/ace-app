@@ -637,3 +637,18 @@ html, body { overscroll-behavior-x: none; }
 .link-btn { border: 0; background: none; color: var(--violet); font-weight: 600; font-size: 12.5px; cursor: pointer; padding: 4px 6px; border-radius: 6px; }
 .link-btn:hover { background: #F4ECF9; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+
+/* ---------- My Projects: compact, fits the screen (no sideways scroll) ---------- */
+.reg-table { width: 100%; min-width: 980px; table-layout: fixed; font-size: 12px; }
+.reg-table th, .reg-table td { padding: 7px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
+.reg-table thead th { font-size: 10px; letter-spacing: .3px; }
+.reg-table thead tr.reg-filters th { top: 30px; padding: 4px 3px 6px; }
+.reg-filters input, .reg-filters select { font-size: 11px; padding: 3px 4px; min-height: 26px; border-radius: 6px; }
+.reg-dates .date-input > input[type="text"] { font-size: 10.5px; padding-right: 20px; }
+.reg-dates .date-input-cal { font-size: 10px; padding: 1px 2px; right: 1px; }
+.reg-name { font-weight: 400; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+.reg-table .pill { font-size: 10px; padding: 2px 7px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; vertical-align: middle; }
+.reg-pct { font-size: 11px; }
+.reg-prog { height: 3px; margin-top: 4px; }
+.reg-table .mono { font-size: 11.5px; }
+.reg-actions .icon-btn { padding: 2px 4px; font-size: 12px; }
