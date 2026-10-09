@@ -8,6 +8,7 @@ import DownloadBackupButton from '@/components/DownloadBackupButton';
 import ViewDataButton from '@/components/ViewDataButton';
 import { deleteProject, canDeleteProject } from '@/lib/deleteProject';
 import DateInput from '@/components/DateInput';
+import MultiFilter from '@/components/MultiFilter';
 import {
   REGISTER_COLUMNS, EMPTY, toRegisterRow, cellText, selectOptions, matchesFilter, compareRows, formatDate, formatValue,
 } from '@/lib/projectTable';
@@ -107,7 +108,7 @@ export default function Dashboard() {
   }, [rows, filters, search, sort]);
   const filteredProjects = filteredRows.map((r) => r.project);
 
-  const activeFilters = Object.values(filters).filter((f) => f && (typeof f !== 'object' || f.from || f.to)).length + (search.trim() ? 1 : 0);
+  const activeFilters = Object.values(filters).filter((f) => (Array.isArray(f) ? f.length > 0 : f && (typeof f !== 'object' || f.from || f.to))).length + (search.trim() ? 1 : 0);
   const setFilter = (key, value) => setFilters((f) => ({ ...f, [key]: value }));
   function clickSort(key) {
     setSort((s) => (s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: key === 'date' || key === 'value' || key === 'progress' ? 'desc' : 'asc' }));
@@ -252,7 +253,15 @@ export default function Dashboard() {
                     {selecting && <th />}
                     {REGISTER_COLUMNS.map((c) => (
                       <th key={c.key}>
-                        {c.filter === 'select' ? (
+                        {c.multi ? (
+                          <MultiFilter
+                            label={c.label}
+                            options={options[c.key] || []}
+                            value={filters[c.key] || []}
+                            emptyValue={EMPTY}
+                            onChange={(v) => setFilter(c.key, v)}
+                          />
+                        ) : c.filter === 'select' ? (
                           <select
                             value={filters[c.key] || ''}
                             onChange={(e) => setFilter(c.key, e.target.value)}
