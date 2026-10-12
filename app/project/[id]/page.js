@@ -11,6 +11,8 @@ import { HEADED_BY_OPTIONS, salesPeopleWith } from '@/lib/projectFields';
 import { PROJECT_STATUSES, PROJECT_STATUS_LABELS, DEFAULT_PROJECT_STATUS } from '@/lib/projectStatus';
 import DateInput from '@/components/DateInput';
 import BrandPicker from '@/components/BrandPicker';
+import SuggestInput from '@/components/SuggestInput';
+import { useContactNames, companyOptions, personOptions } from '@/lib/contactNames';
 import ActivityLog from '@/components/ActivityLog';
 import { fmtDate } from '@/lib/dates';
 
@@ -151,6 +153,12 @@ export default function ProjectDetail() {
   function removeEditContact(roleKey, idx) {
     setEditContacts((c) => ({ ...c, [roleKey]: c[roleKey].filter((_, i) => i !== idx) }));
   }
+  // shared Company / Name suggestions, plus what's typed on this form
+  const contactNames = useContactNames(supabase);
+  const typedContacts = Object.values(editContacts).flat();
+  const typedCompanies = typedContacts.map((x) => x.company_name).filter(Boolean);
+  const typedPeople = typedContacts.map((x) => x.name).filter(Boolean);
+
   function updateEditContact(roleKey, idx, field, value) {
     setEditContacts((c) => {
       const list = [...c[roleKey]];
@@ -451,10 +459,17 @@ export default function ProjectDetail() {
                       <span onClick={() => removeEditContact(key, idx)} style={{ fontSize: 11, color: '#B33A3A', cursor: 'pointer', fontWeight: 600 }}>Remove</span>
                     </div>
                     <div style={{ marginBottom: 8 }}>
-                      <input placeholder="Company name" value={c.company_name || ''} onChange={(e) => updateEditContact(key, idx, 'company_name', e.target.value)} />
+                      <SuggestInput placeholder="Company name" value={c.company_name || ''} options={companyOptions(contactNames, typedCompanies)} onChange={(v) => updateEditContact(key, idx, 'company_name', v)} />
                     </div>
                     <div className="form-row-2" style={{ marginBottom: 8 }}>
-                      <input placeholder="Name" value={c.name} onChange={(e) => updateEditContact(key, idx, 'name', e.target.value)} />
+                      <SuggestInput
+                        placeholder="Name"
+                        value={c.name}
+                        firstOptions={personOptions(contactNames, c.company_name, typedPeople).first}
+                        firstLabel={c.company_name ? `From ${c.company_name}` : undefined}
+                        options={personOptions(contactNames, c.company_name, typedPeople).rest}
+                        onChange={(v) => updateEditContact(key, idx, 'name', v)}
+                      />
                       <select value={c.designation} onChange={(e) => updateEditContact(key, idx, 'designation', e.target.value)}>
                         <option value="">Designation…</option>
                         {DESIGNATIONS.map((d) => <option key={d} value={d}>{d}</option>)}

@@ -677,3 +677,17 @@ html, body { overscroll-behavior-x: none; }
 .avatar-img { object-fit: cover; padding: 0; display: block; flex: none; }
 /* project edit form sits on the dark page, so its headings are bright gold */
 .edit-head label { color: #E9D49A; letter-spacing: .2px; }
+
+/* suggestion dropdown (contact Company name / Name) */
+.si-wrap { position: relative; }
+.si-wrap > input { padding-right: 34px; }
+.si-caret { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); border: 0; background: none;
+  color: #7A6C86; cursor: pointer; font-size: 12px; padding: 6px 8px; border-radius: 6px; }
+.si-caret:hover { background: #F4EEF8; }
+.si-panel { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 50; max-height: 260px; overflow: auto;
+  background: #fff; border: 1px solid #E2DCEA; border-radius: 10px; box-shadow: 0 12px 28px rgba(15, 31, 61, .18);
+  padding: 4px 0; overscroll-behavior: contain; }
+.si-opt { display: block; width: 100%; text-align: left; border: 0; background: none; cursor: pointer;
+  padding: 8px 14px; font: inherit; font-size: 14px; color: #221429; }
+.si-opt:hover, .si-opt.on { background: #F6EFFA; }
+.si-group { padding: 6px 14px 2px; font-size: 10.5px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: #9A8BA6; }
