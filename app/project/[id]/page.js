@@ -12,7 +12,7 @@ import { PROJECT_STATUSES, PROJECT_STATUS_LABELS, DEFAULT_PROJECT_STATUS } from 
 import DateInput from '@/components/DateInput';
 import BrandPicker from '@/components/BrandPicker';
 import SuggestInput from '@/components/SuggestInput';
-import { useContactNames, companyOptions, personOptions } from '@/lib/contactNames';
+import { useContactNames, companyOptions, personOptions, savedPerson, fillFromSaved } from '@/lib/contactNames';
 import ActivityLog from '@/components/ActivityLog';
 import { fmtDate } from '@/lib/dates';
 
@@ -157,6 +157,16 @@ export default function ProjectDetail() {
   const contactNames = useContactNames(supabase);
   const typedCompanies = (role) => (editContacts[role] || []).map((x) => x.company_name).filter(Boolean);
   const typedPeople = (role) => (editContacts[role] || []).map((x) => x.name).filter(Boolean);
+
+  // picking a saved person fills their designation / tel / mobile / email
+  function fillSavedPerson(roleKey, idx, name) {
+    setEditContacts((c) => {
+      const list = [...c[roleKey]];
+      const saved = savedPerson(contactNames, roleKey, list[idx]?.company_name, name);
+      list[idx] = fillFromSaved({ ...list[idx], name }, saved);
+      return { ...c, [roleKey]: list };
+    });
+  }
 
   function updateEditContact(roleKey, idx, field, value) {
     setEditContacts((c) => {
@@ -468,6 +478,7 @@ export default function ProjectDetail() {
                         firstLabel={c.company_name ? `From ${c.company_name}` : undefined}
                         options={personOptions(contactNames, key, c.company_name, typedPeople(key)).rest}
                         onChange={(v) => updateEditContact(key, idx, 'name', v)}
+                        onPick={(v) => fillSavedPerson(key, idx, v)}
                       />
                       <select value={c.designation} onChange={(e) => updateEditContact(key, idx, 'designation', e.target.value)}>
                         <option value="">Designation…</option>

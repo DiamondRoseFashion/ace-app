@@ -4,7 +4,7 @@
 // new value. Used for contact Company name and Name.
 import { useMemo, useRef, useState } from 'react';
 
-export default function SuggestInput({ value, onChange, options = [], firstOptions = [], firstLabel, placeholder, ariaLabel }) {
+export default function SuggestInput({ value, onChange, onPick, options = [], firstOptions = [], firstLabel, placeholder, ariaLabel }) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
   const wrapRef = useRef(null);
@@ -18,7 +18,7 @@ export default function SuggestInput({ value, onChange, options = [], firstOptio
     return [...a, ...b].slice(0, 60);
   }, [q, options, firstOptions]);
 
-  const pick = (s) => { onChange(s); setOpen(false); setActive(-1); };
+  const pick = (s) => { onChange(s); if (onPick) onPick(s); setOpen(false); setActive(-1); };
 
   function onKeyDown(e) {
     if (!open && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) { setOpen(true); e.preventDefault(); e.stopPropagation(); return; }
@@ -33,7 +33,14 @@ export default function SuggestInput({ value, onChange, options = [], firstOptio
 
   return (
     <div className="si-wrap" ref={wrapRef}
-      onBlur={(e) => { if (!wrapRef.current?.contains(e.relatedTarget)) { setOpen(false); setActive(-1); } }}>
+      onBlur={(e) => {
+        if (wrapRef.current?.contains(e.relatedTarget)) return;
+        setOpen(false); setActive(-1);
+        // typed a saved value in full (instead of clicking it): treat it as picked
+        const typed = String(value || '').trim().toLowerCase();
+        const hit = typed && onPick && [...firstOptions, ...options].find((o) => o.toLowerCase() === typed);
+        if (hit) onPick(hit);
+      }}>
       <input
         value={value || ''}
         placeholder={placeholder}
