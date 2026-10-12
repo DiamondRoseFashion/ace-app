@@ -33,7 +33,7 @@ export default function NewProject() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const [project, setProject] = useState({ name: '', status: DEFAULT_PROJECT_STATUS, location: '', brands_required: '', sales_person: '', headed_by: '', lead_by: '', note: '' });
+  const [project, setProject] = useState({ name: '', status: DEFAULT_PROJECT_STATUS, location: '', brands_required: '', sales_person: '', headed_by: '', note: '' });
 
   // one array of contacts per role
   const [contacts, setContacts] = useState({
@@ -175,10 +175,6 @@ const [quotation, setQuotation] = useState({
                     {HEADED_BY_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
                   </select>
                 </div>
-              </div>
-              <div className="field-group">
-                <label>Lead By</label>
-                <input value={project.lead_by} onChange={(e) => setProject({ ...project, lead_by: e.target.value })} />
               </div>
               <div className="field-group">
                 <label>Note</label>
