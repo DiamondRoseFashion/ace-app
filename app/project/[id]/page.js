@@ -603,7 +603,7 @@ export default function ProjectDetail() {
 
         {/* Activity */}
         <SectionTitle>Activity</SectionTitle>
-        <ActivityLog projectId={projectId} myId={myId} myRole={myRole} />
+        <ActivityLog projectId={projectId} />
       </div>
     </div>
   );
