@@ -22,8 +22,27 @@ async function authHeader() {
   }
 }
 
+// After an update, a page left open from the old version can't load
+// its next piece ("Loading chunk 78 failed"). That isn't a bug: just
+// reload once to get the new version, and don't raise an alarm.
+export function isStaleVersionError(message) {
+  return /Loading (CSS )?chunk [\w-]+ failed|ChunkLoadError|Failed to fetch dynamically imported module|Importing a module script failed|error loading dynamically imported module/i
+    .test(String(message || ''));
+}
+
+export function reloadForNewVersion() {
+  try {
+    const last = Number(sessionStorage.getItem('ace-version-reload') || 0);
+    if (Date.now() - last < 60 * 1000) return false; // already tried: don't loop
+    sessionStorage.setItem('ace-version-reload', String(Date.now()));
+  } catch { /* storage blocked: still reload once */ }
+  window.location.reload();
+  return true;
+}
+
 export async function reportError({ message, stack, kind = 'crash', status, endpoint }) {
   try {
+    if (isStaleVersionError(message) && reloadForNewVersion()) return;
     const key = `${kind}|${status || ''}|${endpoint || ''}|${message}`;
     const last = recent.get(key) || 0;
     if (Date.now() - last < 60 * 1000) return; // once a minute per problem
