@@ -46,9 +46,12 @@ export default function SuggestInput({ value, onChange, options = [], firstOptio
         onChange={(e) => { onChange(e.target.value); setOpen(true); setActive(-1); }}
         onKeyDown={onKeyDown}
       />
-      {(options.length > 0 || firstOptions.length > 0) && (
+      {(
         <button type="button" className="si-caret" tabIndex={-1} aria-label="Show suggestions"
           onMouseDown={(e) => e.preventDefault()} onClick={() => setOpen((o) => !o)}>▾</button>
+      )}
+      {open && items.length === 0 && !String(value || '').trim() && (
+        <div className="si-panel si-empty">Nothing saved yet. Type a new one; it will be shared with everyone once the project is saved.</div>
       )}
       {open && items.length > 0 && (
         <div className="si-panel" role="listbox">
