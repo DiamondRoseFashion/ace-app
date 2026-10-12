@@ -155,9 +155,8 @@ export default function ProjectDetail() {
   }
   // shared Company / Name suggestions, plus what's typed on this form
   const contactNames = useContactNames(supabase);
-  const typedContacts = Object.values(editContacts).flat();
-  const typedCompanies = typedContacts.map((x) => x.company_name).filter(Boolean);
-  const typedPeople = typedContacts.map((x) => x.name).filter(Boolean);
+  const typedCompanies = (role) => (editContacts[role] || []).map((x) => x.company_name).filter(Boolean);
+  const typedPeople = (role) => (editContacts[role] || []).map((x) => x.name).filter(Boolean);
 
   function updateEditContact(roleKey, idx, field, value) {
     setEditContacts((c) => {
@@ -459,15 +458,15 @@ export default function ProjectDetail() {
                       <span onClick={() => removeEditContact(key, idx)} style={{ fontSize: 11, color: '#B33A3A', cursor: 'pointer', fontWeight: 600 }}>Remove</span>
                     </div>
                     <div style={{ marginBottom: 8 }}>
-                      <SuggestInput placeholder="Company name" value={c.company_name || ''} options={companyOptions(contactNames, typedCompanies)} onChange={(v) => updateEditContact(key, idx, 'company_name', v)} />
+                      <SuggestInput placeholder="Company name" value={c.company_name || ''} options={companyOptions(contactNames, key, typedCompanies(key))} onChange={(v) => updateEditContact(key, idx, 'company_name', v)} />
                     </div>
                     <div className="form-row-2" style={{ marginBottom: 8 }}>
                       <SuggestInput
                         placeholder="Name"
                         value={c.name}
-                        firstOptions={personOptions(contactNames, c.company_name, typedPeople).first}
+                        firstOptions={personOptions(contactNames, key, c.company_name, typedPeople(key)).first}
                         firstLabel={c.company_name ? `From ${c.company_name}` : undefined}
-                        options={personOptions(contactNames, c.company_name, typedPeople).rest}
+                        options={personOptions(contactNames, key, c.company_name, typedPeople(key)).rest}
                         onChange={(v) => updateEditContact(key, idx, 'name', v)}
                       />
                       <select value={c.designation} onChange={(e) => updateEditContact(key, idx, 'designation', e.target.value)}>
