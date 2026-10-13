@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
 import Sidebar from '@/components/Sidebar';
@@ -8,6 +8,8 @@ import { HEADED_BY_OPTIONS, SALES_PEOPLE } from '@/lib/projectFields';
 import { PROJECT_STATUSES, PROJECT_STATUS_LABELS, DEFAULT_PROJECT_STATUS } from '@/lib/projectStatus';
 import DateInput from '@/components/DateInput';
 import BrandPicker from '@/components/BrandPicker';
+import PeoplePicker from '@/components/PeoplePicker';
+import { useTeam } from '@/lib/team';
 import SuggestInput from '@/components/SuggestInput';
 import { useContactNames, companyOptions, personOptions, savedPerson, fillFromSaved } from '@/lib/contactNames';
 
@@ -36,6 +38,12 @@ export default function NewProject() {
   const [saving, setSaving] = useState(false);
 
   const [project, setProject] = useState({ name: '', status: DEFAULT_PROJECT_STATUS, location: '', brands_required: '', sales_person: '', headed_by: '', note: '' });
+
+  // Supported By: people (user ids) who support this project
+  const [supporters, setSupporters] = useState([]);
+  const team = useTeam(supabase);
+  const [myUserId, setMyUserId] = useState(null);
+  useEffect(() => { supabase.auth.getUser().then(({ data }) => setMyUserId(data?.user?.id || null)); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
   // one array of contacts per role
   const [contacts, setContacts] = useState({
@@ -121,6 +129,17 @@ const [quotation, setQuotation] = useState({
       if (contactError) { setError(contactError.message); setSaving(false); return; }
     }
 
+    // Supported By: these people see the project on their Support page
+    if (supporters.length > 0) {
+      const { error: supErr } = await supabase.from('project_supporters')
+        .insert(supporters.map((uid) => ({ project_id: data.id, user_id: uid })));
+      if (supErr) {
+        setError(/relation|schema cache|does not exist/i.test(supErr.message)
+          ? 'The project was saved, but "Supported By" needs a one-time database update (ask your admin).'
+          : `The project was saved, but "Supported By" couldn't be saved: ${supErr.message}`);
+      }
+    }
+
     setProjectId(data.id);
     setSaving(false);
     setStep(2);
@@ -192,6 +211,16 @@ const [quotation, setQuotation] = useState({
                     {HEADED_BY_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
                   </select>
                 </div>
+              </div>
+              <div className="field-group">
+                <label>Supported By</label>
+                <PeoplePicker
+                  value={supporters}
+                  onChange={setSupporters}
+                  people={team.filter((t) => t.id !== myUserId)}
+                  placeholder="Choose who supports this project (optional)"
+                  ariaLabel="Supported by"
+                />
               </div>
               <div className="field-group">
                 <label>Note</label>

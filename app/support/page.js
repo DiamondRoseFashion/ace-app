@@ -1,33 +1,120 @@
 'use client';
 
-// Support: help and contact information for everyone using ACE.
-// (Content is added step by step.)
-import { useEffect } from 'react';
+// Support: projects where I'm in "Supported By". For each one I only
+// see Date, Quotation No, Sales Person and Project Name (that's all the
+// database gives a supporter), and I can add support notes.
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
 import Sidebar from '@/components/Sidebar';
+import SupportNotes from '@/components/SupportNotes';
+import { fmtDate } from '@/lib/dates';
 
 export default function Support() {
   const router = useRouter();
+  const supabaseRef = useRef(null);
+  if (!supabaseRef.current) supabaseRef.current = createClient();
+  const supabase = supabaseRef.current;
+
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [missing, setMissing] = useState(false);
+  const [openId, setOpenId] = useState(null);
+  const [search, setSearch] = useState('');
+
+  async function load() {
+    const { data, error } = await supabase.rpc('my_support_projects');
+    if (error) setMissing(/function|does not exist|schema cache/i.test(error.message));
+    else { setMissing(false); setRows(data || []); }
+    setLoading(false);
+  }
 
   useEffect(() => {
+    let ch = null;
     (async () => {
-      const { data: { user } } = await createClient().auth.getUser();
-      if (!user) router.push('/login');
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { router.push('/login'); return; }
+      await load();
+      // live: a project assigned to me (or taken off) shows up straight away
+      ch = supabase
+        .channel(`my-support-${user.id}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'project_supporters', filter: `user_id=eq.${user.id}` }, () => load())
+        .subscribe();
     })();
+    const onFocus = () => load();
+    window.addEventListener('focus', onFocus);
+    return () => { if (ch) supabase.removeChannel(ch); window.removeEventListener('focus', onFocus); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const q = search.trim().toLowerCase();
+  const shown = q
+    ? rows.filter((r) => [fmtDate(r.project_date), r.quotation_number, r.sales_person, r.project_name].join(' ').toLowerCase().includes(q))
+    : rows;
 
   return (
     <div className="shell">
       <Sidebar active="support" />
       <div className="main">
         <div className="eyebrow">Help</div>
-        <h1 style={{ fontSize: 30, marginTop: 4, marginBottom: 24 }}>Support</h1>
+        <h1 style={{ fontSize: 30, marginTop: 4, marginBottom: 6 }}>Support</h1>
+        <p style={{ color: 'rgba(255,255,255,.75)', marginTop: 0, marginBottom: 20 }}>
+          Projects where you were added under <b>Supported By</b>. Open one to add your support notes.
+        </p>
 
-        <div className="card">
-          <p style={{ margin: 0, color: 'var(--muted)' }}>Support information will appear here soon.</p>
-        </div>
+        {missing ? (
+          <div className="card"><div className="notice err" style={{ margin: 0 }}>Support needs a one-time database update. Please ask your admin.</div></div>
+        ) : (
+          <div className="card" style={{ padding: 0 }}>
+            <div className="sp-head">
+              <strong>Projects I support</strong>
+              <span className="sp-count">{rows.length}</span>
+              <span style={{ flex: 1 }} />
+              {rows.length > 5 && (
+                <input className="sp-search" placeholder="Search…" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search supported projects" />
+              )}
+            </div>
+            {loading ? (
+              <div className="sp-empty">Loading…</div>
+            ) : rows.length === 0 ? (
+              <div className="sp-empty">No projects yet. When a salesperson adds you under “Supported By”, the project appears here.</div>
+            ) : (
+              <div className="sp-table-wrap">
+                <table className="sp-table">
+                  <thead>
+                    <tr><th style={{ width: '14%' }}>Date</th><th style={{ width: '18%' }}>Quotation No</th><th style={{ width: '18%' }}>Sales Person</th><th>Project Name</th><th style={{ width: 120 }} /></tr>
+                  </thead>
+                  <tbody>
+                    {shown.map((r) => {
+                      const open = openId === r.project_id;
+                      return [
+                        <tr key={r.project_id} className={`sp-row${open ? ' open' : ''}`} onClick={() => setOpenId(open ? null : r.project_id)}>
+                          <td className="mono">{fmtDate(r.project_date) || '—'}</td>
+                          <td className="mono">{r.quotation_number || '—'}</td>
+                          <td>{r.sales_person || '—'}</td>
+                          <td className="sp-name" title={r.project_name}>{r.project_name}</td>
+                          <td style={{ textAlign: 'right' }}>
+                            <button type="button" className="btn btn-ghost sp-btn" onClick={(e) => { e.stopPropagation(); setOpenId(open ? null : r.project_id); }}>
+                              {open ? 'Close' : 'Notes'}
+                            </button>
+                          </td>
+                        </tr>,
+                        open && (
+                          <tr key={`${r.project_id}-notes`} className="sp-notes-row">
+                            <td colSpan={5}>
+                              <SupportNotes projectId={r.project_id} canAdd emptyText="No notes yet. Add the first one above." />
+                            </td>
+                          </tr>
+                        ),
+                      ];
+                    })}
+                    {shown.length === 0 && <tr><td colSpan={5} className="sp-empty">No projects match.</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

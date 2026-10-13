@@ -14,6 +14,9 @@ import BrandPicker from '@/components/BrandPicker';
 import SuggestInput from '@/components/SuggestInput';
 import { useContactNames, companyOptions, personOptions, savedPerson, fillFromSaved } from '@/lib/contactNames';
 import ActivityLog from '@/components/ActivityLog';
+import PeoplePicker from '@/components/PeoplePicker';
+import SupportNotes from '@/components/SupportNotes';
+import { useTeam, teamName } from '@/lib/team';
 import { fmtDate } from '@/lib/dates';
 
 const STATUS_LABELS = PROJECT_STATUS_LABELS;
@@ -67,6 +70,10 @@ export default function ProjectDetail() {
   const [editForm, setEditForm] = useState({ name: '', location: '', brands_required: '', sales_person: '', headed_by: '', note: '' });
   const [editContacts, setEditContacts] = useState({ contractor: [], client: [], consultant: [], main_contractor: [] });
   const [editQuotations, setEditQuotations] = useState([]);
+  const [supporters, setSupporters] = useState([]); // user ids (Supported By)
+  const [editSupporters, setEditSupporters] = useState([]);
+  const [supportersReady, setSupportersReady] = useState(true); // false until the database update is run
+  const team = useTeam(supabase);
   const [editMeetings, setEditMeetings] = useState([]);
   const [saving, setSaving] = useState(false);
 
@@ -99,6 +106,9 @@ export default function ProjectDetail() {
       supabase.from('meetings').select('*').eq('project_id', projectId).order('meeting_date', { ascending: false }),
       supabase.storage.from('project-files').list(projectId),
     ]);
+    const { data: sup, error: supErr } = await supabase.from('project_supporters').select('user_id').eq('project_id', projectId);
+    setSupportersReady(!supErr);
+    setSupporters((sup || []).map((r) => r.user_id));
 
     setProject(proj);
     if (proj) {
@@ -144,6 +154,7 @@ export default function ProjectDetail() {
     setEditContacts(grouped);
     setEditQuotations((quotations || []).map((q) => ({ ...q })));
     setEditMeetings((meetings || []).map((m) => ({ ...m })));
+    setEditSupporters([...supporters]);
     setEditing(true);
   }
 
@@ -293,6 +304,20 @@ export default function ProjectDetail() {
       }
     }
 
+    // Supported By: add the new people, remove the ones taken off
+    if (supportersReady) {
+      const added = editSupporters.filter((id) => !supporters.includes(id));
+      const removed = supporters.filter((id) => !editSupporters.includes(id));
+      if (added.length) {
+        const { error: aErr } = await supabase.from('project_supporters').insert(added.map((uid) => ({ project_id: projectId, user_id: uid })));
+        if (aErr) { setError(aErr.message); setSaving(false); return; }
+      }
+      if (removed.length) {
+        const { error: rErr } = await supabase.from('project_supporters').delete().eq('project_id', projectId).in('user_id', removed);
+        if (rErr) { setError(rErr.message); setSaving(false); return; }
+      }
+    }
+
     setEditing(false);
     setSaving(false);
     load();
@@ -360,6 +385,18 @@ export default function ProjectDetail() {
                   </select>
                 </div>
               </div>
+              {supportersReady && (
+                <div className="field-group">
+                  <label>Supported By</label>
+                  <PeoplePicker
+                    value={editSupporters}
+                    onChange={setEditSupporters}
+                    people={team.filter((t) => t.id !== project?.created_by || editSupporters.includes(t.id))}
+                    placeholder="Choose who supports this project (optional)"
+                    ariaLabel="Supported by"
+                  />
+                </div>
+              )}
               <div className="field-group">
                 <label>Note</label>
                 <textarea rows={3} value={editForm.note} onChange={(e) => setEditForm({ ...editForm, note: e.target.value })} />
@@ -441,7 +478,7 @@ export default function ProjectDetail() {
         {/* Project details */}
         <div className="card" style={{ marginBottom: 20 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16 }}>
-            {[['Sales Person', project.sales_person], ['Headed By', project.headed_by], ['Brands', project.brands_required]].map(([label, value]) => (
+            {[['Sales Person', project.sales_person], ['Headed By', project.headed_by], ['Supported By', supporters.map((id) => teamName(team, id)).join(', ')], ['Brands', project.brands_required]].map(([label, value]) => (
               <div key={label}>
                 <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>{label}</div>
                 <div style={{ fontWeight: 600 }}>{value || '—'}</div>
@@ -623,6 +660,16 @@ export default function ProjectDetail() {
         {/* Activity */}
         <SectionTitle>Activity</SectionTitle>
         <ActivityLog projectId={projectId} />
+
+        {/* Notes from the Supported By people (read-only here) */}
+        {supportersReady && (supporters.length > 0) && (
+          <>
+            <SectionTitle>Support Notes</SectionTitle>
+            <div className="card activity-card">
+              <SupportNotes projectId={projectId} canAdd={supporters.includes(myId)} emptyText="The supporters haven't added any notes yet." />
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

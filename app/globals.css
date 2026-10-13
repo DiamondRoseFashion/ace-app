@@ -692,3 +692,23 @@ html, body { overscroll-behavior-x: none; }
 .si-opt:hover, .si-opt.on { background: #F6EFFA; }
 .si-group { padding: 6px 14px 2px; font-size: 10.5px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: #9A8BA6; }
 .si-empty { padding: 10px 14px; font-size: 12.5px; color: #7A6C86; }
+
+/* support notes */
+.sn-add { margin-bottom: 6px; }
+.sn-add-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+.sn-hint { font-size: 12px; color: var(--muted); }
+
+/* Support page */
+.sp-head { display: flex; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.sp-count { background: #F1E7F8; color: var(--violet); font-weight: 700; font-size: 12px; padding: 2px 9px; border-radius: 99px; }
+.sp-search { max-width: 240px; padding: 7px 10px; font-size: 13px; min-height: 0; }
+.sp-empty { padding: 28px 20px; color: var(--muted); text-align: center; font-size: 13.5px; }
+.sp-table-wrap { overflow-x: auto; }
+.sp-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 13.5px; }
+.sp-table th { text-align: left; font-size: 10.5px; letter-spacing: .4px; text-transform: uppercase; color: var(--muted); font-weight: 700; padding: 10px 14px; background: #FBF8FD; border-bottom: 1px solid var(--line); }
+.sp-table td { padding: 11px 14px; border-bottom: 1px solid var(--line); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
+.sp-row { cursor: pointer; }
+.sp-row:hover, .sp-row.open { background: #FAF5FD; }
+.sp-name { font-weight: 400; }
+.sp-btn { padding: 5px 12px; font-size: 12.5px; }
+.sp-notes-row td { white-space: normal; background: #FCFAFE; padding: 16px 20px 18px; }
