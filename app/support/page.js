@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
 import Sidebar from '@/components/Sidebar';
 import SupportNotes from '@/components/SupportNotes';
+import DateInput from '@/components/DateInput';
 import { fmtDate } from '@/lib/dates';
 import { latestQuotation } from '@/lib/projectTable';
 
@@ -21,7 +22,9 @@ export default function Support() {
   const [loading, setLoading] = useState(true);
   const [missing, setMissing] = useState(false);
   const [openId, setOpenId] = useState(null);
-  const [search, setSearch] = useState('');
+  // filters: A = Projects I support, B = Support on my projects
+  const [fa, setFa] = useState({ from: '', to: '', qno: '', sales: '', name: '' });
+  const [fb, setFb] = useState({ from: '', to: '', qno: '', name: '', supporter: '' });
   // my own projects that have supporters (what they wrote, read-only)
   const [mine, setMine] = useState([]);
   const [mineOpenId, setMineOpenId] = useState(null);
@@ -77,10 +80,19 @@ export default function Support() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const q = search.trim().toLowerCase();
-  const shown = q
-    ? rows.filter((r) => [fmtDate(r.project_date), r.quotation_number, r.sales_person, r.project_name].join(' ').toLowerCase().includes(q))
-    : rows;
+  const has = (v, f) => !f.trim() || String(v || '').toLowerCase().includes(f.trim().toLowerCase());
+  const inRange = (d, f) => (!f.from || (d && d >= f.from)) && (!f.to || (d && d <= f.to));
+  const uniq = (list) => [...new Set(list.filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+
+  const salesOptions = uniq(rows.map((r) => r.sales_person));
+  const shown = rows.filter((r) => inRange(String(r.project_date || '').slice(0, 10), fa)
+    && has(r.quotation_number, fa.qno) && (!fa.sales || r.sales_person === fa.sales) && has(r.project_name, fa.name));
+  const faOn = Object.values(fa).some(Boolean);
+
+  const supporterOptions = uniq(mine.flatMap((r) => r.supporters.split(', ')));
+  const mineShown = mine.filter((r) => inRange(String(r.date || '').slice(0, 10), fb)
+    && has(r.quotation_number, fb.qno) && has(r.name, fb.name) && (!fb.supporter || r.supporters.split(', ').includes(fb.supporter)));
+  const fbOn = Object.values(fb).some(Boolean);
 
   return (
     <div className="shell">
@@ -98,11 +110,9 @@ export default function Support() {
           <div className="card" style={{ padding: 0 }}>
             <div className="sp-head">
               <strong>Projects I support</strong>
-              <span className="sp-count">{rows.length}</span>
+              <span className="sp-count">{faOn ? `${shown.length} of ${rows.length}` : rows.length}</span>
               <span style={{ flex: 1 }} />
-              {rows.length > 5 && (
-                <input className="sp-search" placeholder="Search…" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search supported projects" />
-              )}
+              {faOn && <button type="button" className="btn btn-ghost sp-btn" onClick={() => setFa({ from: '', to: '', qno: '', sales: '', name: '' })}>Clear filters</button>}
             </div>
             {loading ? (
               <div className="sp-empty">Loading…</div>
@@ -112,7 +122,19 @@ export default function Support() {
               <div className="sp-table-wrap">
                 <table className="sp-table">
                   <thead>
-                    <tr><th style={{ width: '14%' }}>Date</th><th style={{ width: '18%' }}>Quotation No</th><th style={{ width: '18%' }}>Sales Person</th><th>Project Name</th><th style={{ width: 120 }} /></tr>
+                    <tr><th style={{ width: '17%' }}>Date</th><th style={{ width: '18%' }}>Quotation No</th><th style={{ width: '18%' }}>Sales Person</th><th>Project Name</th><th style={{ width: 120 }} /></tr>
+                    <tr className="sp-filters">
+                      <th><div className="sp-dates">
+                        <DateInput aria-label="Date from" value={fa.from} onChange={(e) => setFa({ ...fa, from: e.target.value })} />
+                        <DateInput aria-label="Date to" value={fa.to} onChange={(e) => setFa({ ...fa, to: e.target.value })} />
+                      </div></th>
+                      <th><input placeholder="Filter…" value={fa.qno} onChange={(e) => setFa({ ...fa, qno: e.target.value })} aria-label="Filter quotation no" /></th>
+                      <th><select value={fa.sales} onChange={(e) => setFa({ ...fa, sales: e.target.value })} aria-label="Filter sales person">
+                        <option value="">All</option>{salesOptions.map((o) => <option key={o} value={o}>{o}</option>)}
+                      </select></th>
+                      <th><input placeholder="Filter…" value={fa.name} onChange={(e) => setFa({ ...fa, name: e.target.value })} aria-label="Filter project name" /></th>
+                      <th />
+                    </tr>
                   </thead>
                   <tbody>
                     {shown.map((r) => {
@@ -138,7 +160,7 @@ export default function Support() {
                         ),
                       ];
                     })}
-                    {shown.length === 0 && <tr><td colSpan={5} className="sp-empty">No projects match.</td></tr>}
+                    {shown.length === 0 && <tr><td colSpan={5} className="sp-empty">No projects match these filters.</td></tr>}
                   </tbody>
                 </table>
               </div>
@@ -150,16 +172,30 @@ export default function Support() {
           <div className="card" style={{ padding: 0, marginTop: 24 }}>
             <div className="sp-head">
               <strong>Support on my projects</strong>
-              <span className="sp-count">{mine.length}</span>
+              <span className="sp-count">{fbOn ? `${mineShown.length} of ${mine.length}` : mine.length}</span>
               <span className="sp-sub">What your supporters wrote on your projects</span>
+              <span style={{ flex: 1 }} />
+              {fbOn && <button type="button" className="btn btn-ghost sp-btn" onClick={() => setFb({ from: '', to: '', qno: '', name: '', supporter: '' })}>Clear filters</button>}
             </div>
             <div className="sp-table-wrap">
               <table className="sp-table">
                 <thead>
-                  <tr><th style={{ width: '13%' }}>Date</th><th style={{ width: '16%' }}>Quotation No</th><th>Project Name</th><th style={{ width: '22%' }}>Supported By</th><th style={{ width: 140 }} /></tr>
+                  <tr><th style={{ width: '17%' }}>Date</th><th style={{ width: '16%' }}>Quotation No</th><th>Project Name</th><th style={{ width: '22%' }}>Supported By</th><th style={{ width: 140 }} /></tr>
+                  <tr className="sp-filters">
+                    <th><div className="sp-dates">
+                      <DateInput aria-label="Date from" value={fb.from} onChange={(e) => setFb({ ...fb, from: e.target.value })} />
+                      <DateInput aria-label="Date to" value={fb.to} onChange={(e) => setFb({ ...fb, to: e.target.value })} />
+                    </div></th>
+                    <th><input placeholder="Filter…" value={fb.qno} onChange={(e) => setFb({ ...fb, qno: e.target.value })} aria-label="Filter quotation no" /></th>
+                    <th><input placeholder="Filter…" value={fb.name} onChange={(e) => setFb({ ...fb, name: e.target.value })} aria-label="Filter project name" /></th>
+                    <th><select value={fb.supporter} onChange={(e) => setFb({ ...fb, supporter: e.target.value })} aria-label="Filter supported by">
+                      <option value="">All</option>{supporterOptions.map((o) => <option key={o} value={o}>{o}</option>)}
+                    </select></th>
+                    <th />
+                  </tr>
                 </thead>
                 <tbody>
-                  {mine.map((r) => {
+                  {mineShown.map((r) => {
                     const open = mineOpenId === r.id;
                     return [
                       <tr key={r.id} className={`sp-row${open ? ' open' : ''}`} onClick={() => setMineOpenId(open ? null : r.id)}>
