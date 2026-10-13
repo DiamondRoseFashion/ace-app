@@ -762,3 +762,15 @@ html, body { overscroll-behavior-x: none; }
 .sp-filters .on { border-color: var(--violet-2); background: #F6EFFA; }
 .sp-dates .date-input > input[type="text"] { font-size: 11px; padding-right: 20px; }
 .sp-btn { padding: 5px 10px; font-size: 12px; white-space: nowrap; }
+
+/* 5-star project reviews (My Projects) */
+.stars { display: inline-flex; flex-direction: column; align-items: flex-start; line-height: 1; }
+.stars-row { display: inline-flex; gap: 0; }
+.star { border: 0; background: none; padding: 0 1px; font-size: 15px; line-height: 1; cursor: pointer; color: #D9D2E1; transition: color .1s, transform .1s; }
+.star.on { color: #E6A817; }
+.star.hovering.on { color: #F2B92E; }
+.star:hover { transform: scale(1.18); }
+.star.mine { text-shadow: 0 0 0 #B07F05; }
+.star:disabled { cursor: default; }
+.stars-meta { font-size: 10px; color: #8A7B96; margin-top: 3px; font-weight: 500; }
+.reg-table td.reg-rating { overflow: visible; padding-top: 5px; padding-bottom: 5px; }
