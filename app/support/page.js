@@ -1,8 +1,12 @@
 'use client';
 
-// Support: projects where I'm in "Supported By". For each one I only
-// see Date, Quotation No, Sales Person and Project Name (that's all the
-// database gives a supporter), and I can add support notes.
+// Support:
+//  A) "Projects I support": projects where I'm in "Supported By". I only
+//     get Date, Quotation No, Sales Person, Project Name and the
+//     Contractor / Client / Consultant company names (that's all the
+//     database gives a supporter), and I can add notes.
+//  B) "Support on my projects": my own projects that have supporters,
+//     with the notes between me and them.
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
@@ -11,6 +15,48 @@ import SupportNotes from '@/components/SupportNotes';
 import DateInput from '@/components/DateInput';
 import { fmtDate } from '@/lib/dates';
 import { latestQuotation } from '@/lib/projectTable';
+
+const splitNames = (v) => String(v || '').split(' | ').map((s) => s.trim()).filter(Boolean);
+const uniq = (list) => [...new Set(list.filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+const has = (v, f) => !f.trim() || String(v || '').toLowerCase().includes(f.trim().toLowerCase());
+const inRange = (d, f) => (!f.from || (d && d >= f.from)) && (!f.to || (d && d <= f.to));
+const pick = (v, f) => !f || splitNames(v).includes(f);
+
+// company names per role from a project's contacts
+function companiesOf(contacts, role) {
+  return uniq((contacts || []).filter((c) => c.contact_role === role)
+    .map((c) => (c.company_name || '').trim() || (c.name || '').trim())).join(' | ');
+}
+
+const EMPTY_A = { from: '', to: '', qno: '', sales: '', name: '', contractor: '', client: '', consultant: '' };
+const EMPTY_B = { from: '', to: '', qno: '', name: '', supporter: '', contractor: '', client: '', consultant: '' };
+
+function Cell({ children, mono, title }) {
+  const text = children === null || children === undefined || children === '' ? '—' : children;
+  return <td className={mono ? 'mono' : undefined} title={title || (typeof text === 'string' ? text : undefined)}>{text}</td>;
+}
+
+function SelectFilter({ value, options, onChange, label }) {
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value)} aria-label={`Filter ${label}`} className={value ? 'on' : ''}>
+      <option value="">All</option>
+      {options.map((o) => <option key={o} value={o}>{o}</option>)}
+    </select>
+  );
+}
+
+function TextFilter({ value, onChange, label }) {
+  return <input placeholder="Filter…" value={value} onChange={(e) => onChange(e.target.value)} aria-label={`Filter ${label}`} className={value ? 'on' : ''} />;
+}
+
+function DateFilter({ f, set }) {
+  return (
+    <div className="sp-dates">
+      <DateInput aria-label="Date from" value={f.from} onChange={(e) => set({ ...f, from: e.target.value })} />
+      <DateInput aria-label="Date to" value={f.to} onChange={(e) => set({ ...f, to: e.target.value })} />
+    </div>
+  );
+}
 
 export default function Support() {
   const router = useRouter();
@@ -22,17 +68,15 @@ export default function Support() {
   const [loading, setLoading] = useState(true);
   const [missing, setMissing] = useState(false);
   const [openId, setOpenId] = useState(null);
-  // filters: A = Projects I support, B = Support on my projects
-  const [fa, setFa] = useState({ from: '', to: '', qno: '', sales: '', name: '' });
-  const [fb, setFb] = useState({ from: '', to: '', qno: '', name: '', supporter: '' });
-  // my own projects that have supporters (what they wrote, read-only)
+  const [fa, setFa] = useState(EMPTY_A);
+  const [fb, setFb] = useState(EMPTY_B);
   const [mine, setMine] = useState([]);
   const [mineOpenId, setMineOpenId] = useState(null);
 
   async function loadMine(uid) {
     const { data, error } = await supabase
       .from('projects')
-      .select('id, name, sales_person, created_at, quotations(quotation_number, quotation_date, created_at), project_supporters(user_id, person:profiles!user_id(full_name)), support_notes(created_at)')
+      .select('id, name, sales_person, created_at, quotations(quotation_number, quotation_date, created_at), contacts(contact_role, company_name, name), project_supporters(user_id, person:profiles!user_id(full_name)), support_notes(created_at)')
       .eq('created_by', uid);
     if (error) return;
     setMine((data || [])
@@ -41,10 +85,13 @@ export default function Support() {
         const q = latestQuotation(p.quotations);
         const lastNote = (p.support_notes || []).map((n) => n.created_at).sort().pop() || null;
         return {
-          id: p.id, name: p.name, sales_person: p.sales_person,
+          id: p.id, name: p.name,
           date: q?.quotation_date || String(p.created_at || '').slice(0, 10),
           quotation_number: q?.quotation_number || '',
-          supporters: p.project_supporters.map((s) => s.person?.full_name || 'Someone').join(', '),
+          contractor: companiesOf(p.contacts, 'contractor'),
+          client: companiesOf(p.contacts, 'client'),
+          consultant: companiesOf(p.contacts, 'consultant'),
+          supporters: p.project_supporters.map((s) => s.person?.full_name || 'Someone').join(' | '),
           notes: (p.support_notes || []).length,
           lastNote,
         };
@@ -67,7 +114,6 @@ export default function Support() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push('/login'); return; }
       await load();
-      // live: a project assigned to me (or taken off) shows up straight away
       ch = supabase
         .channel(`my-support-${user.id}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'project_supporters', filter: `user_id=eq.${user.id}` }, () => load())
@@ -80,18 +126,28 @@ export default function Support() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const has = (v, f) => !f.trim() || String(v || '').toLowerCase().includes(f.trim().toLowerCase());
-  const inRange = (d, f) => (!f.from || (d && d >= f.from)) && (!f.to || (d && d <= f.to));
-  const uniq = (list) => [...new Set(list.filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
-
-  const salesOptions = uniq(rows.map((r) => r.sales_person));
+  // A) Projects I support
+  const optsA = {
+    sales: uniq(rows.map((r) => r.sales_person)),
+    contractor: uniq(rows.flatMap((r) => splitNames(r.contractor))),
+    client: uniq(rows.flatMap((r) => splitNames(r.client))),
+    consultant: uniq(rows.flatMap((r) => splitNames(r.consultant))),
+  };
   const shown = rows.filter((r) => inRange(String(r.project_date || '').slice(0, 10), fa)
-    && has(r.quotation_number, fa.qno) && (!fa.sales || r.sales_person === fa.sales) && has(r.project_name, fa.name));
+    && has(r.quotation_number, fa.qno) && (!fa.sales || r.sales_person === fa.sales) && has(r.project_name, fa.name)
+    && pick(r.contractor, fa.contractor) && pick(r.client, fa.client) && pick(r.consultant, fa.consultant));
   const faOn = Object.values(fa).some(Boolean);
 
-  const supporterOptions = uniq(mine.flatMap((r) => r.supporters.split(', ')));
+  // B) Support on my projects
+  const optsB = {
+    supporter: uniq(mine.flatMap((r) => splitNames(r.supporters))),
+    contractor: uniq(mine.flatMap((r) => splitNames(r.contractor))),
+    client: uniq(mine.flatMap((r) => splitNames(r.client))),
+    consultant: uniq(mine.flatMap((r) => splitNames(r.consultant))),
+  };
   const mineShown = mine.filter((r) => inRange(String(r.date || '').slice(0, 10), fb)
-    && has(r.quotation_number, fb.qno) && has(r.name, fb.name) && (!fb.supporter || r.supporters.split(', ').includes(fb.supporter)));
+    && has(r.quotation_number, fb.qno) && has(r.name, fb.name) && pick(r.supporters, fb.supporter)
+    && pick(r.contractor, fb.contractor) && pick(r.client, fb.client) && pick(r.consultant, fb.consultant));
   const fbOn = Object.values(fb).some(Boolean);
 
   return (
@@ -112,7 +168,7 @@ export default function Support() {
               <strong>Projects I support</strong>
               <span className="sp-count">{faOn ? `${shown.length} of ${rows.length}` : rows.length}</span>
               <span style={{ flex: 1 }} />
-              {faOn && <button type="button" className="btn btn-ghost sp-btn" onClick={() => setFa({ from: '', to: '', qno: '', sales: '', name: '' })}>Clear filters</button>}
+              {faOn && <button type="button" className="btn btn-ghost sp-btn" onClick={() => setFa(EMPTY_A)}>Clear filters</button>}
             </div>
             {loading ? (
               <div className="sp-empty">Loading…</div>
@@ -121,18 +177,21 @@ export default function Support() {
             ) : (
               <div className="sp-table-wrap">
                 <table className="sp-table">
+                  <colgroup>
+                    <col style={{ width: '10%' }} /><col style={{ width: '9%' }} /><col style={{ width: '9%' }} />
+                    <col style={{ width: '22%' }} /><col style={{ width: '14%' }} /><col style={{ width: '12%' }} />
+                    <col style={{ width: '15%' }} /><col style={{ width: '9%' }} />
+                  </colgroup>
                   <thead>
-                    <tr><th style={{ width: '17%' }}>Date</th><th style={{ width: '18%' }}>Quotation No</th><th style={{ width: '18%' }}>Sales Person</th><th>Project Name</th><th style={{ width: 120 }} /></tr>
+                    <tr><th>Date</th><th>Quot. No</th><th>Sales Person</th><th>Project Name</th><th>Contractor</th><th>Client</th><th>Consultant</th><th /></tr>
                     <tr className="sp-filters">
-                      <th><div className="sp-dates">
-                        <DateInput aria-label="Date from" value={fa.from} onChange={(e) => setFa({ ...fa, from: e.target.value })} />
-                        <DateInput aria-label="Date to" value={fa.to} onChange={(e) => setFa({ ...fa, to: e.target.value })} />
-                      </div></th>
-                      <th><input placeholder="Filter…" value={fa.qno} onChange={(e) => setFa({ ...fa, qno: e.target.value })} aria-label="Filter quotation no" /></th>
-                      <th><select value={fa.sales} onChange={(e) => setFa({ ...fa, sales: e.target.value })} aria-label="Filter sales person">
-                        <option value="">All</option>{salesOptions.map((o) => <option key={o} value={o}>{o}</option>)}
-                      </select></th>
-                      <th><input placeholder="Filter…" value={fa.name} onChange={(e) => setFa({ ...fa, name: e.target.value })} aria-label="Filter project name" /></th>
+                      <th><DateFilter f={fa} set={setFa} /></th>
+                      <th><TextFilter value={fa.qno} onChange={(v) => setFa({ ...fa, qno: v })} label="quotation no" /></th>
+                      <th><SelectFilter value={fa.sales} options={optsA.sales} onChange={(v) => setFa({ ...fa, sales: v })} label="sales person" /></th>
+                      <th><TextFilter value={fa.name} onChange={(v) => setFa({ ...fa, name: v })} label="project name" /></th>
+                      <th><SelectFilter value={fa.contractor} options={optsA.contractor} onChange={(v) => setFa({ ...fa, contractor: v })} label="contractor" /></th>
+                      <th><SelectFilter value={fa.client} options={optsA.client} onChange={(v) => setFa({ ...fa, client: v })} label="client" /></th>
+                      <th><SelectFilter value={fa.consultant} options={optsA.consultant} onChange={(v) => setFa({ ...fa, consultant: v })} label="consultant" /></th>
                       <th />
                     </tr>
                   </thead>
@@ -141,10 +200,13 @@ export default function Support() {
                       const open = openId === r.project_id;
                       return [
                         <tr key={r.project_id} className={`sp-row${open ? ' open' : ''}`} onClick={() => setOpenId(open ? null : r.project_id)}>
-                          <td className="mono">{fmtDate(r.project_date) || '—'}</td>
-                          <td className="mono">{r.quotation_number || '—'}</td>
-                          <td>{r.sales_person || '—'}</td>
-                          <td className="sp-name" title={r.project_name}>{r.project_name}</td>
+                          <Cell mono>{fmtDate(r.project_date)}</Cell>
+                          <Cell mono>{r.quotation_number}</Cell>
+                          <Cell>{r.sales_person}</Cell>
+                          <Cell>{r.project_name}</Cell>
+                          <Cell>{r.contractor}</Cell>
+                          <Cell>{r.client}</Cell>
+                          <Cell>{r.consultant}</Cell>
                           <td style={{ textAlign: 'right' }}>
                             <button type="button" className="btn btn-ghost sp-btn" onClick={(e) => { e.stopPropagation(); setOpenId(open ? null : r.project_id); }}>
                               {open ? 'Close' : 'Notes'}
@@ -153,14 +215,14 @@ export default function Support() {
                         </tr>,
                         open && (
                           <tr key={`${r.project_id}-notes`} className="sp-notes-row">
-                            <td colSpan={5}>
+                            <td colSpan={8}>
                               <SupportNotes projectId={r.project_id} canAdd emptyText="No notes yet. Add the first one above." placeholder="Write what you did to support this project: calls, site visits, documents sent…" />
                             </td>
                           </tr>
                         ),
                       ];
                     })}
-                    {shown.length === 0 && <tr><td colSpan={5} className="sp-empty">No projects match these filters.</td></tr>}
+                    {shown.length === 0 && <tr><td colSpan={8} className="sp-empty">No projects match these filters.</td></tr>}
                   </tbody>
                 </table>
               </div>
@@ -175,22 +237,25 @@ export default function Support() {
               <span className="sp-count">{fbOn ? `${mineShown.length} of ${mine.length}` : mine.length}</span>
               <span className="sp-sub">Notes between you and your supporters</span>
               <span style={{ flex: 1 }} />
-              {fbOn && <button type="button" className="btn btn-ghost sp-btn" onClick={() => setFb({ from: '', to: '', qno: '', name: '', supporter: '' })}>Clear filters</button>}
+              {fbOn && <button type="button" className="btn btn-ghost sp-btn" onClick={() => setFb(EMPTY_B)}>Clear filters</button>}
             </div>
             <div className="sp-table-wrap">
               <table className="sp-table">
+                <colgroup>
+                  <col style={{ width: '10%' }} /><col style={{ width: '9%' }} /><col style={{ width: '20%' }} />
+                  <col style={{ width: '13%' }} /><col style={{ width: '11%' }} /><col style={{ width: '13%' }} />
+                  <col style={{ width: '14%' }} /><col style={{ width: '9%' }} />
+                </colgroup>
                 <thead>
-                  <tr><th style={{ width: '17%' }}>Date</th><th style={{ width: '16%' }}>Quotation No</th><th>Project Name</th><th style={{ width: '22%' }}>Supported By</th><th style={{ width: 140 }} /></tr>
+                  <tr><th>Date</th><th>Quot. No</th><th>Project Name</th><th>Contractor</th><th>Client</th><th>Consultant</th><th>Supported By</th><th /></tr>
                   <tr className="sp-filters">
-                    <th><div className="sp-dates">
-                      <DateInput aria-label="Date from" value={fb.from} onChange={(e) => setFb({ ...fb, from: e.target.value })} />
-                      <DateInput aria-label="Date to" value={fb.to} onChange={(e) => setFb({ ...fb, to: e.target.value })} />
-                    </div></th>
-                    <th><input placeholder="Filter…" value={fb.qno} onChange={(e) => setFb({ ...fb, qno: e.target.value })} aria-label="Filter quotation no" /></th>
-                    <th><input placeholder="Filter…" value={fb.name} onChange={(e) => setFb({ ...fb, name: e.target.value })} aria-label="Filter project name" /></th>
-                    <th><select value={fb.supporter} onChange={(e) => setFb({ ...fb, supporter: e.target.value })} aria-label="Filter supported by">
-                      <option value="">All</option>{supporterOptions.map((o) => <option key={o} value={o}>{o}</option>)}
-                    </select></th>
+                    <th><DateFilter f={fb} set={setFb} /></th>
+                    <th><TextFilter value={fb.qno} onChange={(v) => setFb({ ...fb, qno: v })} label="quotation no" /></th>
+                    <th><TextFilter value={fb.name} onChange={(v) => setFb({ ...fb, name: v })} label="project name" /></th>
+                    <th><SelectFilter value={fb.contractor} options={optsB.contractor} onChange={(v) => setFb({ ...fb, contractor: v })} label="contractor" /></th>
+                    <th><SelectFilter value={fb.client} options={optsB.client} onChange={(v) => setFb({ ...fb, client: v })} label="client" /></th>
+                    <th><SelectFilter value={fb.consultant} options={optsB.consultant} onChange={(v) => setFb({ ...fb, consultant: v })} label="consultant" /></th>
+                    <th><SelectFilter value={fb.supporter} options={optsB.supporter} onChange={(v) => setFb({ ...fb, supporter: v })} label="supported by" /></th>
                     <th />
                   </tr>
                 </thead>
@@ -199,10 +264,13 @@ export default function Support() {
                     const open = mineOpenId === r.id;
                     return [
                       <tr key={r.id} className={`sp-row${open ? ' open' : ''}`} onClick={() => setMineOpenId(open ? null : r.id)}>
-                        <td className="mono">{fmtDate(r.date) || '—'}</td>
-                        <td className="mono">{r.quotation_number || '—'}</td>
-                        <td className="sp-name" title={r.name}>{r.name}</td>
-                        <td title={r.supporters}>{r.supporters}</td>
+                        <Cell mono>{fmtDate(r.date)}</Cell>
+                        <Cell mono>{r.quotation_number}</Cell>
+                        <Cell>{r.name}</Cell>
+                        <Cell>{r.contractor}</Cell>
+                        <Cell>{r.client}</Cell>
+                        <Cell>{r.consultant}</Cell>
+                        <Cell>{r.supporters.split(' | ').join(', ')}</Cell>
                         <td style={{ textAlign: 'right' }}>
                           <button type="button" className="btn btn-ghost sp-btn" onClick={(e) => { e.stopPropagation(); setMineOpenId(open ? null : r.id); }}>
                             {open ? 'Close' : `Notes (${r.notes})`}
@@ -211,7 +279,7 @@ export default function Support() {
                       </tr>,
                       open && (
                         <tr key={`${r.id}-notes`} className="sp-notes-row">
-                          <td colSpan={5}>
+                          <td colSpan={8}>
                             <SupportNotes
                               projectId={r.id}
                               canAdd
@@ -223,6 +291,7 @@ export default function Support() {
                       ),
                     ];
                   })}
+                  {mineShown.length === 0 && <tr><td colSpan={8} className="sp-empty">No projects match these filters.</td></tr>}
                 </tbody>
               </table>
             </div>
