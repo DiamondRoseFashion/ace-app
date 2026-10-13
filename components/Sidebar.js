@@ -63,6 +63,7 @@ export default function Sidebar({ active }) {
       <AutoUpdate />
       <div className="sidebar-top">
         <img src="/logo.png" alt="ACE" className="sidebar-logo" />
+        <img src="/icon-192.png" alt="" aria-hidden="true" className="sidebar-mark" />
         <button
           className="menu-toggle"
           onClick={() => setMenuOpen((o) => !o)}
@@ -78,9 +79,11 @@ export default function Sidebar({ active }) {
             key={l.key}
             href={l.href}
             className={`nav-item${active === l.key ? ' active' : ''}`}
+            title={l.label}
             onClick={() => setMenuOpen(false)}
           >
-            <span aria-hidden="true">{l.icon}</span> {l.label}
+            <span className="nav-icon" aria-hidden="true">{l.icon}</span>
+            <span className="nav-label">{l.label}</span>
           </Link>
         ))}
       </nav>
