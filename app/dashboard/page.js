@@ -10,6 +10,8 @@ import { deleteProject, canDeleteProject } from '@/lib/deleteProject';
 import DateInput from '@/components/DateInput';
 import MultiFilter from '@/components/MultiFilter';
 import StarRating from '@/components/StarRating';
+import { useTeam, teamName } from '@/lib/team';
+import { fmtDate } from '@/lib/dates';
 import {
   REGISTER_COLUMNS, EMPTY, toRegisterRow, cellText, selectOptions, matchesFilter, compareRows, formatDate, formatValue,
 } from '@/lib/projectTable';
@@ -25,7 +27,6 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState({});
-  const [ratings, setRatings] = useState([]); // { project_id, user_id, stars }
   const [ratingError, setRatingError] = useState('');
   const [sort, setSort] = useState({ key: 'date', dir: 'desc' });
   const lastSigRef = useRef('');
@@ -55,7 +56,6 @@ export default function Dashboard() {
       .select('*, creator:profiles!created_by(full_name), quotations(*), contacts(contact_role, company_name, name)')
       .order('created_at', { ascending: false });
 
-    loadRatings();
     if (!err) {
       const next = data || [];
       const sig = JSON.stringify(next);
@@ -64,37 +64,21 @@ export default function Dashboard() {
     setLoading(false);
   }
 
-  // reviews (separate, so My Projects still works before that database update)
-  async function loadRatings() {
-    const { data, error: rErr } = await supabase.from('project_ratings').select('project_id, user_id, stars');
-    if (!rErr) setRatings(data || []);
-  }
+  const team = useTeam(supabase);
 
+  // Review: one rating per project, whoever rates last sets it
   async function rate(projectId, stars) {
     if (!me) return;
     setRatingError('');
-    const before = ratings;
-    // show it straight away
-    setRatings((list) => [
-      ...list.filter((r) => !(r.project_id === projectId && r.user_id === me.id)),
-      ...(stars ? [{ project_id: projectId, user_id: me.id, stars }] : []),
-    ]);
-    let rErr = null;
-    if (stars) {
-      ({ error: rErr } = await supabase.from('project_ratings')
-        .upsert({ project_id: projectId, user_id: me.id, stars, updated_at: new Date().toISOString() }));
-    } else {
-      const { data: gone, error: dErr } = await supabase.from('project_ratings')
-        .delete().eq('project_id', projectId).eq('user_id', me.id).select('project_id');
-      rErr = dErr || (gone && gone.length === 0 && before.some((r) => r.project_id === projectId && r.user_id === me.id)
-        ? { message: 'the database did not allow removing it (ask your admin to re-run the reviews update)' } : null);
-    }
-    if (!rErr) loadRatings(); // confirm with what's really saved
-    if (rErr) {
-      setRatings(before);
-      setRatingError(/relation|schema cache|does not exist/i.test(rErr.message)
+    const before = projects;
+    const patch = { rating: stars, rated_by: stars ? me.id : null, rated_at: stars ? new Date().toISOString() : null };
+    setProjects((list) => list.map((p) => (p.id === projectId ? { ...p, ...patch } : p))); // show it straight away
+    const { data, error: rErr } = await supabase.from('projects').update(patch).eq('id', projectId).select('id, rating');
+    if (rErr || !data?.length) {
+      setProjects(before);
+      setRatingError(rErr && /column|schema cache|does not exist/i.test(rErr.message)
         ? 'Reviews need a one-time database update. Please ask your admin.'
-        : `Couldn't save the review: ${rErr.message}`);
+        : `Couldn't save the review${rErr ? `: ${rErr.message}` : ' (you can only review projects you can edit)'}.`);
     }
   }
 
@@ -108,7 +92,6 @@ export default function Dashboard() {
     const channel = supabase
       .channel('dashboard-projects')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, refresh)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_ratings' }, () => loadRatings())
       .subscribe();
     const onVisible = () => { if (document.visibilityState === 'visible') refresh(); };
     document.addEventListener('visibilitychange', onVisible);
@@ -122,12 +105,7 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const ratingsBy = useMemo(() => {
-    const m = {};
-    ratings.forEach((r) => { (m[r.project_id] ||= []).push(r); });
-    return m;
-  }, [ratings]);
-  const rows = useMemo(() => projects.map((p) => toRegisterRow({ ...p, _ratings: ratingsBy[p.id] || [] })), [projects, ratingsBy]);
+  const rows = useMemo(() => projects.map(toRegisterRow), [projects]);
   const options = useMemo(() => Object.fromEntries(
     REGISTER_COLUMNS.filter((c) => c.filter === 'select').map((c) => [c.key, selectOptions(rows, c.key)])
   ), [rows]);
@@ -380,9 +358,9 @@ export default function Dashboard() {
                         <td title={r.brands ? r.brands.split(' | ').join(', ') : ''}>{r.brands ? r.brands.split(' | ').join(', ') : '—'}</td>
                         <td className="reg-rating">
                           <StarRating
-                            avg={r.rating_avg}
-                            count={r.rating_count}
-                            mine={(ratingsBy[p.id] || []).find((x) => x.user_id === me?.id)?.stars || null}
+                            value={p.rating || null}
+                            ratedBy={p.rated_by ? teamName(team, p.rated_by) : ''}
+                            ratedAt={p.rated_at ? fmtDate(p.rated_at) : ''}
                             onRate={(n) => rate(p.id, n)}
                             disabled={selecting}
                           />
