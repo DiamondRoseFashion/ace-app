@@ -712,3 +712,5 @@ html, body { overscroll-behavior-x: none; }
 .sp-name { font-weight: 400; }
 .sp-btn { padding: 5px 12px; font-size: 12.5px; }
 .sp-notes-row td { white-space: normal; background: #FCFAFE; padding: 16px 20px 18px; }
+.sp-sub { color: var(--muted); font-size: 12.5px; }
+.sn-when { color: var(--muted); margin-left: 10px; font-size: 12.5px; }

@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabaseClient';
 import Sidebar from '@/components/Sidebar';
 import SupportNotes from '@/components/SupportNotes';
 import { fmtDate } from '@/lib/dates';
+import { latestQuotation } from '@/lib/projectTable';
 
 export default function Support() {
   const router = useRouter();
@@ -21,8 +22,36 @@ export default function Support() {
   const [missing, setMissing] = useState(false);
   const [openId, setOpenId] = useState(null);
   const [search, setSearch] = useState('');
+  // my own projects that have supporters (what they wrote, read-only)
+  const [mine, setMine] = useState([]);
+  const [mineOpenId, setMineOpenId] = useState(null);
+
+  async function loadMine(uid) {
+    const { data, error } = await supabase
+      .from('projects')
+      .select('id, name, sales_person, created_at, quotations(quotation_number, quotation_date, created_at), project_supporters(user_id, person:profiles!user_id(full_name)), support_notes(created_at)')
+      .eq('created_by', uid);
+    if (error) return;
+    setMine((data || [])
+      .filter((p) => (p.project_supporters || []).length > 0)
+      .map((p) => {
+        const q = latestQuotation(p.quotations);
+        const lastNote = (p.support_notes || []).map((n) => n.created_at).sort().pop() || null;
+        return {
+          id: p.id, name: p.name, sales_person: p.sales_person,
+          date: q?.quotation_date || String(p.created_at || '').slice(0, 10),
+          quotation_number: q?.quotation_number || '',
+          supporters: p.project_supporters.map((s) => s.person?.full_name || 'Someone').join(', '),
+          notes: (p.support_notes || []).length,
+          lastNote,
+        };
+      })
+      .sort((a, b) => String(b.lastNote || b.date).localeCompare(String(a.lastNote || a.date))));
+  }
 
   async function load() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) loadMine(user.id);
     const { data, error } = await supabase.rpc('my_support_projects');
     if (error) setMissing(/function|does not exist|schema cache/i.test(error.message));
     else { setMissing(false); setRows(data || []); }
@@ -39,6 +68,7 @@ export default function Support() {
       ch = supabase
         .channel(`my-support-${user.id}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'project_supporters', filter: `user_id=eq.${user.id}` }, () => load())
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'support_notes' }, () => loadMine(user.id))
         .subscribe();
     })();
     const onFocus = () => load();
@@ -59,7 +89,7 @@ export default function Support() {
         <div className="eyebrow">Help</div>
         <h1 style={{ fontSize: 30, marginTop: 4, marginBottom: 6 }}>Support</h1>
         <p style={{ color: 'rgba(255,255,255,.75)', marginTop: 0, marginBottom: 20 }}>
-          Projects where you were added under <b>Supported By</b>. Open one to add your support notes.
+          Projects where you were added under <b>Supported By</b> (open one to add notes), and what supporters wrote on your own projects.
         </p>
 
         {missing ? (
@@ -113,6 +143,48 @@ export default function Support() {
                 </table>
               </div>
             )}
+          </div>
+        )}
+
+        {!missing && mine.length > 0 && (
+          <div className="card" style={{ padding: 0, marginTop: 24 }}>
+            <div className="sp-head">
+              <strong>Support on my projects</strong>
+              <span className="sp-count">{mine.length}</span>
+              <span className="sp-sub">What your supporters wrote on your projects</span>
+            </div>
+            <div className="sp-table-wrap">
+              <table className="sp-table">
+                <thead>
+                  <tr><th style={{ width: '13%' }}>Date</th><th style={{ width: '16%' }}>Quotation No</th><th>Project Name</th><th style={{ width: '22%' }}>Supported By</th><th style={{ width: 140 }} /></tr>
+                </thead>
+                <tbody>
+                  {mine.map((r) => {
+                    const open = mineOpenId === r.id;
+                    return [
+                      <tr key={r.id} className={`sp-row${open ? ' open' : ''}`} onClick={() => setMineOpenId(open ? null : r.id)}>
+                        <td className="mono">{fmtDate(r.date) || '—'}</td>
+                        <td className="mono">{r.quotation_number || '—'}</td>
+                        <td className="sp-name" title={r.name}>{r.name}</td>
+                        <td title={r.supporters}>{r.supporters}</td>
+                        <td style={{ textAlign: 'right' }}>
+                          <button type="button" className="btn btn-ghost sp-btn" onClick={(e) => { e.stopPropagation(); setMineOpenId(open ? null : r.id); }}>
+                            {open ? 'Close' : `Notes (${r.notes})`}
+                          </button>
+                        </td>
+                      </tr>,
+                      open && (
+                        <tr key={`${r.id}-notes`} className="sp-notes-row">
+                          <td colSpan={5}>
+                            <SupportNotes projectId={r.id} emptyText="Your supporters haven't added any notes yet." />
+                          </td>
+                        </tr>
+                      ),
+                    ];
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>

@@ -5,7 +5,9 @@
 // Notes are permanent: nobody can edit or delete them.
 import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabaseClient';
-import { fmtDateTime } from '@/lib/dates';
+import { fmtDate } from '@/lib/dates';
+
+const timeOf = (v) => { const d = new Date(v); const h = d.getHours(); return `${h % 12 || 12}:${String(d.getMinutes()).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`; };
 
 export default function SupportNotes({ projectId, canAdd = false, emptyText = 'No support notes yet.' }) {
   const supabaseRef = useRef(null);
@@ -82,7 +84,7 @@ export default function SupportNotes({ projectId, canAdd = false, emptyText = 'N
               <div key={n.id} className="activity-item">
                 <div className="activity-meta">
                   <strong>{n.author?.full_name || 'Someone'}</strong>
-                  <span> · {fmtDateTime(n.created_at)}</span>
+                  <span className="sn-when">📅 {fmtDate(n.created_at)} &nbsp;🕒 {timeOf(n.created_at)}</span>
                 </div>
                 <div className="activity-body">{n.body}</div>
               </div>
