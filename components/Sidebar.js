@@ -54,6 +54,7 @@ export default function Sidebar({ active }) {
     { key: 'planner', href: '/planner', label: 'Meetings', icon: '📅' },
     ...(isManagerRole ? [{ key: 'team', href: '/team', label: 'Team & Access', icon: '👥' }] : []), // management only
     { key: 'profile', href: '/profile', label: 'My Profile', icon: '👤' },
+    { key: 'support', href: '/support', label: 'Support', icon: '🛟' },
   ];
 
   return (
