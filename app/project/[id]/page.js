@@ -120,7 +120,7 @@ export default function ProjectDetail() {
     setContacts(c || []);
     setQuotations(q || []);
     setMeetings(m || []);
-    setFiles(fileList || []);
+    setFiles(Array.isArray(fileList) ? fileList : []);
     setLoading(false);
   }
 
@@ -659,12 +659,17 @@ export default function ProjectDetail() {
         <SectionTitle>Activity</SectionTitle>
         <ActivityLog projectId={projectId} />
 
-        {/* Notes from the Supported By people (read-only here) */}
+        {/* Project Notes: shared between the salesperson and the Supported By people */}
         {supportersReady && (supporters.length > 0) && (
           <>
-            <SectionTitle>Support Notes</SectionTitle>
+            <SectionTitle>Project Notes</SectionTitle>
             <div className="card activity-card">
-              <SupportNotes projectId={projectId} canAdd={supporters.includes(myId)} emptyText="The supporters haven't added any notes yet." />
+              <SupportNotes
+                projectId={projectId}
+                canAdd
+                emptyText="No notes yet. Notes written here are shared with the Supported By people."
+                placeholder="Write a note for your supporters: instructions, updates, what's needed next…"
+              />
             </div>
           </>
         )}

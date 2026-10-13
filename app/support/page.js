@@ -101,7 +101,7 @@ export default function Support() {
         <div className="eyebrow">Help</div>
         <h1 style={{ fontSize: 30, marginTop: 4, marginBottom: 6 }}>Support</h1>
         <p style={{ color: 'rgba(255,255,255,.75)', marginTop: 0, marginBottom: 20 }}>
-          Projects where you were added under <b>Supported By</b> (open one to add notes), and what supporters wrote on your own projects.
+          Projects where you were added under <b>Supported By</b> (open one to add notes), and notes with the supporters of your own projects.
         </p>
 
         {missing ? (
@@ -154,7 +154,7 @@ export default function Support() {
                         open && (
                           <tr key={`${r.project_id}-notes`} className="sp-notes-row">
                             <td colSpan={5}>
-                              <SupportNotes projectId={r.project_id} canAdd emptyText="No notes yet. Add the first one above." />
+                              <SupportNotes projectId={r.project_id} canAdd emptyText="No notes yet. Add the first one above." placeholder="Write what you did to support this project: calls, site visits, documents sent…" />
                             </td>
                           </tr>
                         ),
@@ -173,7 +173,7 @@ export default function Support() {
             <div className="sp-head">
               <strong>Support on my projects</strong>
               <span className="sp-count">{fbOn ? `${mineShown.length} of ${mine.length}` : mine.length}</span>
-              <span className="sp-sub">What your supporters wrote on your projects</span>
+              <span className="sp-sub">Notes between you and your supporters</span>
               <span style={{ flex: 1 }} />
               {fbOn && <button type="button" className="btn btn-ghost sp-btn" onClick={() => setFb({ from: '', to: '', qno: '', name: '', supporter: '' })}>Clear filters</button>}
             </div>
@@ -212,7 +212,12 @@ export default function Support() {
                       open && (
                         <tr key={`${r.id}-notes`} className="sp-notes-row">
                           <td colSpan={5}>
-                            <SupportNotes projectId={r.id} emptyText="Your supporters haven't added any notes yet." />
+                            <SupportNotes
+                              projectId={r.id}
+                              canAdd
+                              emptyText="No notes yet."
+                              placeholder="Write a note for your supporters: instructions, updates, what's needed next…"
+                            />
                           </td>
                         </tr>
                       ),

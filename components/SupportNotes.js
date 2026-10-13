@@ -9,7 +9,7 @@ import { fmtDate } from '@/lib/dates';
 
 const timeOf = (v) => { const d = new Date(v); const h = d.getHours(); return `${h % 12 || 12}:${String(d.getMinutes()).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`; };
 
-export default function SupportNotes({ projectId, canAdd = false, emptyText = 'No support notes yet.' }) {
+export default function SupportNotes({ projectId, canAdd = false, emptyText = 'No notes yet.', placeholder = 'Write a note about this project: calls, site visits, documents sent…' }) {
   const supabaseRef = useRef(null);
   if (!supabaseRef.current) supabaseRef.current = createClient();
   const supabase = supabaseRef.current;
@@ -54,7 +54,7 @@ export default function SupportNotes({ projectId, canAdd = false, emptyText = 'N
     load();
   }
 
-  if (missing) return <div className="notice err" style={{ margin: 0 }}>Support notes need a one-time database update. Please ask your admin.</div>;
+  if (missing) return <div className="notice err" style={{ margin: 0 }}>Project notes need a one-time database update. Please ask your admin.</div>;
 
   return (
     <div className="support-notes">
@@ -64,9 +64,9 @@ export default function SupportNotes({ projectId, canAdd = false, emptyText = 'N
             rows={3}
             value={draft}
             onChange={(e) => { setDraft(e.target.value); setMsg(null); }}
-            placeholder="Write what you did to support this project: calls, site visits, documents sent…"
+            placeholder={placeholder}
             maxLength={4000}
-            aria-label="New support note"
+            aria-label="New project note"
           />
           <div className="sn-add-row">
             <span className="sn-hint">Saved notes can’t be edited or deleted.</span>
