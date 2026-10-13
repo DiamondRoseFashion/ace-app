@@ -79,9 +79,17 @@ export default function Dashboard() {
       ...list.filter((r) => !(r.project_id === projectId && r.user_id === me.id)),
       ...(stars ? [{ project_id: projectId, user_id: me.id, stars }] : []),
     ]);
-    const { error: rErr } = stars
-      ? await supabase.from('project_ratings').upsert({ project_id: projectId, user_id: me.id, stars, updated_at: new Date().toISOString() })
-      : await supabase.from('project_ratings').delete().eq('project_id', projectId).eq('user_id', me.id);
+    let rErr = null;
+    if (stars) {
+      ({ error: rErr } = await supabase.from('project_ratings')
+        .upsert({ project_id: projectId, user_id: me.id, stars, updated_at: new Date().toISOString() }));
+    } else {
+      const { data: gone, error: dErr } = await supabase.from('project_ratings')
+        .delete().eq('project_id', projectId).eq('user_id', me.id).select('project_id');
+      rErr = dErr || (gone && gone.length === 0 && before.some((r) => r.project_id === projectId && r.user_id === me.id)
+        ? { message: 'the database did not allow removing it (ask your admin to re-run the reviews update)' } : null);
+    }
+    if (!rErr) loadRatings(); // confirm with what's really saved
     if (rErr) {
       setRatings(before);
       setRatingError(/relation|schema cache|does not exist/i.test(rErr.message)
