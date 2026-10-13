@@ -11,7 +11,7 @@ import BrandPicker from '@/components/BrandPicker';
 import PeoplePicker from '@/components/PeoplePicker';
 import { useTeam } from '@/lib/team';
 import SuggestInput from '@/components/SuggestInput';
-import { useContactNames, companyOptions, personOptions, savedPerson, fillFromSaved } from '@/lib/contactNames';
+import { useContactNames, companyOptions, personOptions, savedPerson, fillFromSaved, designationOptions } from '@/lib/contactNames';
 
 const CONTACT_ROLES = [
   { key: 'contractor', label: 'Contractor' },
@@ -24,10 +24,6 @@ function emptyContact() {
   return { company_name: '', name: '', designation: '', tel: '', mobile: '', email: '' };
 }
 
-const DESIGNATIONS = [
-  'Manager', 'Project Manager', 'Site Engineer', 'Sales Engineer',
-  'Procurement Manager', 'Owner', 'Director', 'Consultant', 'Supervisor', 'Other',
-];
 
 export default function NewProject() {
   const router = useRouter();
@@ -249,10 +245,12 @@ const [quotation, setQuotation] = useState({
                         onChange={(v) => updateContact(key, idx, 'name', v)}
                         onPick={(v) => fillSavedPerson(key, idx, v)}
                       />
-                        <select value={c.designation} onChange={(e) => updateContact(key, idx, 'designation', e.target.value)}>
-                          <option value="">Designation…</option>
-                          {DESIGNATIONS.map((d) => <option key={d} value={d}>{d}</option>)}
-                        </select>
+                        <SuggestInput
+                          placeholder="Designation (choose or type)"
+                          value={c.designation || ''}
+                          options={designationOptions(contactNames, Object.values(contacts).flat().map((x) => x.designation).filter(Boolean))}
+                          onChange={(v) => updateContact(key, idx, 'designation', v)}
+                        />
                       </div>
                       <div className='form-row-3'>
                         <input placeholder="Tel" value={c.tel} onChange={(e) => updateContact(key, idx, 'tel', e.target.value)} />
