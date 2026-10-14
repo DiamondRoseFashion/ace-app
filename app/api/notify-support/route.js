@@ -62,5 +62,12 @@ export async function POST(req) {
       });
     }
   }
+  // record what happened (shows in Team & Access → monitoring, never emailed)
+  await logEvent(admin, {
+    level: 'info', source: 'support',
+    message: `"New project to support" sent for ${project.name || 'a project'}`,
+    detail: { project: projectId, by: user.id, people: results.map((r) => ({ user: r.user, devices: r.devices, delivered: r.delivered })) },
+    userId: user.id, fingerprint: 'support-notify',
+  });
   return NextResponse.json({ ok: true, sent: results.reduce((t, r) => t + r.delivered, 0), results });
 }
