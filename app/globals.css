@@ -804,3 +804,10 @@ html, body { overscroll-behavior-x: none; }
 .pp-text { display: flex; flex-direction: column; gap: 2px; flex: 1 1 260px; font-size: 13px; }
 .pp-text b { font-size: 14px; }
 .pp-err { color: #B33A3A; }
+.push-prompt.floating { position: fixed; left: 50%; transform: translateX(-50%); top: 14px; z-index: 150; margin: 0;
+  width: min(760px, calc(100vw - 32px)); box-shadow: 0 14px 40px rgba(5, 12, 28, .4); }
+.pp-close { border: 0; background: none; color: #8A6D1F; cursor: pointer; font-size: 15px; padding: 4px 6px; }
+@media (max-width: 768px){ .push-prompt.floating { top: auto; bottom: 14px; } }
+@media (min-width: 769px){
+  .push-prompt.floating { top: auto; bottom: 16px; left: 96px; transform: none; width: min(720px, calc(100vw - 120px)); }
+}

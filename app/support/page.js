@@ -16,7 +16,6 @@ import DateInput from '@/components/DateInput';
 import { fmtDate } from '@/lib/dates';
 import { latestQuotation } from '@/lib/projectTable';
 import { markSupportSeen } from '@/lib/supportAlerts';
-import PushPrompt from '@/components/PushPrompt';
 
 const splitNames = (v) => String(v || '').split(' | ').map((s) => s.trim()).filter(Boolean);
 const uniq = (list) => [...new Set(list.filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
@@ -166,8 +165,6 @@ export default function Support() {
         <p style={{ color: 'rgba(255,255,255,.75)', marginTop: 0, marginBottom: 20 }}>
           Projects where you were added under <b>Supported By</b> (open one to add notes), and notes with the supporters of your own projects.
         </p>
-
-        <PushPrompt supabase={supabase} />
 
         {missing ? (
           <div className="card"><div className="notice err" style={{ margin: 0 }}>Support needs a one-time database update. Please ask your admin.</div></div>

@@ -8,6 +8,7 @@ import MeetingReminder from '@/components/MeetingReminder';
 import AutoUpdate from '@/components/AutoUpdate';
 import { releasePush } from '@/lib/pushClient';
 import { useSupportAlerts } from '@/lib/supportAlerts';
+import PushPrompt from '@/components/PushPrompt';
 
 export default function Sidebar({ active }) {
   const router = useRouter();
@@ -62,6 +63,7 @@ export default function Sidebar({ active }) {
   const t = support.toast;
   return (
     <>
+    {active !== 'planner' && <PushPrompt supabase={supabase} floating />}
     {t && (
       <div className="support-toast" role="status">
         <div className="st-icon" aria-hidden="true">🛟</div>
