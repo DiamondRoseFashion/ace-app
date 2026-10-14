@@ -78,6 +78,22 @@ self.addEventListener('push', (event) => {
     }
     const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     const visible = windows.find((w) => w.focused && w.visibilityState === 'visible');
+    // "New project to support": a normal notification (no ringing)
+    if (data.kind === 'support') {
+      windows.forEach((w) => w.postMessage({ type: 'ace-support', data }));
+      if (visible) return; // ACE is open on screen: it shows its own message
+      await self.registration.showNotification(data.title || '🛟 New project to support', {
+        body: data.body || '',
+        icon: '/icon-192.png',
+        badge: '/icon-192.png',
+        tag: data.tag || 'ace-support',
+        renotify: true,
+        requireInteraction: false,
+        vibrate: [200, 100, 200],
+        data: { url: data.url || '/support' },
+      });
+      return;
+    }
     if (visible && data.tag !== 'ace-test') {
       // ACE is open on screen: its own ringing pop-up takes over
       windows.forEach((w) => w.postMessage({ type: 'ace-reminder', data }));

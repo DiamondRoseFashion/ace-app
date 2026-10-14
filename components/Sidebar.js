@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabaseClient';
 import MeetingReminder from '@/components/MeetingReminder';
 import AutoUpdate from '@/components/AutoUpdate';
 import { releasePush } from '@/lib/pushClient';
+import { useSupportAlerts } from '@/lib/supportAlerts';
 
 export default function Sidebar({ active }) {
   const router = useRouter();
@@ -16,6 +17,7 @@ export default function Sidebar({ active }) {
   const [photo, setPhoto] = useState('');
   const [photoBroken, setPhotoBroken] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const support = useSupportAlerts(supabase);
 
   useEffect(() => {
     (async () => {
@@ -57,7 +59,20 @@ export default function Sidebar({ active }) {
     { key: 'support', href: '/support', label: 'Support', icon: '🛟' },
   ];
 
+  const t = support.toast;
   return (
+    <>
+    {t && (
+      <div className="support-toast" role="status">
+        <div className="st-icon" aria-hidden="true">🛟</div>
+        <div className="st-text">
+          <strong>{t.count ? `${t.count} new projects to support` : 'New project to support'}</strong>
+          {!t.count && <span>From {t.sales_person || t.assigned_by || 'a salesperson'}: {t.project_name}</span>}
+        </div>
+        <Link href="/support" className="btn btn-primary st-open" onClick={support.closeToast}>Open</Link>
+        <button type="button" className="st-close" aria-label="Close" onClick={support.closeToast}>✕</button>
+      </div>
+    )}
     <div className="sidebar">
       <MeetingReminder />
       <AutoUpdate />
@@ -84,6 +99,9 @@ export default function Sidebar({ active }) {
           >
             <span className="nav-icon" aria-hidden="true">{l.icon}</span>
             <span className="nav-label">{l.label}</span>
+            {l.key === 'support' && support.count > 0 && (
+              <span className="nav-badge" aria-label={`${support.count} new`}>{support.count > 9 ? '9+' : support.count}</span>
+            )}
           </Link>
         ))}
       </nav>
@@ -103,5 +121,6 @@ export default function Sidebar({ active }) {
         </span>
       </button>
     </div>
+    </>
   );
 }

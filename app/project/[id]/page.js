@@ -17,6 +17,7 @@ import ActivityLog from '@/components/ActivityLog';
 import PeoplePicker from '@/components/PeoplePicker';
 import SupportNotes from '@/components/SupportNotes';
 import { useTeam, teamName } from '@/lib/team';
+import { notifySupporters } from '@/lib/supportAlerts';
 import { fmtDate } from '@/lib/dates';
 
 const STATUS_LABELS = PROJECT_STATUS_LABELS;
@@ -307,6 +308,7 @@ export default function ProjectDetail() {
       if (added.length) {
         const { error: aErr } = await supabase.from('project_supporters').insert(added.map((uid) => ({ project_id: projectId, user_id: uid })));
         if (aErr) { setError(aErr.message); setSaving(false); return; }
+        notifySupporters(supabase, projectId, added); // phone/computer notification
       }
       if (removed.length) {
         const { error: rErr } = await supabase.from('project_supporters').delete().eq('project_id', projectId).in('user_id', removed);

@@ -778,3 +778,23 @@ html, body { overscroll-behavior-x: none; }
 .stars-clear { border: 0; background: none; padding: 0; font: inherit; font-size: 10px; color: #8F3FA8; cursor: pointer; text-decoration: underline; }
 .stars-clear:hover { color: #6B2D82; }
 .stars-by { max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* "New project to support": badge + pop-up */
+.nav-item { position: relative; }
+.nav-badge { margin-left: auto; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 99px; background: #E5484D; color: #fff;
+  font-size: 10.5px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
+@media (min-width: 769px){
+  .nav-badge { position: absolute; left: 30px; top: 4px; margin: 0; box-shadow: 0 0 0 2px #14294A; }
+  .sidebar:hover .nav-badge, .sidebar:focus-within .nav-badge { position: static; margin-left: auto; box-shadow: none; }
+}
+.support-toast { position: fixed; right: 20px; bottom: 20px; z-index: 200; display: flex; align-items: center; gap: 12px;
+  max-width: min(440px, calc(100vw - 32px)); background: #fff; color: #221429; border-radius: 14px; padding: 14px 14px 14px 16px;
+  box-shadow: 0 18px 50px rgba(5, 12, 28, .45); border-left: 4px solid #8F3FA8; animation: st-in .25s ease-out; }
+@keyframes st-in { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
+.st-icon { font-size: 22px; }
+.st-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 13px; }
+.st-text strong { font-size: 14px; }
+.st-text span { color: #6E6079; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st-open { padding: 7px 14px; font-size: 13px; flex: none; }
+.st-close { border: 0; background: none; color: #9A8BA6; cursor: pointer; font-size: 14px; padding: 4px; flex: none; }
+.sp-new { display: inline-block; background: #E5484D; color: #fff; font-size: 9.5px; font-weight: 700; letter-spacing: .5px; padding: 2px 6px; border-radius: 6px; margin-right: 7px; vertical-align: 1px; }

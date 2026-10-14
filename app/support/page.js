@@ -15,6 +15,7 @@ import SupportNotes from '@/components/SupportNotes';
 import DateInput from '@/components/DateInput';
 import { fmtDate } from '@/lib/dates';
 import { latestQuotation } from '@/lib/projectTable';
+import { markSupportSeen } from '@/lib/supportAlerts';
 
 const splitNames = (v) => String(v || '').split(' | ').map((s) => s.trim()).filter(Boolean);
 const uniq = (list) => [...new Set(list.filter(Boolean))].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
@@ -72,6 +73,7 @@ export default function Support() {
   const [fb, setFb] = useState(EMPTY_B);
   const [mine, setMine] = useState([]);
   const [mineOpenId, setMineOpenId] = useState(null);
+  const [newIds, setNewIds] = useState(new Set()); // assigned since I last opened this page
 
   async function loadMine(uid) {
     const { data, error } = await supabase
@@ -113,7 +115,11 @@ export default function Support() {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { router.push('/login'); return; }
+      // remember which ones are new (to tag them), then mark them as seen
+      const { data: fresh } = await supabase.rpc('my_new_support');
+      if (fresh?.length) setNewIds(new Set(fresh.map((x) => x.project_id)));
       await load();
+      markSupportSeen(supabase);
       ch = supabase
         .channel(`my-support-${user.id}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'project_supporters', filter: `user_id=eq.${user.id}` }, () => load())
@@ -203,7 +209,9 @@ export default function Support() {
                           <Cell mono>{fmtDate(r.project_date)}</Cell>
                           <Cell mono>{r.quotation_number}</Cell>
                           <Cell>{r.sales_person}</Cell>
-                          <Cell>{r.project_name}</Cell>
+                          <td title={r.project_name}>
+                            {newIds.has(r.project_id) && <span className="sp-new">NEW</span>}{r.project_name || '—'}
+                          </td>
                           <Cell>{r.contractor}</Cell>
                           <Cell>{r.client}</Cell>
                           <Cell>{r.consultant}</Cell>

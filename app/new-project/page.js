@@ -10,6 +10,7 @@ import DateInput from '@/components/DateInput';
 import BrandPicker from '@/components/BrandPicker';
 import PeoplePicker from '@/components/PeoplePicker';
 import { useTeam } from '@/lib/team';
+import { notifySupporters } from '@/lib/supportAlerts';
 import SuggestInput from '@/components/SuggestInput';
 import { useContactNames, companyOptions, personOptions, savedPerson, fillFromSaved, designationOptions } from '@/lib/contactNames';
 
@@ -133,6 +134,8 @@ const [quotation, setQuotation] = useState({
         setError(/relation|schema cache|does not exist/i.test(supErr.message)
           ? 'The project was saved, but "Supported By" needs a one-time database update (ask your admin).'
           : `The project was saved, but "Supported By" couldn't be saved: ${supErr.message}`);
+      } else {
+        notifySupporters(supabase, data.id, supporters); // phone/computer notification
       }
     }
 
