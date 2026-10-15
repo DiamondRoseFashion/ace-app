@@ -671,6 +671,15 @@ export default function ProjectDetail() {
                 canAdd
                 emptyText="No notes yet. Notes written here are shared with the Supported By people."
                 placeholder="Write a note for your supporters: instructions, updates, what's needed next…"
+                printInfo={{
+                  name: project?.name,
+                  quotation: [...(quotations || [])].sort((a, b) => String(b.quotation_date || '').localeCompare(String(a.quotation_date || '')))[0]?.quotation_number,
+                  salesPerson: project?.sales_person,
+                  contractor: [...new Set((contacts || []).filter((c) => c.contact_role === 'contractor').map((c) => c.company_name || c.name).filter(Boolean))].join(', '),
+                  client: [...new Set((contacts || []).filter((c) => c.contact_role === 'client').map((c) => c.company_name || c.name).filter(Boolean))].join(', '),
+                  consultant: [...new Set((contacts || []).filter((c) => c.contact_role === 'consultant').map((c) => c.company_name || c.name).filter(Boolean))].join(', '),
+                  supportedBy: supporters.map((id) => teamName(team, id)).join(', '),
+                }}
               />
             </div>
           </>

@@ -811,3 +811,5 @@ html, body { overscroll-behavior-x: none; }
 @media (min-width: 769px){
   .push-prompt.floating { top: auto; bottom: 16px; left: 96px; transform: none; width: min(720px, calc(100vw - 120px)); }
 }
+.sn-print-row { display: flex; justify-content: flex-end; margin: 10px 0 2px; }
+.sn-print { padding: 6px 12px; font-size: 12.5px; }

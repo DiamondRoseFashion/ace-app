@@ -6,10 +6,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabaseClient';
 import { fmtDate } from '@/lib/dates';
+import { printNotes } from '@/lib/printNotes';
 
 const timeOf = (v) => { const d = new Date(v); const h = d.getHours(); return `${h % 12 || 12}:${String(d.getMinutes()).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`; };
 
-export default function SupportNotes({ projectId, canAdd = false, emptyText = 'No notes yet.', placeholder = 'Write a note about this project: calls, site visits, documents sent…' }) {
+export default function SupportNotes({ projectId, canAdd = false, emptyText = 'No notes yet.', placeholder = 'Write a note about this project: calls, site visits, documents sent…', printInfo = null }) {
   const supabaseRef = useRef(null);
   if (!supabaseRef.current) supabaseRef.current = createClient();
   const supabase = supabaseRef.current;
@@ -75,6 +76,13 @@ export default function SupportNotes({ projectId, canAdd = false, emptyText = 'N
             </button>
           </div>
           {msg && <div className={msg.ok ? 'notice ok' : 'notice err'} style={{ marginTop: 8, marginBottom: 0 }}>{msg.text}</div>}
+        </div>
+      )}
+      {notes.length > 0 && (
+        <div className="sn-print-row">
+          <button type="button" className="btn btn-ghost sn-print" onClick={() => printNotes(notes, printInfo || {})} title="Print only these notes">
+            🖨 Print notes
+          </button>
         </div>
       )}
       <div className="activity-list">

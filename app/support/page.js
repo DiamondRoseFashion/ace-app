@@ -224,7 +224,8 @@ export default function Support() {
                         open && (
                           <tr key={`${r.project_id}-notes`} className="sp-notes-row">
                             <td colSpan={8}>
-                              <SupportNotes projectId={r.project_id} canAdd emptyText="No notes yet. Add the first one above." placeholder="Write what you did to support this project: calls, site visits, documents sent…" />
+                              <SupportNotes projectId={r.project_id} canAdd emptyText="No notes yet. Add the first one above." placeholder="Write what you did to support this project: calls, site visits, documents sent…"
+                                printInfo={{ name: r.project_name, quotation: r.quotation_number, salesPerson: r.sales_person, contractor: (r.contractor || '').split(' | ').join(', '), client: (r.client || '').split(' | ').join(', '), consultant: (r.consultant || '').split(' | ').join(', ') }} />
                             </td>
                           </tr>
                         ),
@@ -293,6 +294,7 @@ export default function Support() {
                               canAdd
                               emptyText="No notes yet."
                               placeholder="Write a note for your supporters: instructions, updates, what's needed next…"
+                              printInfo={{ name: r.name, quotation: r.quotation_number, contractor: r.contractor.split(' | ').join(', '), client: r.client.split(' | ').join(', '), consultant: r.consultant.split(' | ').join(', '), supportedBy: r.supporters.split(' | ').join(', ') }}
                             />
                           </td>
                         </tr>
