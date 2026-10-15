@@ -13,7 +13,7 @@ import StarRating from '@/components/StarRating';
 import { useTeam, teamName } from '@/lib/team';
 import { fmtDate } from '@/lib/dates';
 import {
-  REGISTER_COLUMNS, EMPTY, toRegisterRow, cellText, selectOptions, matchesFilter, compareRows, formatDate, formatValue,
+  REGISTER_COLUMNS, EMPTY, RATING_HIGH, RATING_LOW, toRegisterRow, cellText, selectOptions, matchesFilter, compareRows, formatDate, formatValue,
 } from '@/lib/projectTable';
 
 export default function Dashboard() {
@@ -131,7 +131,21 @@ export default function Dashboard() {
   const filteredProjects = filteredRows.map((r) => r.project);
 
   const activeFilters = Object.values(filters).filter((f) => (Array.isArray(f) ? f.length > 0 : f && (typeof f !== 'object' || f.from || f.to))).length + (search.trim() ? 1 : 0);
-  const setFilter = (key, value) => setFilters((f) => ({ ...f, [key]: value }));
+  const setFilter = (key, value) => {
+    // Review "High to Low" / "Low to High" = sort by stars
+    if (key === 'rating' && (value === RATING_HIGH || value === RATING_LOW)) setSort({ key: 'rating', dir: value === RATING_HIGH ? 'desc' : 'asc' });
+    setFilters((f) => ({ ...f, [key]: value }));
+  };
+  useEffect(() => {
+    if (sort.key !== 'rating' && (filters.rating === RATING_HIGH || filters.rating === RATING_LOW)) {
+      setFilters((f) => ({ ...f, rating: '' }));
+    } else if (sort.key === 'rating' && (filters.rating === RATING_HIGH || filters.rating === RATING_LOW)) {
+      const want = sort.dir === 'desc' ? RATING_HIGH : RATING_LOW;
+      if (filters.rating !== want) setFilters((f) => ({ ...f, rating: want }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sort]);
+
   function clickSort(key) {
     setSort((s) => (s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: key === 'date' || key === 'value' || key === 'progress' ? 'desc' : 'asc' }));
   }
