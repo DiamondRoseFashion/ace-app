@@ -182,6 +182,8 @@ export default function PlannerPage() {
   const [bulkConfirm, setBulkConfirm] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [notice, setNotice] = useState('');
+  const [returnTo, setReturnTo] = useState(''); // came from a project page: go back there after saving
+  const openedFromLink = useRef(false);
 
   const isManager = MANAGEMENT_ROLES.includes(me?.role);
   const today = todayKey();
@@ -285,6 +287,24 @@ export default function PlannerPage() {
     loadMeetings();
   }
 
+  // "＋ Add meeting" on a project page: /planner?new=1&project=<id>&back=<path>
+  useEffect(() => {
+    if (openedFromLink.current || !me) return;
+    const q = new URLSearchParams(window.location.search);
+    if (q.get('new') !== '1') return;
+    const pid = q.get('project');
+    if (pid && projects.length === 0) return; // wait for the project list
+    openedFromLink.current = true;
+    const proj = projects.find((x) => x.id === pid);
+    const back = q.get('back') || '';
+    if (back.startsWith('/project/')) setReturnTo(back);
+    setFormError('');
+    setConfirmDelete(false);
+    setForm({ ...emptyForm(todayKey(), me.id), ...(proj ? { project_id: proj.id, projectText: proj.name, projectTouched: true } : {}) });
+    window.history.replaceState(null, '', '/planner');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [me, projects]);
+
   function openNew(forDate) {
     setFormError('');
     setConfirmDelete(false);
@@ -337,6 +357,7 @@ export default function PlannerPage() {
     if (error) { setFormError(friendlyDbError(error.message)); return; }
     setForm(null);
     notifyMeetingsChanged();
+    if (returnTo) { const to = returnTo; setReturnTo(''); router.push(to); return; } // back to the project
     loadMeetings();
   }
 

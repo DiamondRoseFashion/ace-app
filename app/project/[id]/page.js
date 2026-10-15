@@ -600,7 +600,17 @@ export default function ProjectDetail() {
         </div>
 
         {/* Meetings */}
-        <SectionTitle>Meetings</SectionTitle>
+        <div className="section-row">
+          <SectionTitle>Meetings</SectionTitle>
+          {!editing && (
+            <Link
+              href={`/planner?new=1&project=${projectId}&back=${encodeURIComponent(`/project/${projectId}`)}`}
+              className="add-meeting-btn"
+              title="Add a meeting with a reminder for this project"
+              aria-label="Add meeting"
+            >＋</Link>
+          )}
+        </div>
         <div className="card" style={{ marginBottom: 20 }}>
           {editing ? (
             <>
