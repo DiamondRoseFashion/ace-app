@@ -73,7 +73,7 @@ export default function ActivityLog({ projectId }) {
       <div className="activity-head">
         <div className="activity-hint">Write what happened on this project: calls, site visits, next steps. Saved updates can’t be edited or deleted.</div>
         <button type="button" className="btn btn-primary" onClick={saveChanges} disabled={saving || !dirty || missingTable}>
-          {saving ? 'Saving…' : 'Save Changes'}
+          {saving ? 'Adding…' : 'ADD +'}
         </button>
       </div>
 
