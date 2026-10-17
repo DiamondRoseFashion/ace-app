@@ -79,18 +79,19 @@ self.addEventListener('push', (event) => {
     const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     const visible = windows.find((w) => w.focused && w.visibilityState === 'visible');
     // "New project to support": a normal notification (no ringing)
-    if (data.kind === 'support') {
-      windows.forEach((w) => w.postMessage({ type: 'ace-support', data }));
-      if (visible) return; // ACE is open on screen: it shows its own message
-      await self.registration.showNotification(data.title || '🛟 New project to support', {
+    if (data.kind === 'support' || data.kind === 'meeting-assigned' || data.kind === 'meeting-copy') {
+      windows.forEach((w) => w.postMessage({ type: `ace-${data.kind}`, data }));
+      // ACE open on screen: it shows its own message (except reminder copies)
+      if (visible && data.kind !== 'meeting-copy') return;
+      await self.registration.showNotification(data.title || '🔔 ACE', {
         body: data.body || '',
         icon: '/icon-192.png',
         badge: '/icon-192.png',
-        tag: data.tag || 'ace-support',
+        tag: data.tag || `ace-${data.kind}`,
         renotify: true,
         requireInteraction: false,
         vibrate: [200, 100, 200],
-        data: { url: data.url || '/support' },
+        data: { url: data.url || (data.kind === 'support' ? '/support' : '/planner') },
       });
       return;
     }

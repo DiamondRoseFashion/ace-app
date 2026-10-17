@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabaseClient';
 import MeetingReminder from '@/components/MeetingReminder';
 import AutoUpdate from '@/components/AutoUpdate';
 import { releasePush } from '@/lib/pushClient';
-import { useSupportAlerts } from '@/lib/supportAlerts';
+import { useSupportAlerts, useMeetingAlerts } from '@/lib/supportAlerts';
 import PushPrompt from '@/components/PushPrompt';
 
 export default function Sidebar({ active }) {
@@ -19,6 +19,7 @@ export default function Sidebar({ active }) {
   const [photoBroken, setPhotoBroken] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const support = useSupportAlerts(supabase);
+  const meetingsNew = useMeetingAlerts(supabase);
 
   useEffect(() => {
     (async () => {
@@ -64,6 +65,23 @@ export default function Sidebar({ active }) {
   return (
     <>
     {active !== 'planner' && <PushPrompt supabase={supabase} floating />}
+    {meetingsNew.toast && (
+      <div className="support-toast meeting-toast" role="status">
+        <div className="st-icon" aria-hidden="true">📅</div>
+        <div className="st-text">
+          <strong>{meetingsNew.toast.count ? `${meetingsNew.toast.count} new meetings for you` : `New meeting from ${meetingsNew.toast.assigned_by || 'your manager'}`}</strong>
+          {!meetingsNew.toast.count && (
+            <span>
+              {meetingsNew.toast.title || 'Meeting'}
+              {meetingsNew.toast.meeting_date ? ` · ${meetingsNew.toast.meeting_date.split('-').reverse().join('/')}` : ''}
+              {meetingsNew.toast.start_time ? `, ${(() => { const [h, mi] = meetingsNew.toast.start_time.split(':').map(Number); return `${h % 12 || 12}:${String(mi).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`; })()}` : ''}
+            </span>
+          )}
+        </div>
+        <Link href="/planner" className="btn btn-primary st-open" onClick={meetingsNew.closeToast}>Open</Link>
+        <button type="button" className="st-close" aria-label="Close" onClick={meetingsNew.closeToast}>✕</button>
+      </div>
+    )}
     {t && (
       <div className="support-toast" role="status">
         <div className="st-icon" aria-hidden="true">🛟</div>
@@ -103,6 +121,9 @@ export default function Sidebar({ active }) {
             <span className="nav-label">{l.label}</span>
             {l.key === 'support' && support.count > 0 && (
               <span className="nav-badge" aria-label={`${support.count} new`}>{support.count > 9 ? '9+' : support.count}</span>
+            )}
+            {l.key === 'planner' && meetingsNew.count > 0 && (
+              <span className="nav-badge" aria-label={`${meetingsNew.count} new`}>{meetingsNew.count > 9 ? '9+' : meetingsNew.count}</span>
             )}
           </Link>
         ))}

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
 import Sidebar from '@/components/Sidebar';
+import { markMeetingsSeen, notifyMeetingAssignee } from '@/lib/supportAlerts';
 import {
   MANAGEMENT_ROLES, REMINDER_OPTIONS, reminderLabel, DEFAULT_REMINDER, ANYTIME_REMINDER_HOUR,
   todayKey, addDays, weekDays, parseKey, formatTime, formatDayLong, formatDayShort,
@@ -49,7 +50,7 @@ function emptyForm(date, assignedTo) {
   return {
     id: null, title: '', meeting_date: date, start_time: '', end_time: '',
     venue: '', project_id: '', projectText: '', projectTouched: false, assigned_to: assignedTo || '', reminder_minutes: '',
-    notes: '', actions: '', status: 'pending', originalStatus: 'pending',
+    notes: '', actions: '', status: 'pending', originalStatus: 'pending', originalAssigned: '',
   };
 }
 
@@ -65,6 +66,7 @@ function toForm(m) {
     projectText: projectLabel(m),
     projectTouched: false,
     assigned_to: m.assigned_to || '',
+    originalAssigned: m.assigned_to || '',
     reminder_minutes: m.reminder_minutes == null ? '' : String(m.reminder_minutes),
     notes: m.notes || '',
     actions: m.actions || '',
@@ -279,13 +281,17 @@ export default function PlannerPage() {
       start_time: quickTime || null,
     };
     if (isManager && filterId && filterId !== me.id) payload.assigned_to = filterId;
-    const { error } = await supabase.from('meetings').insert(payload);
+    const { data: added, error } = await supabase.from('meetings').insert(payload).select('id').maybeSingle();
     if (error) { setPageError(friendlyDbError(error.message)); return; }
+    if (payload.assigned_to && added?.id) notifyMeetingAssignee(supabase, added.id); // tell the person straight away
     setQuickTitle('');
     setQuickTime('');
     notifyMeetingsChanged();
     loadMeetings();
   }
+
+  // opening Meetings = I've seen the meetings others gave me
+  useEffect(() => { if (me) markMeetingsSeen(supabase); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [me]);
 
   // "＋ Add meeting" on a project page: /planner?new=1&project=<id>&back=<path>
   useEffect(() => {
@@ -350,11 +356,15 @@ export default function PlannerPage() {
     if (isManager && form.assigned_to) payload.assigned_to = form.assigned_to;
 
     setSaving(true);
-    const { error } = form.id
-      ? await supabase.from('meetings').update(payload).eq('id', form.id)
-      : await supabase.from('meetings').insert(payload);
+    const { data: savedRow, error } = form.id
+      ? await supabase.from('meetings').update(payload).eq('id', form.id).select('id, assigned_to').maybeSingle()
+      : await supabase.from('meetings').insert(payload).select('id, assigned_to').maybeSingle();
     setSaving(false);
     if (error) { setFormError(friendlyDbError(error.message)); return; }
+    // given to someone else (new, or a different person than before): tell them straight away
+    if (savedRow?.assigned_to && savedRow.assigned_to !== me.id && savedRow.assigned_to !== form.originalAssigned) {
+      notifyMeetingAssignee(supabase, savedRow.id);
+    }
     setForm(null);
     notifyMeetingsChanged();
     if (returnTo) { const to = returnTo; setReturnTo(''); router.push(to); return; } // back to the project

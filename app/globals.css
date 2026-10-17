@@ -820,3 +820,4 @@ html, body { overscroll-behavior-x: none; }
   border-radius: 50%; background: var(--gold); color: #1d1424; font-size: 16px; font-weight: 700; text-decoration: none; line-height: 1;
   box-shadow: 0 2px 8px rgba(0,0,0,.25); transition: transform .12s, background .12s; }
 .add-meeting-btn:hover { transform: scale(1.12); background: #E9C978; }
+.support-toast.meeting-toast { border-left-color: var(--gold, #D8B968); } .meeting-toast ~ .support-toast { bottom: 110px; }

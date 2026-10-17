@@ -44,12 +44,14 @@ async function handle(req) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const userIds = [...new Set((meetings || []).map((m) => m.assigned_to))];
+  const userIds = [...new Set((meetings || []).flatMap((m) => [m.assigned_to, m.created_by]).filter(Boolean))];
   const defaults = {};
   const repeatOn = {};
+  const names = {};
   if (userIds.length) {
     const { data: profs } = await admin.from('profiles').select('*').in('id', userIds);
     (profs || []).forEach((p) => {
+      names[p.id] = p.full_name;
       defaults[p.id] = p.reminder_default_minutes;
       repeatOn[p.id] = false; // reminders ring once (no every-minute repeats)
     });
@@ -93,6 +95,20 @@ async function handle(req) {
     };
     const r = await sendToUser(admin, m.assigned_to, payload);
     results.push({ meeting: m.id, type: action.type, repeat: repeatNo, ...r });
+
+    // The person who set the meeting up for someone else (manager / admin /
+    // owner) gets the same reminder too, once, as a normal notification.
+    if (action.type === 'first' && m.created_by && m.created_by !== m.assigned_to) {
+      const who = names[m.assigned_to] || 'your team member';
+      const copy = await sendToUser(admin, m.created_by, {
+        kind: 'meeting-copy',
+        title: note.title,
+        body: `${note.body}\nAssigned to ${who}`,
+        url: '/planner',
+        tag: `ace-meeting-copy-${m.id}`,
+      });
+      results.push({ meeting: m.id, type: 'copy-to-creator', ...copy });
+    }
     if (r.failures?.length) {
       await logEvent(admin, {
         level: 'warning', source: 'reminders',
