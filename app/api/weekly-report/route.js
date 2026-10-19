@@ -53,12 +53,15 @@ async function handle(req) {
     ]);
     const names = Object.fromEntries((profiles || []).map((p) => [p.id, p.full_name || 'Unnamed']));
 
-    // active users (signed in this week)
+    // active users (signed in this week) + the owners' email addresses
     let activeUsers = null;
+    let ownerEmails = [];
     try {
       const { data } = await admin.auth.admin.listUsers({ perPage: 1000 });
       activeUsers = (data?.users || []).filter((u) => u.last_sign_in_at && u.last_sign_in_at >= since)
         .map((u) => names[u.id] || u.email);
+      const ownerIds = new Set((profiles || []).filter((p) => p.role === 'owner').map((p) => p.id));
+      ownerEmails = (data?.users || []).filter((u) => ownerIds.has(u.id) && u.email).map((u) => u.email);
     } catch { /* optional */ }
 
     // ----- health -----
@@ -96,7 +99,7 @@ async function handle(req) {
     attachments.push({ filename: `ACE-full-backup-${today}.json`, content: Buffer.from(JSON.stringify(full)) });
 
     const body = `
-      <p>Hi Amal, here is ACE's weekly report for <b>${esc(uaeTime(since).split(',')[0])} – ${esc(uaeTime(new Date(now).toISOString()).split(',')[0])}</b>.</p>
+      <p>Hello, here is ACE's weekly report for <b>${esc(uaeTime(since).split(',')[0])} – ${esc(uaeTime(new Date(now).toISOString()).split(',')[0])}</b>.</p>
       <div style="padding:12px 14px;border-radius:8px;background:${healthGood ? '#E7F4EB' : '#FBF1DC'};font-weight:600">
         ${healthGood ? '✅ All good — no problems this week.' : `⚠️ ${problems.length} problem${problems.length === 1 ? '' : 's'} this week — details below.`}
       </div>
@@ -139,10 +142,10 @@ async function handle(req) {
     `;
 
     const subject = `${healthGood ? '✅' : '⚠️'} ACE weekly report — ${problems.length ? `${problems.length} problem${problems.length === 1 ? '' : 's'}` : 'all good'}`;
-    const sent = await sendEmail({ subject, html: emailShell('Weekly report', body), attachments });
+    const sent = await sendEmail({ subject, html: emailShell('Weekly report', body), attachments, extraTo: ownerEmails }); // also to every owner
     if (!sent.ok) throw new Error(sent.error);
     await heartbeat(admin, 'weekly-report', { problems: problems.length });
-    return NextResponse.json({ ok: true, problems: problems.length, attachments: attachments.map((a) => a.filename) });
+    return NextResponse.json({ ok: true, problems: problems.length, attachments: attachments.map((a) => a.filename), owners: ownerEmails.length });
   } catch (e) {
     await logEvent(admin, { level: 'critical', source: 'weekly-report', message: `Weekly report failed: ${e.message}`, fingerprint: 'weekly-report-failed' });
     return NextResponse.json({ error: e.message }, { status: 500 });
