@@ -7,6 +7,7 @@ import Sidebar from '@/components/Sidebar';
 import { downloadXlsx } from '@/lib/xlsxExport';
 import { PROJECT_STATUS_LABELS, projectStatusRank } from '@/lib/projectStatus';
 import DateInput from '@/components/DateInput';
+import { money } from '@/lib/projectTable';
 
 
 const TABS = [
@@ -45,8 +46,11 @@ const DATE_COLS = {
 const STATUS_LABELS = PROJECT_STATUS_LABELS;
 const EMPTY = '__empty__';
 
+const VALUE_COLS = new Set(['value', 'quotation_value']);
+
 function display(col, v) {
   if (v === null || v === undefined || v === '') return '—';
+  if (VALUE_COLS.has(col) && Number.isFinite(Number(v))) return money(v); // 120,000.00
   if (col === 'status' && STATUS_LABELS[v]) return STATUS_LABELS[v];
   return String(v);
 }

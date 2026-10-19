@@ -821,3 +821,4 @@ html, body { overscroll-behavior-x: none; }
   box-shadow: 0 2px 8px rgba(0,0,0,.25); transition: transform .12s, background .12s; }
 .add-meeting-btn:hover { transform: scale(1.12); background: #E9C978; }
 .support-toast.meeting-toast { border-left-color: var(--gold, #D8B968); } .meeting-toast ~ .support-toast { bottom: 110px; }
+.reg-table td.reg-num { font-size: 11px; letter-spacing: -.2px; text-align: right; padding-right: 10px; }

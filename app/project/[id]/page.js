@@ -19,6 +19,7 @@ import SupportNotes from '@/components/SupportNotes';
 import { useTeam, teamName } from '@/lib/team';
 import { notifySupporters } from '@/lib/supportAlerts';
 import { fmtDate } from '@/lib/dates';
+import { money } from '@/lib/projectTable';
 
 const STATUS_LABELS = PROJECT_STATUS_LABELS;
 const ROLE_LABELS = { contractor: 'Contractor', client: 'Client', consultant: 'Consultant', main_contractor: 'Main Contractor' };
@@ -589,7 +590,7 @@ export default function ProjectDetail() {
             </>
           ) : quotations.length === 0 ? <Empty text="No quotations yet." /> : quotations.map((q) => (
             <div key={q.id} style={{ padding: '10px 0', borderBottom: '1px solid var(--line)', fontSize: 13.5 }}>
-              <strong>{q.quotation_number || 'Untitled'}</strong> — {q.quotation_value ? `AED ${q.quotation_value}` : 'no value set'}
+              <strong>{q.quotation_number || 'Untitled'}</strong> — {q.quotation_value !== null && q.quotation_value !== '' && q.quotation_value !== undefined ? `AED ${money(q.quotation_value)}` : 'no value set'}
               <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 2 }}>
                 Dated {fmtDate(q.quotation_date) || '—'}, target submission {fmtDate(q.target_submission_date) || '—'}
               </div>
