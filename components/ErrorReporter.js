@@ -85,7 +85,10 @@ function install() {
       const url = typeof input === 'string' ? input : input?.url || '';
       const isDb = SUPABASE_URL && url.startsWith(SUPABASE_URL);
       const isApi = url.startsWith('/api/') || url.startsWith(`${window.location.origin}/api/`);
-      const bad = isDb ? (res.status >= 400 && !IGNORE_STATUS.has(res.status)) : (isApi && res.status >= 500);
+      // a wrong password / expired sign-in link on the login page is a typing
+      // mistake, not a fault in ACE: don't report it
+      const isSignIn = isDb && /\/auth\/v1\/(token|verify|otp|recover)/.test(url) && res.status < 500;
+      const bad = !isSignIn && (isDb ? (res.status >= 400 && !IGNORE_STATUS.has(res.status)) : (isApi && res.status >= 500));
       if (bad && !url.includes('/api/report-error')) {
         const endpoint = url.replace(SUPABASE_URL, '').replace(window.location.origin, '').split('?')[0];
         let message = `${res.status} ${res.statusText || ''}`.trim();
