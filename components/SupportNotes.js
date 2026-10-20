@@ -55,6 +55,7 @@ export default function SupportNotes({ projectId, canAdd = false, emptyText = 'N
     load();
   }
 
+  const [showOlder, setShowOlder] = useState(false);
   const renderNote = (n) => (
     <div key={n.id} className="activity-item">
       <div className="activity-meta">
@@ -103,8 +104,10 @@ export default function SupportNotes({ projectId, canAdd = false, emptyText = 'N
                 {notes.slice(0, 4).map(renderNote)}
                 {notes.length > 4 && (
                   <div className="sn-older">
-                    <div className="sn-older-head">Older notes ({notes.length - 4}) · scroll to see more</div>
-                    <div className="sn-older-list">{notes.slice(4).map(renderNote)}</div>
+                    <button type="button" className="sn-older-btn" onClick={() => setShowOlder((v) => !v)}>
+                      {showOlder ? 'Hide older notes ▴' : `Read more: ${notes.length - 4} older note${notes.length - 4 === 1 ? '' : 's'} ▾`}
+                    </button>
+                    {showOlder && <div className="sn-older-list">{notes.slice(4).map(renderNote)}</div>}
                   </div>
                 )}
               </>
