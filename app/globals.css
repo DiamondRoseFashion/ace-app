@@ -834,3 +834,9 @@ html, body { overscroll-behavior-x: none; }
 .sp-notes-row td { transition: background .12s; }
 .sp-notes-row textarea { background: #fff; }
 .sp-notes-row .activity-item { border-top-color: rgba(107,45,130,.12); }
+
+/* Notes: newest 4 shown, older ones in a scroll box */
+.sn-older { margin-top: 10px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.55); }
+.sn-older-head { font-size: 11.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+.sn-older-list { max-height: 220px; overflow-y: auto; padding: 0 12px; }
+.sn-older-list .activity-item:first-child { border-top: 0; }

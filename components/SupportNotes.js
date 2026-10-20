@@ -55,6 +55,16 @@ export default function SupportNotes({ projectId, canAdd = false, emptyText = 'N
     load();
   }
 
+  const renderNote = (n) => (
+    <div key={n.id} className="activity-item">
+      <div className="activity-meta">
+        <strong>{n.author?.full_name || 'Someone'}</strong>
+        <span className="sn-when">📅 {fmtDate(n.created_at)} &nbsp;🕒 {timeOf(n.created_at)}</span>
+      </div>
+      <div className="activity-body">{n.body}</div>
+    </div>
+  );
+
   if (missing) return <div className="notice err" style={{ margin: 0 }}>Project notes need a one-time database update. Please ask your admin.</div>;
 
   return (
@@ -88,15 +98,17 @@ export default function SupportNotes({ projectId, canAdd = false, emptyText = 'N
       <div className="activity-list">
         {loading ? <div className="activity-empty">Loading…</div>
           : notes.length === 0 ? <div className="activity-empty">{emptyText}</div>
-            : notes.map((n) => (
-              <div key={n.id} className="activity-item">
-                <div className="activity-meta">
-                  <strong>{n.author?.full_name || 'Someone'}</strong>
-                  <span className="sn-when">📅 {fmtDate(n.created_at)} &nbsp;🕒 {timeOf(n.created_at)}</span>
-                </div>
-                <div className="activity-body">{n.body}</div>
-              </div>
-            ))}
+            : (
+              <>
+                {notes.slice(0, 4).map(renderNote)}
+                {notes.length > 4 && (
+                  <div className="sn-older">
+                    <div className="sn-older-head">Older notes ({notes.length - 4}) · scroll to see more</div>
+                    <div className="sn-older-list">{notes.slice(4).map(renderNote)}</div>
+                  </div>
+                )}
+              </>
+            )}
       </div>
     </div>
   );
