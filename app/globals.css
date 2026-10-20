@@ -197,7 +197,7 @@ input:focus, select:focus, textarea:focus{
   border-bottom:1px solid var(--line); cursor:pointer; align-items:center;
   transition:background .12s var(--ease);
 }
-.project-row:hover{background:#FBF8FD;}
+.project-row:hover{background:#EEDFF7;}
 .project-row:last-child{border-bottom:none;}
 
 .form-row-2{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
@@ -292,7 +292,7 @@ input:focus, select:focus, textarea:focus{
 .check:hover{border-color:var(--violet-2);}
 .check.on{background:var(--ok); border-color:var(--ok);}
 .mr-main{flex:1; min-width:0; display:flex; align-items:center; gap:14px; padding:12px 6px 12px 10px; background:none; border:none; text-align:left; cursor:pointer; color:var(--ink); font-family:'Inter'; border-radius:8px;}
-.mr-main:hover{background:#FBF8FD;}
+.mr-main:hover{background:#EEDFF7;}
 .mr-time{width:78px; flex-shrink:0; font-size:12.5px; font-weight:600; color:var(--violet); display:flex; flex-direction:column;}
 .mr-end{font-size:11px; color:var(--muted); font-weight:500;}
 .mr-text{flex:1; min-width:0; display:flex; flex-direction:column; gap:3px;}
@@ -533,7 +533,7 @@ input:focus, select:focus, textarea:focus{
 .vd-table th button:hover{background:#F4ECF9;}
 .vd-sort{font-size:10px; color:#B3A8BE;}
 .vd-table td{padding:8px 12px; border-bottom:1px solid var(--line); white-space:nowrap;}
-.vd-table tbody tr:hover td{background:#FCFAFE;}
+.vd-table tbody tr:hover td{background:#EEDFF7;}
 @media (max-width: 768px){
   .vd-filters{padding:14px 14px 4px;}
   .vd-field{flex:1 1 calc(50% - 10px); min-width:0;}
@@ -583,7 +583,8 @@ input:focus, select:focus, textarea:focus{
 .reg-dates { display: flex; flex-direction: column; gap: 4px; }
 .reg-dates input { font-size: 11px; padding: 3px 4px; min-height: 26px; }
 .reg-row { cursor: pointer; }
-.reg-row:hover td { background: #FBF8FD; }
+.reg-row:hover td { background: #EEDFF7; }
+.reg-row:hover td:first-child { box-shadow: inset 3px 0 0 var(--violet-2); }
 .reg-row.sel td { background: #F3E9FA; }
 .reg-name { font-weight: 700; color: var(--deep); text-decoration: none; }
 .reg-name:hover { text-decoration: underline; }
@@ -708,7 +709,9 @@ html, body { overscroll-behavior-x: none; }
 .sp-table th { text-align: left; font-size: 10.5px; letter-spacing: .4px; text-transform: uppercase; color: var(--muted); font-weight: 700; padding: 10px 14px; background: #FBF8FD; border-bottom: 1px solid var(--line); }
 .sp-table td { padding: 11px 14px; border-bottom: 1px solid var(--line); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: middle; }
 .sp-row { cursor: pointer; }
-.sp-row:hover, .sp-row.open { background: #FAF5FD; }
+.sp-row:hover { background: #EEDFF7; }
+.sp-row.open { background: #F3E8FA; }
+.sp-row:hover td:first-child { box-shadow: inset 3px 0 0 var(--violet-2); }
 .sp-name { font-weight: 400; }
 .sp-btn { padding: 5px 12px; font-size: 12.5px; }
 .sp-notes-row td { white-space: normal; background: #FCFAFE; padding: 16px 20px 18px; }
