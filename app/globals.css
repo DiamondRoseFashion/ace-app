@@ -825,3 +825,12 @@ html, body { overscroll-behavior-x: none; }
 .add-meeting-btn:hover { transform: scale(1.12); background: #E9C978; }
 .support-toast.meeting-toast { border-left-color: var(--gold, #D8B968); } .meeting-toast ~ .support-toast { bottom: 110px; }
 .reg-table td.reg-num { font-size: 11px; letter-spacing: -.2px; text-align: right; padding-right: 10px; }
+
+/* Support: hovering a project also colours its open notes (and vice versa); the writing box stays white */
+.sp-row.open:hover + .sp-notes-row td,
+.sp-notes-row:hover td { background: #DCC3EE; }
+.sp-row.open:has(+ .sp-notes-row:hover) { background: #DCC3EE; }
+.sp-row.open:has(+ .sp-notes-row:hover) td:first-child { box-shadow: inset 3px 0 0 var(--violet-2); }
+.sp-notes-row td { transition: background .12s; }
+.sp-notes-row textarea { background: #fff; }
+.sp-notes-row .activity-item { border-top-color: rgba(107,45,130,.12); }
