@@ -18,6 +18,8 @@ export default function Sidebar({ active }) {
   const [photo, setPhoto] = useState('');
   const [photoBroken, setPhotoBroken] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [todoOn, setTodoOn] = useState(false);
+  const [todoDue, setTodoDue] = useState(0);
   const support = useSupportAlerts(supabase);
   const meetingsNew = useMeetingAlerts(supabase);
 
@@ -29,11 +31,23 @@ export default function Sidebar({ active }) {
       setName(data?.full_name || user.email);
       setRole(data?.role || '');
       setPhoto(data?.avatar_url || '');
+      // To-Do: only for people given access; badge = my open to-dos due today or overdue
+      const { data: todoOk } = await supabase.rpc('has_todo_access');
+      if (todoOk) {
+        setTodoOn(true);
+        const t = new Date();
+        const today = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+        const { count } = await supabase.from('todos').select('id', { count: 'exact', head: true })
+          .eq('assigned_to', user.id).is('done_at', null).lte('due_date', today);
+        setTodoDue(count || 0);
+      }
     })();
     // a new photo on My Profile shows here straight away
     const onPhoto = (e) => { setPhotoBroken(false); setPhoto(e.detail || ''); };
     window.addEventListener('ace-avatar', onPhoto);
-    return () => window.removeEventListener('ace-avatar', onPhoto);
+    const onTodo = (e) => setTodoDue(Number(e.detail) || 0);
+    window.addEventListener('ace-todo-due', onTodo);
+    return () => { window.removeEventListener('ace-avatar', onPhoto); window.removeEventListener('ace-todo-due', onTodo); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -56,6 +70,7 @@ export default function Sidebar({ active }) {
     { key: 'dashboard', href: '/dashboard', label: 'My Projects', icon: '📁' },
     { key: 'new-project', href: '/new-project', label: 'New Project', icon: '➕' },
     { key: 'planner', href: '/planner', label: 'Meetings', icon: '📅' },
+    ...(todoOn ? [{ key: 'todo', href: '/todo', label: 'To-Do', icon: '✅' }] : []), // only people given To-Do access
     ...(isManagerRole ? [{ key: 'team', href: '/team', label: 'Team & Access', icon: '👥' }] : []), // management only
     { key: 'profile', href: '/profile', label: 'My Profile', icon: '👤' },
     { key: 'support', href: '/support', label: 'Support', icon: '🛟' },
@@ -121,6 +136,9 @@ export default function Sidebar({ active }) {
             <span className="nav-label">{l.label}</span>
             {l.key === 'support' && support.count > 0 && (
               <span className="nav-badge" aria-label={`${support.count} new`}>{support.count > 9 ? '9+' : support.count}</span>
+            )}
+            {l.key === 'todo' && todoDue > 0 && (
+              <span className="nav-badge" aria-label={`${todoDue} due`}>{todoDue > 9 ? '9+' : todoDue}</span>
             )}
             {l.key === 'planner' && meetingsNew.count > 0 && (
               <span className="nav-badge" aria-label={`${meetingsNew.count} new`}>{meetingsNew.count > 9 ? '9+' : meetingsNew.count}</span>
