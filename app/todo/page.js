@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
 import Sidebar from '@/components/Sidebar';
 import DateInput from '@/components/DateInput';
+import ProjectPicker from '@/components/ProjectPicker';
 import { fmtDate } from '@/lib/dates';
 
 const PRIORITIES = [
@@ -102,11 +103,14 @@ export default function TodoPage() {
   const undoTimer = useRef(null);
   const titleRef = useRef(null);
 
+  const noPname = useRef(false); // project_name column not added yet
   async function loadTodos() {
-    const { data, error } = await supabase
-      .from('todos')
-      .select('id, title, note, due_date, priority, assigned_to, project_id, created_by, created_at, remind_at, remind_sent_at, project:projects(id, name)')
-      .is('done_at', null);
+    const cols = 'id, title, note, due_date, priority, assigned_to, project_id, created_by, created_at, remind_at, remind_sent_at, project:projects(id, name)';
+    let { data, error } = await supabase.from('todos').select(noPname.current ? cols : `${cols}, project_name`).is('done_at', null);
+    if (error && /project_name/.test(error.message)) {
+      noPname.current = true;
+      ({ data, error } = await supabase.from('todos').select(cols).is('done_at', null));
+    }
     if (error) { if (/relation|does not exist|schema cache/i.test(error.message)) setMissing(true); return; }
     setTodos(data || []);
   }
@@ -122,13 +126,18 @@ export default function TodoPage() {
       setAllowed(!!ok);
       if (!ok) return;
       setForm((f) => ({ ...f, assigned_to: user.id }));
-      const [{ data: acc }, { data: projs }] = await Promise.all([
+      const [{ data: acc }, { data: projs }, { data: sup }] = await Promise.all([
         supabase.from('todo_access').select('user_id, person:profiles(full_name)'),
         supabase.from('projects').select('id, name').order('name'),
+        supabase.rpc('my_support_projects'), // projects salesmen gave me on the Support page
       ]);
       setPeople((acc || []).map((a) => ({ id: a.user_id, name: (a.person?.full_name || '').trim() || 'Unnamed' }))
         .sort((a, b) => a.name.localeCompare(b.name)));
-      setProjects((projs || []).filter((p) => (p.name || '').trim()));
+      const own = (projs || []).filter((p) => (p.name || '').trim()).map((p) => ({ id: p.id, name: p.name.trim(), support: false }));
+      const ownIds = new Set(own.map((p) => p.id));
+      const helped = (sup || []).filter((r) => !ownIds.has(r.project_id) && (r.project_name || '').trim())
+        .map((r) => ({ id: r.project_id, name: r.project_name.trim(), support: true }));
+      setProjects([...own, ...helped].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })));
       await loadTodos();
       ch = supabase.channel(`todos-${user.id}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'todos' }, () => loadTodos())
@@ -160,6 +169,7 @@ export default function TodoPage() {
       priority: form.priority,
       assigned_to: form.assigned_to || me,
       project_id: form.project_id || null,
+      ...(noPname.current ? {} : { project_name: projectNameFor(form.project_id) }),
       remind_at: joinRemind(form),
     };
     const { error } = await supabase.from('todos').insert(row);
@@ -169,6 +179,13 @@ export default function TodoPage() {
     if (row.assigned_to !== me) setTab('assigned');
     titleRef.current?.focus();
     loadTodos();
+  }
+
+  // saved with the to-do, so the person doing it sees the name even
+  // if they can't open that project
+  function projectNameFor(id, old) {
+    if (!id) return null;
+    return projects.find((p) => p.id === id)?.name || (old?.project_id === id ? old.project_name || old.project?.name : null) || null;
   }
 
   async function markDone(t) {
@@ -200,6 +217,7 @@ export default function TodoPage() {
     const { error } = await supabase.from('todos').update({
       title: edit.title.trim(), note: edit.note.trim() || null, due_date: edit.due_date || null,
       priority: edit.priority, assigned_to: edit.assigned_to, project_id: edit.project_id || null,
+      ...(noPname.current ? {} : { project_name: projectNameFor(edit.project_id, todos.find((x) => x.id === editId)) }),
       remind_at: joinRemind(edit),
     }).eq('id', editId);
     if (error) { setMsg({ ok: false, text: `Could not save: ${error.message}` }); return; }
@@ -220,7 +238,7 @@ export default function TodoPage() {
   const list = (tab === 'mine' ? mine : assigned).filter((t) => {
     const q = search.trim().toLowerCase();
     return (!prio || t.priority === prio)
-      && (!q || [t.title, t.note, t.project?.name].some((v) => String(v || '').toLowerCase().includes(q)));
+      && (!q || [t.title, t.note, t.project?.name, t.project_name].some((v) => String(v || '').toLowerCase().includes(q)));
   });
   const grouped = (() => {
     const g = {};
@@ -251,12 +269,9 @@ export default function TodoPage() {
           {people.map((p) => <option key={p.id} value={p.id}>{p.id === me ? `Me (${p.name})` : p.name}</option>)}
         </select>
       </label>
-      <label>Project (optional)
-        <select value={v.project_id} onChange={(e) => set({ ...v, project_id: e.target.value })}>
-          <option value="">— None —</option>
-          {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </select>
-      </label>
+      <div className="td-flabel">Project (optional)
+        <ProjectPicker value={v.project_id} onChange={(id) => set({ ...v, project_id: id })} options={projects} placeholder="Type to search projects…" />
+      </div>
       <div className="td-remind">
         <span className="td-remind-label">⏰ Remind {v.assigned_to && v.assigned_to !== me ? 'them' : 'me'} (notification)</span>
         <div className="td-remind-row">
@@ -361,8 +376,12 @@ export default function TodoPage() {
                               {t.priority !== 'normal' && <span className={`td-prio p-${t.priority}`}>{t.priority === 'high' ? '● High' : '● Low'}</span>}
                               {t.due_date && <span className={`td-due${late ? ' late' : ''}`}>📅 {dueLabel(t.due_date, d)}</span>}
                               {t.remind_at && <span className={`td-rem${t.remind_sent_at ? ' sent' : ''}`} title={t.remind_sent_at ? 'Reminder sent' : 'Reminder set'}>{t.remind_sent_at ? '🔔 Reminded ' : '⏰ '}{remindLabel(t.remind_at, d)}</span>}
-                              {t.project && (
-                                <Link href={`/project/${t.project.id}`} className="td-proj" onClick={(e) => e.stopPropagation()}>📁 {t.project.name}</Link>
+                              {t.project_id && (t.project?.name || t.project_name) && (
+                                t.project ? (
+                                  <Link href={`/project/${t.project.id}`} className="td-proj" onClick={(e) => e.stopPropagation()}>📁 {t.project.name}</Link>
+                                ) : projects.some((p) => p.id === t.project_id && p.support) ? (
+                                  <Link href="/support" className="td-proj" onClick={(e) => e.stopPropagation()} title="Open on the Support page">📁 {t.project_name}</Link>
+                                ) : <span className="td-proj-plain">📁 {t.project_name}</span>
                               )}
                               {who && <span className="td-who">👤 {who}</span>}
                               {t.note && !open && <span className="td-note-prev">📝 {t.note}</span>}
