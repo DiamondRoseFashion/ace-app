@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabaseClient';
 import Sidebar from '@/components/Sidebar';
 import DownloadBackupButton from '@/components/DownloadBackupButton';
+import NotificationBell from '@/components/NotificationBell';
 import ViewDataButton from '@/components/ViewDataButton';
 import { deleteProject, canDeleteProject } from '@/lib/deleteProject';
 import DateInput from '@/components/DateInput';
@@ -202,7 +203,7 @@ export default function Dashboard() {
 
   return (
     <div className="shell">
-      <Sidebar active="dashboard" />
+      <Sidebar active="dashboard" bell={false} />
       <div className="main">
         <div className="page-header">
           <div>
@@ -210,6 +211,7 @@ export default function Dashboard() {
             <h1 style={{ fontSize: 30, marginTop: 4 }}>My Projects</h1>
           </div>
           <div className="header-actions">
+            <NotificationBell variant="inline" />
             <ViewDataButton />
             <DownloadBackupButton />
             <Link href="/new-project"><button className="btn btn-primary">+ New Project</button></Link>

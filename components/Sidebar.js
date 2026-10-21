@@ -9,8 +9,10 @@ import AutoUpdate from '@/components/AutoUpdate';
 import { releasePush } from '@/lib/pushClient';
 import { useSupportAlerts, useMeetingAlerts } from '@/lib/supportAlerts';
 import PushPrompt from '@/components/PushPrompt';
+import NotificationBell from '@/components/NotificationBell';
+import { resetNotifications } from '@/lib/notificationsStore';
 
-export default function Sidebar({ active }) {
+export default function Sidebar({ active, bell = true }) {
   const router = useRouter();
   const supabase = createClient();
   const [name, setName] = useState('');
@@ -54,6 +56,7 @@ export default function Sidebar({ active }) {
   async function handleLogout() {
     await releasePush(supabase); // this device stops getting my reminders
     await supabase.auth.signOut();
+    resetNotifications();
     router.push('/login');
   }
 
@@ -108,12 +111,14 @@ export default function Sidebar({ active }) {
         <button type="button" className="st-close" aria-label="Close" onClick={support.closeToast}>✕</button>
       </div>
     )}
+    {bell && <NotificationBell variant="float" />}
     <div className="sidebar">
       <MeetingReminder />
       <AutoUpdate />
       <div className="sidebar-top">
         <img src="/logo.png" alt="ACE" className="sidebar-logo" />
         <img src="/icon-192.png" alt="" aria-hidden="true" className="sidebar-mark" />
+        <NotificationBell variant="bar" />
         <button
           className="menu-toggle"
           onClick={() => setMenuOpen((o) => !o)}
