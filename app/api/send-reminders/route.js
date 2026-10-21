@@ -4,6 +4,7 @@
 import { NextResponse } from 'next/server';
 import { adminClient, configurePush, sendToUser } from '@/lib/pushServer';
 import { logEvent, heartbeat } from '@/lib/monitor';
+import { runTodoNotifications } from '@/lib/todoReminders';
 import { pushAction, notificationFor, localDateKey, shiftDateKey, MAX_REPEATS } from '@/lib/reminderSchedule';
 
 export const dynamic = 'force-dynamic';
@@ -119,9 +120,16 @@ async function handle(req) {
     }
   }
 
+  // To-Do reminders / new to-dos / 8 AM summary (never stops the meeting reminders)
+  let todo = null;
+  try { todo = await runTodoNotifications(admin, now); } catch (e) {
+    todo = { error: e.message };
+    await logEvent(admin, { level: 'warning', source: 'reminders', message: `To-Do notifications failed: ${e.message}`, fingerprint: 'todo-reminders' });
+  }
+
   await heartbeat(admin, 'reminders', { checked: (meetings || []).length, sent: results.length });
 
-  return NextResponse.json({ ok: true, checked: (meetings || []).length, sent: results });
+  return NextResponse.json({ ok: true, checked: (meetings || []).length, sent: results, todo });
 }
 
 export async function POST(req) { return handle(req); }

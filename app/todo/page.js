@@ -55,7 +55,26 @@ function dueLabel(due, d) {
   return fmtDate(due);
 }
 
-const EMPTY = { title: '', note: '', due_date: '', priority: 'normal', assigned_to: '', project_id: '' };
+const EMPTY = { title: '', note: '', due_date: '', priority: 'normal', assigned_to: '', project_id: '', remind_date: '', remind_time: '' };
+
+// "Remind me" (local date + time boxes) <-> stored timestamp
+const pad = (n) => String(n).padStart(2, '0');
+function splitRemind(ts) {
+  if (!ts) return { remind_date: '', remind_time: '' };
+  const x = new Date(ts);
+  return { remind_date: iso(x), remind_time: `${pad(x.getHours())}:${pad(x.getMinutes())}` };
+}
+function joinRemind(v) {
+  if (!v.remind_date) return null;
+  const x = new Date(`${v.remind_date}T${v.remind_time || '09:00'}:00`);
+  return Number.isNaN(x.getTime()) ? null : x.toISOString();
+}
+function remindLabel(ts, d) {
+  const x = new Date(ts);
+  let h = x.getHours(); const ap = h >= 12 ? 'PM' : 'AM'; h = h % 12 || 12;
+  const day = iso(x) === d.today ? 'Today' : iso(x) === d.tomorrow ? 'Tomorrow' : fmtDate(iso(x));
+  return `${day} ${h}:${pad(x.getMinutes())} ${ap}`;
+}
 
 export default function TodoPage() {
   const router = useRouter();
@@ -86,7 +105,7 @@ export default function TodoPage() {
   async function loadTodos() {
     const { data, error } = await supabase
       .from('todos')
-      .select('id, title, note, due_date, priority, assigned_to, project_id, created_by, created_at, project:projects(id, name)')
+      .select('id, title, note, due_date, priority, assigned_to, project_id, created_by, created_at, remind_at, remind_sent_at, project:projects(id, name)')
       .is('done_at', null);
     if (error) { if (/relation|does not exist|schema cache/i.test(error.message)) setMissing(true); return; }
     setTodos(data || []);
@@ -117,7 +136,14 @@ export default function TodoPage() {
     })();
     const onFocus = () => loadTodos();
     window.addEventListener('focus', onFocus);
-    return () => { if (ch) supabase.removeChannel(ch); window.removeEventListener('focus', onFocus); clearTimeout(undoTimer.current); };
+    const onSw = (e) => { if (e.data?.type === 'ace-todo') loadTodos(); };
+    try { navigator.serviceWorker?.addEventListener('message', onSw); } catch { /* ignore */ }
+    return () => {
+      if (ch) supabase.removeChannel(ch);
+      window.removeEventListener('focus', onFocus);
+      try { navigator.serviceWorker?.removeEventListener('message', onSw); } catch { /* ignore */ }
+      clearTimeout(undoTimer.current);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -134,6 +160,7 @@ export default function TodoPage() {
       priority: form.priority,
       assigned_to: form.assigned_to || me,
       project_id: form.project_id || null,
+      remind_at: joinRemind(form),
     };
     const { error } = await supabase.from('todos').insert(row);
     setSaving(false);
@@ -165,7 +192,7 @@ export default function TodoPage() {
     setConfirmDel(null);
     if (editId === t.id) { setEditId(null); return; }
     setEditId(t.id);
-    setEdit({ title: t.title, note: t.note || '', due_date: t.due_date || '', priority: t.priority, assigned_to: t.assigned_to, project_id: t.project_id || '' });
+    setEdit({ title: t.title, note: t.note || '', due_date: t.due_date || '', priority: t.priority, assigned_to: t.assigned_to, project_id: t.project_id || '', ...splitRemind(t.remind_at) });
   }
 
   async function saveEdit() {
@@ -173,6 +200,7 @@ export default function TodoPage() {
     const { error } = await supabase.from('todos').update({
       title: edit.title.trim(), note: edit.note.trim() || null, due_date: edit.due_date || null,
       priority: edit.priority, assigned_to: edit.assigned_to, project_id: edit.project_id || null,
+      remind_at: joinRemind(edit),
     }).eq('id', editId);
     if (error) { setMsg({ ok: false, text: `Could not save: ${error.message}` }); return; }
     setEditId(null);
@@ -229,6 +257,19 @@ export default function TodoPage() {
           {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
       </label>
+      <div className="td-remind">
+        <span className="td-remind-label">⏰ Remind {v.assigned_to && v.assigned_to !== me ? 'them' : 'me'} (notification)</span>
+        <div className="td-remind-row">
+          <DateInput aria-label="Reminder date" value={v.remind_date} onChange={(e) => set({ ...v, remind_date: e.target.value, remind_time: v.remind_time || '09:00' })} />
+          <input type="time" aria-label="Reminder time" value={v.remind_time} onChange={(e) => set({ ...v, remind_time: e.target.value, remind_date: v.remind_date || dayInfo().today })} />
+          <div className="td-presets">
+            <button type="button" onClick={() => { const x = new Date(Date.now() + 3600000); set({ ...v, remind_date: iso(x), remind_time: `${pad(x.getHours())}:${pad(x.getMinutes())}` }); }}>In 1 hour</button>
+            <button type="button" onClick={() => set({ ...v, remind_date: dayInfo().tomorrow, remind_time: '09:00' })}>Tomorrow 9 AM</button>
+            {v.due_date && <button type="button" onClick={() => set({ ...v, remind_date: v.due_date, remind_time: '09:00' })}>Due date 9 AM</button>}
+            {v.remind_date && <button type="button" className="td-clear" onClick={() => set({ ...v, remind_date: '', remind_time: '' })}>No reminder</button>}
+          </div>
+        </div>
+      </div>
       <label className="td-note-field">Note (optional)
         <textarea rows={2} value={v.note} onChange={(e) => set({ ...v, note: e.target.value })} placeholder="Details, phone numbers, links…" />
       </label>
@@ -242,7 +283,7 @@ export default function TodoPage() {
         <div className="eyebrow">Tasks</div>
         <h1 style={{ fontSize: 30, marginTop: 4, marginBottom: 6 }}>To-Do</h1>
         <p style={{ color: 'rgba(255,255,255,.75)', marginTop: 0, marginBottom: 20 }}>
-          Add what needs doing, set a due date and who does it. Tick the circle when it&apos;s done and it leaves the list.
+          Add what needs doing, set a due date, who does it and a reminder. Tick the circle when it&apos;s done and it leaves the list.
         </p>
 
         {allowed === null ? (
@@ -319,6 +360,7 @@ export default function TodoPage() {
                             <div className="td-meta">
                               {t.priority !== 'normal' && <span className={`td-prio p-${t.priority}`}>{t.priority === 'high' ? '● High' : '● Low'}</span>}
                               {t.due_date && <span className={`td-due${late ? ' late' : ''}`}>📅 {dueLabel(t.due_date, d)}</span>}
+                              {t.remind_at && <span className={`td-rem${t.remind_sent_at ? ' sent' : ''}`} title={t.remind_sent_at ? 'Reminder sent' : 'Reminder set'}>{t.remind_sent_at ? '🔔 Reminded ' : '⏰ '}{remindLabel(t.remind_at, d)}</span>}
                               {t.project && (
                                 <Link href={`/project/${t.project.id}`} className="td-proj" onClick={(e) => e.stopPropagation()}>📁 {t.project.name}</Link>
                               )}

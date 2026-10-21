@@ -79,19 +79,19 @@ self.addEventListener('push', (event) => {
     const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
     const visible = windows.find((w) => w.focused && w.visibilityState === 'visible');
     // "New project to support": a normal notification (no ringing)
-    if (data.kind === 'support' || data.kind === 'meeting-assigned' || data.kind === 'meeting-copy') {
+    if (data.kind === 'support' || data.kind === 'meeting-assigned' || data.kind === 'meeting-copy' || data.kind === 'todo') {
       windows.forEach((w) => w.postMessage({ type: `ace-${data.kind}`, data }));
-      // ACE open on screen: it shows its own message (except reminder copies)
-      if (visible && data.kind !== 'meeting-copy') return;
+      // ACE open on screen: it shows its own message (except reminder copies and to-dos)
+      if (visible && data.kind !== 'meeting-copy' && data.kind !== 'todo') return;
       await self.registration.showNotification(data.title || '🔔 ACE', {
         body: data.body || '',
         icon: '/icon-192.png',
         badge: '/icon-192.png',
         tag: data.tag || `ace-${data.kind}`,
         renotify: true,
-        requireInteraction: false,
-        vibrate: [200, 100, 200],
-        data: { url: data.url || (data.kind === 'support' ? '/support' : '/planner') },
+        requireInteraction: !!data.sticky, // to-do reminders stay until tapped
+        vibrate: data.sticky ? [500, 200, 500, 200, 500] : [200, 100, 200],
+        data: { url: data.url || (data.kind === 'support' ? '/support' : data.kind === 'todo' ? '/todo' : '/planner') },
       });
       return;
     }

@@ -898,3 +898,14 @@ html, body { overscroll-behavior-x: none; }
   .td-filters, .td-filters input { width: 100%; }
   .td-edit { padding-left: 16px; }
 }
+.td-remind { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 4px; }
+.td-remind-label { font-size: 11.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; }
+.td-remind-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.td-remind-row .date-input { width: 170px; }
+.td-remind-row input[type="time"] { width: 130px; font-size: 13px; padding: 8px 10px; }
+.td-presets { display: flex; gap: 6px; flex-wrap: wrap; }
+.td-presets button { border: 1px solid var(--line); background: #fff; color: var(--violet); font-weight: 600; font-size: 12px; padding: 6px 11px; border-radius: 99px; cursor: pointer; }
+.td-presets button:hover { border-color: var(--violet-2); background: #F6EFFA; }
+.td-presets .td-clear { color: var(--err); }
+.td-rem { color: #8A5A00; font-weight: 600; }
+.td-rem.sent { color: var(--muted); font-weight: 400; }
