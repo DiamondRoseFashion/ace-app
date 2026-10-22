@@ -127,7 +127,13 @@ async function handle(req) {
     await logEvent(admin, { level: 'warning', source: 'reminders', message: `To-Do notifications failed: ${e.message}`, fingerprint: 'todo-reminders' });
   }
 
-  await heartbeat(admin, 'reminders', { checked: (meetings || []).length, sent: results.length });
+  await heartbeat(admin, 'reminders', {
+    checked: (meetings || []).length, sent: results.length,
+    // To-Do part, for checking problems later
+    todo: todo?.error || todo?.skipped
+      ? { problem: todo.error || todo.skipped }
+      : { sent: (todo?.sent || []).length, delivered: (todo?.sent || []).reduce((n, r) => n + (r.delivered || 0), 0), last: (todo?.sent || []).slice(-3) },
+  });
 
   return NextResponse.json({ ok: true, checked: (meetings || []).length, sent: results, todo });
 }
