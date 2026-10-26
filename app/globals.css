@@ -1016,3 +1016,13 @@ html, body { overscroll-behavior-x: none; }
 .td-goes { color: #9A7213; }
 .td-del-btn { color: var(--err); margin-left: 6px; }
 .td-del-btn:hover:not(:disabled) { border-color: var(--err); background: #FBECEC; }
+/* To-Do: custom repeat */
+.td-custom { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; padding: 12px 14px; border: 1px dashed #D4C4E2; border-radius: 10px; background: #FBF8FD; text-transform: none; letter-spacing: 0; }
+.td-custom-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; font-weight: 600; color: var(--ink); }
+.td-custom-row input[type="number"] { width: 70px; font-size: 13px; padding: 7px 8px; }
+.td-custom-row select { width: auto; font-size: 13px; padding: 7px 10px; }
+.td-days { display: flex; gap: 4px; flex-wrap: wrap; }
+.td-days button { width: 44px; height: 32px; border-radius: 99px; border: 1px solid var(--line); background: #fff; color: #5D4E6A; font-weight: 700; font-size: 12px; cursor: pointer; }
+.td-days button.on { background: var(--violet); border-color: var(--violet); color: #fff; }
+.td-link { border: 0; background: none; color: var(--violet); font-weight: 700; font-size: 12px; cursor: pointer; text-decoration: underline; }
+.td-sub { color: var(--muted); font-weight: 400; }
