@@ -293,7 +293,29 @@ export default function PlannerPage() {
   // opening Meetings = I've seen the meetings others gave me
   useEffect(() => { if (me) markMeetingsSeen(supabase); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [me]);
 
+  // A meeting tapped on the Calendar: /planner?date=<YYYY-MM-DD>&open=<meeting id>
+  useEffect(() => {
+    if (openedFromLink.current || !me) return;
+    const q = new URLSearchParams(window.location.search);
+    if (q.get('new') === '1') return; // handled below
+    const day = q.get('date') || '';
+    const openId = q.get('open');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day) && !openId) return;
+    openedFromLink.current = true;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(day)) { setView('day'); setDate(day); }
+    window.history.replaceState(null, '', '/planner');
+    if (openId && (q.get('back') || '').startsWith('/calendar')) setReturnTo(q.get('back'));
+    if (openId) {
+      (async () => {
+        const { data } = await supabase.from('meetings').select(SELECT).eq('id', openId).maybeSingle();
+        if (data) openEdit(data);
+      })();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [me]);
+
   // "＋ Add meeting" on a project page: /planner?new=1&project=<id>&back=<path>
+  // or on the Calendar: /planner?new=1&date=<YYYY-MM-DD>&for=<person id>&back=/calendar…
   useEffect(() => {
     if (openedFromLink.current || !me) return;
     const q = new URLSearchParams(window.location.search);
@@ -303,10 +325,13 @@ export default function PlannerPage() {
     openedFromLink.current = true;
     const proj = projects.find((x) => x.id === pid);
     const back = q.get('back') || '';
-    if (back.startsWith('/project/')) setReturnTo(back);
+    if (back.startsWith('/project/') || back.startsWith('/calendar')) setReturnTo(back);
+    const day = /^\d{4}-\d{2}-\d{2}$/.test(q.get('date') || '') ? q.get('date') : todayKey();
+    const forId = MANAGEMENT_ROLES.includes(me.role) && q.get('for') ? q.get('for') : me.id; // only management schedules for others
+    if (day !== todayKey()) setDate(day);
     setFormError('');
     setConfirmDelete(false);
-    setForm({ ...emptyForm(todayKey(), me.id), ...(proj ? { project_id: proj.id, projectText: proj.name, projectTouched: true } : {}) });
+    setForm({ ...emptyForm(day, forId), ...(proj ? { project_id: proj.id, projectText: proj.name, projectTouched: true } : {}) });
     window.history.replaceState(null, '', '/planner');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [me, projects]);

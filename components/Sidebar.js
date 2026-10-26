@@ -73,6 +73,7 @@ export default function Sidebar({ active, bell = true }) {
     { key: 'dashboard', href: '/dashboard', label: 'My Projects', icon: '📁' },
     { key: 'new-project', href: '/new-project', label: 'New Project', icon: '➕' },
     { key: 'planner', href: '/planner', label: 'Meetings', icon: '📅' },
+    { key: 'calendar', href: '/calendar', label: 'Calendar', icon: '🗓️' },
     ...(todoOn ? [{ key: 'todo', href: '/todo', label: 'To-Do', icon: '✅' }] : []), // only people given To-Do access
     ...(isManagerRole ? [{ key: 'team', href: '/team', label: 'Team & Access', icon: '👥' }] : []), // management only
     { key: 'profile', href: '/profile', label: 'My Profile', icon: '👤' },

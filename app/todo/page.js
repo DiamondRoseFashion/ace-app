@@ -182,6 +182,20 @@ export default function TodoPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // A to-do tapped on the Calendar: /todo?open=<id> opens it for editing
+  const openFromLink = useRef(typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('open') : null);
+  useEffect(() => {
+    if (!openFromLink.current || !me || !todos.length) return;
+    const t = todos.find((x) => x.id === openFromLink.current);
+    openFromLink.current = null;
+    window.history.replaceState(null, '', '/todo');
+    if (!t) return;
+    setTab(t.assigned_to === me ? 'mine' : 'assigned');
+    startEdit(t);
+    setTimeout(() => document.getElementById(`todo-${t.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [me, todos]);
+
   const nameOf = (id) => (id === me ? 'Me' : people.find((p) => p.id === id)?.name || 'Someone');
 
   async function add(e) {
@@ -525,7 +539,7 @@ export default function TodoPage() {
                       ? (t.created_by !== me ? `From ${nameOf(t.created_by)}` : '')
                       : `For ${nameOf(t.assigned_to)}`;
                     return (
-                      <div key={t.id} className={`td-item${open ? ' open' : ''}`}>
+                      <div key={t.id} id={`todo-${t.id}`} className={`td-item${open ? ' open' : ''}`}>
                         <div className="td-line">
                           <button type="button" className={`td-check p-${t.priority}`} onClick={() => markDone(t)} title="Mark done" aria-label={`Mark "${t.title}" done`}>
                             <span>✓</span>
