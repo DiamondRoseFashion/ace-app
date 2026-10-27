@@ -10,6 +10,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
 import Sidebar from '@/components/Sidebar';
+import Icon from '@/components/Icon';
 import ReminderSettings from '@/components/ReminderSettings';
 import OutlookConnect from '@/components/OutlookConnect';
 import { getPref, setPref, notifyMeetingsChanged } from '@/lib/planner';
@@ -130,11 +131,11 @@ export default function SettingsPage() {
 
   // the list of headings; tapping one opens just that section
   const SECTIONS = [
-    { key: 'appearance', icon: '🎨', title: 'Appearance', sub: THEMES.find((t) => t.value === theme)?.label || 'Classic' },
-    { key: 'notifications', icon: '🔔', title: 'Notifications & reminders', sub: 'Default reminder, alarm, phone notifications' },
-    { key: 'calendar', icon: '🗓️', title: 'Calendar & start page', sub: 'Week start, holidays, first page' },
-    { key: 'outlook', icon: '📆', title: 'Outlook', sub: 'Show your meetings in Outlook' },
-    { key: 'account', icon: '🔒', title: 'Account & security', sub: 'Password, log out of all devices' },
+    { key: 'appearance', icon: 'appearance', title: 'Appearance', sub: THEMES.find((t) => t.value === theme)?.label || 'Classic' },
+    { key: 'notifications', icon: 'bell', title: 'Notifications & reminders', sub: 'Default reminder, alarm, phone notifications' },
+    { key: 'calendar', icon: 'calendar', title: 'Calendar & start page', sub: 'Week start, holidays, first page' },
+    { key: 'outlook', icon: 'mail', title: 'Outlook', sub: 'Show your meetings in Outlook' },
+    { key: 'account', icon: 'lock', title: 'Account & security', sub: 'Password, log out of all devices' },
   ];
   const current = SECTIONS.find((x) => x.key === section);
 
@@ -246,7 +247,7 @@ export default function SettingsPage() {
         {current ? (
           <div className="set-detail">
             <button type="button" className="set-back" onClick={closeSection}>‹ Settings</button>
-            <h1 style={{ fontSize: 28, marginTop: 6, marginBottom: 18 }}><span aria-hidden="true">{current.icon}</span> {current.title}</h1>
+            <h1 className="set-title" style={{ fontSize: 28, marginTop: 6, marginBottom: 18 }}><span className={`set-menu-icon set-ic-${current.key}`}><Icon name={current.icon} size={20} /></span> {current.title}</h1>
             {content(current.key)}
           </div>
         ) : (
@@ -257,7 +258,7 @@ export default function SettingsPage() {
             <nav className="card set-menu" aria-label="Settings">
               {SECTIONS.map((x) => (
                 <button key={x.key} type="button" className="set-menu-row" onClick={() => openSection(x.key)}>
-                  <span className="set-menu-icon" aria-hidden="true">{x.icon}</span>
+                  <span className={`set-menu-icon set-ic-${x.key}`} aria-hidden="true"><Icon name={x.icon} size={20} /></span>
                   <span className="set-menu-text">
                     <strong>{x.title}</strong>
                     <span>{x.sub}</span>

@@ -1148,7 +1148,7 @@ html, body { overscroll-behavior-x: none; }
 .set-menu-row { display: flex; align-items: center; gap: 14px; width: 100%; padding: 16px 20px; border: none; border-bottom: 1px solid var(--line); background: none; color: var(--ink); cursor: pointer; text-align: left; font-family: 'Inter'; }
 .set-menu-row:last-child { border-bottom: none; }
 .set-menu-row:hover { background: #FBF7FD; }
-.set-menu-icon { width: 40px; height: 40px; border-radius: 11px; background: #F4ECF9; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+.set-menu-icon { width: 40px; height: 40px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
 .set-menu-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
 .set-menu-text strong { font-size: 15px; }
 .set-menu-text span { font-size: 12.5px; color: var(--muted); }
@@ -1157,3 +1157,16 @@ html, body { overscroll-behavior-x: none; }
 .set-detail .set-card > .modal-head { display: none; }
 .set-back { border: none; background: none; color: var(--gold); font: 600 14px 'Inter'; cursor: pointer; padding: 4px 0; }
 .set-back:hover { text-decoration: underline; }
+/* Line icons (components/Icon.js) */
+.ace-icon { display: block; flex-shrink: 0; }
+.nav-icon { display: flex; align-items: center; justify-content: center; color: #B8A9C9; }
+.nav-item:hover .nav-icon { color: #fff; }
+.nav-item.active .nav-icon { color: var(--gold); }
+/* Settings headings: coloured tiles with a white icon (like phone settings) */
+.set-menu-icon { color: #fff; }
+.set-ic-appearance { background: linear-gradient(135deg, #8F3FA8, #6B2D82); }
+.set-ic-notifications { background: linear-gradient(135deg, #E5484D, #C93338); }
+.set-ic-calendar { background: linear-gradient(135deg, #3E8E5A, #2E7048); }
+.set-ic-outlook { background: linear-gradient(135deg, #2F6FB3, #1F5594); }
+.set-ic-account { background: linear-gradient(135deg, #5D6B82, #3F4B60); }
+.set-title { display: flex; align-items: center; gap: 12px; }

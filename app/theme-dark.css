@@ -228,7 +228,6 @@ html[data-theme="dark"] .set-theme:hover{border-color:hsl(272 20% 27%)}
 html[data-theme="dark"] .set-seg{background:hsl(277 20% 17%)}
 html[data-theme="dark"] .set-seg button{color:hsl(272 15% 74%)}
 html[data-theme="dark"] .set-menu-row:hover{background:hsl(280 20% 15%)}
-html[data-theme="dark"] .set-menu-icon{background:hsl(277 20% 17%)}
 
 html[data-theme="dark"] .cal-day.out{background:hsl(222 32% 9%)}
 html[data-theme="dark"] .cal-day.out .cal-num{color:hsl(222 12% 45%)}

@@ -10,6 +10,7 @@ import { releasePush } from '@/lib/pushClient';
 import { useSupportAlerts, useMeetingAlerts } from '@/lib/supportAlerts';
 import PushPrompt from '@/components/PushPrompt';
 import NotificationBell from '@/components/NotificationBell';
+import Icon from '@/components/Icon';
 import { resetNotifications } from '@/lib/notificationsStore';
 import { markStarted } from '@/lib/startPage';
 
@@ -72,15 +73,15 @@ export default function Sidebar({ active, bell = true }) {
   const isManagerRole = ['owner', 'admin', 'manager'].includes(role);
 
   const links = [
-    { key: 'dashboard', href: '/dashboard', label: 'My Projects', icon: '📁' },
-    { key: 'new-project', href: '/new-project', label: 'New Project', icon: '➕' },
-    { key: 'planner', href: '/planner', label: 'Meetings', icon: '📅' },
-    { key: 'calendar', href: '/calendar', label: 'Calendar', icon: '🗓️' },
-    ...(todoOn ? [{ key: 'todo', href: '/todo', label: 'To-Do', icon: '✅' }] : []), // only people given To-Do access
-    ...(isManagerRole ? [{ key: 'team', href: '/team', label: 'Team & Access', icon: '👥' }] : []), // management only
-    { key: 'profile', href: '/profile', label: 'My Profile', icon: '👤' },
-    { key: 'settings', href: '/settings', label: 'Settings', icon: '⚙️' },
-    { key: 'support', href: '/support', label: 'Support', icon: '🛟' },
+    { key: 'dashboard', href: '/dashboard', label: 'My Projects', icon: 'projects' },
+    { key: 'new-project', href: '/new-project', label: 'New Project', icon: 'newProject' },
+    { key: 'planner', href: '/planner', label: 'Meetings', icon: 'meetings' },
+    { key: 'calendar', href: '/calendar', label: 'Calendar', icon: 'calendar' },
+    ...(todoOn ? [{ key: 'todo', href: '/todo', label: 'To-Do', icon: 'todo' }] : []), // only people given To-Do access
+    ...(isManagerRole ? [{ key: 'team', href: '/team', label: 'Team & Access', icon: 'team' }] : []), // management only
+    { key: 'profile', href: '/profile', label: 'My Profile', icon: 'profile' },
+    { key: 'settings', href: '/settings', label: 'Settings', icon: 'settings' },
+    { key: 'support', href: '/support', label: 'Support', icon: 'support' },
   ];
 
   const t = support.toast;
@@ -141,7 +142,7 @@ export default function Sidebar({ active, bell = true }) {
             title={l.label}
             onClick={() => setMenuOpen(false)}
           >
-            <span className="nav-icon" aria-hidden="true">{l.icon}</span>
+            <span className="nav-icon" aria-hidden="true"><Icon name={l.icon} size={19} /></span>
             <span className="nav-label">{l.label}</span>
             {l.key === 'support' && support.count > 0 && (
               <span className="nav-badge" aria-label={`${support.count} new`}>{support.count > 9 ? '9+' : support.count}</span>
