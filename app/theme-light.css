@@ -34,3 +34,4 @@ html[data-theme="light"] .day-chip.selected .dc-name, html[data-theme="light"] .
 html[data-theme="light"] .day-chip.selected .dc-dot.has { background: #fff; }
 html[data-theme="light"] .fb-field > span { color: var(--violet-2); }
 html[data-theme="light"] .chip.on { background: var(--violet); border-color: var(--violet); color: #fff; }
+html[data-theme="light"] .set-back { color: var(--violet); }
