@@ -1,0 +1,36 @@
+/* Light mode: a light page instead of the starry navy one. Cards are
+   already light; this re-colours what sits straight on the page
+   (headings, tabs, day chips, filter bars…). The sidebar stays navy. */
+html[data-theme="light"] body { background: #F4EFF8; }
+html[data-theme="light"] .shell::before {
+  background:
+    radial-gradient(900px 600px at 85% -10%, rgba(216,185,104,.16), transparent 60%),
+    radial-gradient(700px 520px at 8% 105%, rgba(143,63,168,.08), transparent 55%),
+    linear-gradient(165deg, #F7F3FA 0%, #F2ECF7 55%, #EEE7F4 100%);
+}
+html[data-theme="light"] .main { color: var(--ink); --muted: #7A6C86; }
+html[data-theme="light"] .main h1 { color: var(--deep); text-shadow: none; }
+html[data-theme="light"] .main .eyebrow { color: var(--violet-2); }
+html[data-theme="light"] .page-intro { color: #5D4E6A; }
+html[data-theme="light"] .nav-arrow { border-color: var(--line); background: #fff; color: var(--violet); }
+html[data-theme="light"] .nav-arrow:hover { background: #F6EFFA; }
+html[data-theme="light"] .seg { background: #fff; border-color: var(--line); }
+html[data-theme="light"] .seg button { color: #5D4E6A; }
+html[data-theme="light"] .day-chip { background: #fff; border-color: var(--line); color: #5D4E6A; }
+html[data-theme="light"] .day-chip:hover { background: #F6EFFA; }
+html[data-theme="light"] .dc-num { color: var(--ink); }
+html[data-theme="light"] .progress-bar { background: #E8E1EF; }
+html[data-theme="light"] .filter-bar { background: #fff; border-color: var(--line); }
+html[data-theme="light"] .chip { border-color: var(--line); color: #5D4E6A; }
+html[data-theme="light"] .chip:hover { background: #F6EFFA; }
+html[data-theme="light"] .fb-clear { color: var(--violet); }
+html[data-theme="light"] .list-group-head { color: var(--deep); }
+html[data-theme="light"] .lgh-late { color: var(--err); }
+html[data-theme="light"] .edit-head label { color: var(--warn); }
+html[data-theme="light"] .seg button.on { background: var(--violet); color: #fff; }
+html[data-theme="light"] .day-chip.today .dc-name { color: var(--warn); }
+html[data-theme="light"] .day-chip.selected { background: var(--violet); border-color: var(--violet); }
+html[data-theme="light"] .day-chip.selected .dc-name, html[data-theme="light"] .day-chip.selected .dc-num { color: #fff; }
+html[data-theme="light"] .day-chip.selected .dc-dot.has { background: #fff; }
+html[data-theme="light"] .fb-field > span { color: var(--violet-2); }
+html[data-theme="light"] .chip.on { background: var(--violet); border-color: var(--violet); color: #fff; }

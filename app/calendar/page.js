@@ -15,7 +15,7 @@ import { createClient } from '@/lib/supabaseClient';
 import Sidebar from '@/components/Sidebar';
 import {
   MANAGEMENT_ROLES, toKey, todayKey, parseKey, addDays, formatTime, formatDayLong,
-  meetingTitle, projectLabel, statusOf, statusLabel, isOverdue, friendlyDbError,
+  meetingTitle, projectLabel, statusOf, statusLabel, isOverdue, friendlyDbError, getPref,
 } from '@/lib/planner';
 import { ruleOf, stepRule } from '@/lib/repeatRule';
 import { holidayOn } from '@/lib/uaeHolidays';
@@ -31,12 +31,13 @@ function shiftMonth(key, n) {
 }
 const monthTitle = (key) => parseKey(key).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
 
-// every day shown in the grid: from the Sunday on/before the 1st to the Saturday on/after the last day
-function gridDays(month) {
+// every day shown in the grid: from the week start on/before the 1st to the week end on/after the last day
+function gridDays(month, mondayFirst) {
   const first = parseKey(month);
   const last = new Date(first.getFullYear(), first.getMonth() + 1, 0);
-  const start = addDays(month, -first.getDay());
-  const count = Math.ceil((first.getDay() + last.getDate()) / 7) * 7;
+  const lead = (first.getDay() - (mondayFirst ? 1 : 0) + 7) % 7;
+  const start = addDays(month, -lead);
+  const count = Math.ceil((lead + last.getDate()) / 7) * 7;
   return Array.from({ length: count }, (_, i) => addDays(start, i));
 }
 
@@ -82,6 +83,10 @@ export default function CalendarPage() {
   const [meetings, setMeetings] = useState([]);
   const [todos, setTodos] = useState([]);
   const [todoOn, setTodoOn] = useState(false);
+  // Settings → Calendar (this device)
+  const [mondayFirst, setMondayFirst] = useState(false);
+  const [showHolidays, setShowHolidays] = useState(true);
+  const [showDone, setShowDone] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const panelRef = useRef(null);
@@ -89,11 +94,16 @@ export default function CalendarPage() {
   const isManager = MANAGEMENT_ROLES.includes(me?.role);
   const effectiveWho = isManager ? who : 'mine';
   const personId = effectiveWho === 'mine' ? me?.id : effectiveWho === 'all' ? null : effectiveWho;
-  const days = useMemo(() => gridDays(month), [month]);
+  const days = useMemo(() => gridDays(month, mondayFirst), [month, mondayFirst]);
+  const weekDayIdx = mondayFirst ? [1, 2, 3, 4, 5, 6, 0] : [0, 1, 2, 3, 4, 5, 6];
+  const holiday = (key) => (showHolidays ? holidayOn(key) : null);
   const from = days[0];
   const to = days[days.length - 1];
 
   useEffect(() => {
+    setMondayFirst(getPref('week-monday', false));
+    setShowHolidays(getPref('cal-holidays', true));
+    setShowDone(getPref('cal-done', false));
     // back from Meetings after saving: /calendar?d=<YYYY-MM-DD> opens that day
     const d = new URLSearchParams(window.location.search).get('d') || '';
     if (/^\d{4}-\d{2}-\d{2}$/.test(d)) { setSelected(d); setMonth(firstOfMonth(d)); window.history.replaceState(null, '', '/calendar'); }
@@ -122,7 +132,9 @@ export default function CalendarPage() {
     if (personId) q = q.eq('assigned_to', personId);
     const [mt, td] = await Promise.all([
       q,
-      todoOn ? supabase.from('todos').select('*').is('done_at', null) : Promise.resolve({ data: [] }),
+      !todoOn ? Promise.resolve({ data: [] })
+        : showDone ? supabase.from('todos').select('*') // finished ones too (kept 7 days)
+          : supabase.from('todos').select('*').is('done_at', null),
     ]);
     if (mt.error) setError(friendlyDbError(mt.error.message));
     setMeetings(mt.data || []);
@@ -133,7 +145,7 @@ export default function CalendarPage() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [me, todoOn, from, to, personId]);
+  }, [me, todoOn, from, to, personId, showDone]);
 
   // stay current when meetings change elsewhere or the person comes back to the tab
   useEffect(() => {
@@ -166,7 +178,8 @@ export default function CalendarPage() {
     for (const t of todos) {
       const href = `/todo?open=${t.id}`;
       const person = showWho || t.assigned_to !== me?.id ? nameOf(t.assigned_to) : '';
-      const rings = reminderDays(t, from, to);
+      const finished = !!t.done_at;
+      const rings = finished ? [] : reminderDays(t, from, to);
       for (const r of rings) {
         const due = r.key === t.due_date;
         put(r.key, {
@@ -182,8 +195,8 @@ export default function CalendarPage() {
         put(t.due_date, {
           kind: 'todo', id: t.id, time: '', timeLabel: 'Due',
           title: t.title,
-          sub: [t.due_date < today ? 'Overdue' : 'To-do due', t.priority === 'high' ? 'High priority' : '', person ? `For ${person}` : ''].filter(Boolean).join(' · '),
-          cls: `todo p-${t.priority}${t.due_date < today ? ' late' : ''}`,
+          sub: [finished ? 'Done' : t.due_date < today ? 'Overdue' : 'To-do due', t.priority === 'high' && !finished ? 'High priority' : '', person ? `For ${person}` : ''].filter(Boolean).join(' · '),
+          cls: `todo p-${t.priority}${finished ? ' done' : t.due_date < today ? ' late' : ''}`,
           href,
         });
       }
@@ -210,7 +223,7 @@ export default function CalendarPage() {
   const newMeetingHref = (key) => `/planner?new=1&date=${key}${personId && personId !== me?.id ? `&for=${personId}` : ''}&back=${encodeURIComponent(`/calendar?d=${key}`)}`;
 
   const selItems = byDay[selected] || [];
-  const selHoliday = holidayOn(selected);
+  const selHoliday = holiday(selected);
   const whoLabel = effectiveWho === 'mine' ? 'My calendar' : effectiveWho === 'all' ? 'Everyone' : `${nameOf(effectiveWho) || 'Someone'}'s calendar`;
 
   return (
@@ -249,17 +262,17 @@ export default function CalendarPage() {
               <span><i className="lg lg-meeting" />Meeting</span>
               {todoOn && <span><i className="lg lg-todo" />To-do due</span>}
               {todoOn && <span><i className="lg lg-remind" />Reminder</span>}
-              <span><i className="lg lg-holiday" />UAE holiday</span>
+              {showHolidays && <span><i className="lg lg-holiday" />UAE holiday</span>}
               {loading && <span className="cal-loading">Loading…</span>}
             </div>
             <div className="cal-grid" role="grid" aria-label={monthTitle(month)}>
-              {WEEK_DAYS.map((w, i) => (
-                <div key={w} role="columnheader" className={`cal-dow${i === 0 || i === 6 ? ' wknd' : ''}`}>{w}</div>
+              {weekDayIdx.map((i) => (
+                <div key={i} role="columnheader" className={`cal-dow${i === 0 || i === 6 ? ' wknd' : ''}`}>{WEEK_DAYS[i]}</div>
               ))}
               {days.map((key) => {
                 const d = parseKey(key);
                 const items = byDay[key] || [];
-                const hol = holidayOn(key);
+                const hol = holiday(key);
                 const cls = [
                   'cal-day',
                   key.slice(0, 7) !== month.slice(0, 7) && 'out',

@@ -498,7 +498,7 @@ export default function ProjectDetail() {
               <div className="field-group" key={key}>
                 <label>{label}</label>
                 {editContacts[key].map((c, idx) => (
-                  <div key={idx} style={{ border: '1.5px dashed var(--line)', borderRadius: 10, padding: 14, marginBottom: 8, background: '#FCFAFE' }}>
+                  <div key={idx} style={{ border: '1.5px dashed var(--line)', borderRadius: 10, padding: 14, marginBottom: 8, background: 'var(--paper)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                       <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--violet)', textTransform: 'uppercase' }}>Contact {idx + 1}</span>
                       <span onClick={() => removeEditContact(key, idx)} style={{ fontSize: 11, color: '#B33A3A', cursor: 'pointer', fontWeight: 600 }}>Remove</span>
@@ -563,7 +563,7 @@ export default function ProjectDetail() {
           {editing ? (
             <>
               {editQuotations.map((q, idx) => (
-                <div key={idx} style={{ border: '1.5px dashed var(--line)', borderRadius: 10, padding: 14, marginBottom: 12, background: '#FCFAFE' }}>
+                <div key={idx} style={{ border: '1.5px dashed var(--line)', borderRadius: 10, padding: 14, marginBottom: 12, background: 'var(--paper)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                     <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--violet)', textTransform: 'uppercase' }}>Quotation {idx + 1}</span>
                     <span onClick={() => removeEditQuotation(idx)} style={{ fontSize: 11, color: '#B33A3A', cursor: 'pointer', fontWeight: 600 }}>Remove</span>
@@ -616,7 +616,7 @@ export default function ProjectDetail() {
           {editing ? (
             <>
               {editMeetings.map((m, idx) => (
-                <div key={idx} style={{ border: '1.5px dashed var(--line)', borderRadius: 10, padding: 14, marginBottom: 12, background: '#FCFAFE' }}>
+                <div key={idx} style={{ border: '1.5px dashed var(--line)', borderRadius: 10, padding: 14, marginBottom: 12, background: 'var(--paper)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                     <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--violet)', textTransform: 'uppercase' }}>Meeting {idx + 1}</span>
                     <span onClick={() => removeEditMeeting(idx)} style={{ fontSize: 11, color: '#B33A3A', cursor: 'pointer', fontWeight: 600 }}>Remove</span>

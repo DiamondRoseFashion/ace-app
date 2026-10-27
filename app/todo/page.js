@@ -432,7 +432,7 @@ export default function TodoPage() {
       <div className="main">
         <div className="eyebrow">Tasks</div>
         <h1 style={{ fontSize: 30, marginTop: 4, marginBottom: 6 }}>To-Do</h1>
-        <p style={{ color: 'rgba(255,255,255,.75)', marginTop: 0, marginBottom: 20 }}>
+        <p className="page-intro">
           Add what needs doing, set a due date, who does it and a reminder. Tick the circle when it&apos;s done: it moves to ✓ Done for 7 days.
         </p>
 

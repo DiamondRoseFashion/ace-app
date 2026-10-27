@@ -13,6 +13,7 @@ import MultiFilter from '@/components/MultiFilter';
 import StarRating from '@/components/StarRating';
 import { useTeam, teamName } from '@/lib/team';
 import { fmtDate } from '@/lib/dates';
+import { startRedirect } from '@/lib/startPage';
 import {
   REGISTER_COLUMNS, EMPTY, RATING_HIGH, RATING_LOW, toRegisterRow, cellText, selectOptions, matchesFilter, compareRows, formatDate, formatValue,
 } from '@/lib/projectTable';
@@ -83,7 +84,12 @@ export default function Dashboard() {
     }
   }
 
-  useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => {
+    const start = startRedirect(); // Settings → "Open ACE on"
+    if (start) { router.replace(start); return; }
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Live: when anyone changes a project (status/progress, new, deleted),
   // refresh the list straight away — plus on returning to the tab.

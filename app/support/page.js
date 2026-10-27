@@ -162,7 +162,7 @@ export default function Support() {
       <div className="main">
         <div className="eyebrow">Help</div>
         <h1 style={{ fontSize: 30, marginTop: 4, marginBottom: 6 }}>Support</h1>
-        <p style={{ color: 'rgba(255,255,255,.75)', marginTop: 0, marginBottom: 20 }}>
+        <p className="page-intro">
           Projects where you were added under <b>Supported By</b> (open one to add notes), and notes with the supporters of your own projects.
         </p>
 

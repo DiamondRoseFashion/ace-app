@@ -11,6 +11,7 @@ import { useSupportAlerts, useMeetingAlerts } from '@/lib/supportAlerts';
 import PushPrompt from '@/components/PushPrompt';
 import NotificationBell from '@/components/NotificationBell';
 import { resetNotifications } from '@/lib/notificationsStore';
+import { markStarted } from '@/lib/startPage';
 
 export default function Sidebar({ active, bell = true }) {
   const router = useRouter();
@@ -26,6 +27,7 @@ export default function Sidebar({ active, bell = true }) {
   const meetingsNew = useMeetingAlerts(supabase);
 
   useEffect(() => {
+    if (active !== 'dashboard') markStarted(); // opened on another page: don't jump to the start page later
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -77,6 +79,7 @@ export default function Sidebar({ active, bell = true }) {
     ...(todoOn ? [{ key: 'todo', href: '/todo', label: 'To-Do', icon: '✅' }] : []), // only people given To-Do access
     ...(isManagerRole ? [{ key: 'team', href: '/team', label: 'Team & Access', icon: '👥' }] : []), // management only
     { key: 'profile', href: '/profile', label: 'My Profile', icon: '👤' },
+    { key: 'settings', href: '/settings', label: 'Settings', icon: '⚙️' },
     { key: 'support', href: '/support', label: 'Support', icon: '🛟' },
   ];
 

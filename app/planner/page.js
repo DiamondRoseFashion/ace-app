@@ -8,10 +8,11 @@ import { markMeetingsSeen, notifyMeetingAssignee } from '@/lib/supportAlerts';
 import {
   MANAGEMENT_ROLES, REMINDER_OPTIONS, reminderLabel, DEFAULT_REMINDER, ANYTIME_REMINDER_HOUR,
   todayKey, addDays, weekDays, parseKey, formatTime, formatDayLong, formatDayShort,
-  meetingTitle, initials, getPref, setPref, notifyMeetingsChanged, friendlyDbError,
+  meetingTitle, initials, notifyMeetingsChanged, friendlyDbError,
   STATUSES, statusOf, statusLabel, isOverdue, matchesStatus, projectLabel,
 } from '@/lib/planner';
-import { enablePush, disablePush, pushStatus } from '@/lib/pushClient';
+import ReminderSettings from '@/components/ReminderSettings';
+import OutlookConnect from '@/components/OutlookConnect';
 import { buildCalendar } from '@/lib/ics';
 import { downloadXlsx } from '@/lib/xlsxExport';
 import DateInput from '@/components/DateInput';
@@ -1040,105 +1041,6 @@ function downloadIcs(m) {
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
-function OutlookConnect({ supabase, onClose }) {
-  const [link, setLink] = useState('');
-  const [err, setErr] = useState('');
-  const [copied, setCopied] = useState(false);
-  const [confirmReset, setConfirmReset] = useState(false);
-  const [busy, setBusy] = useState(false);
-
-  function toUrl(token) {
-    return `${window.location.origin}/api/calendar/${token}.ics`;
-  }
-
-  useEffect(() => {
-    (async () => {
-      const { data, error } = await supabase.rpc('get_my_calendar_token');
-      if (error) {
-        setErr(/function|schema cache|does not exist/i.test(error.message)
-          ? 'The Outlook connection needs a one-time database update. Please ask your admin to run it in Supabase.'
-          : error.message);
-        return;
-      }
-      setLink(toUrl(data));
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(link);
-    } catch {
-      const el = document.getElementById('ace-cal-link');
-      el?.select();
-      document.execCommand?.('copy');
-    }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
-  }
-
-  async function reset() {
-    setBusy(true);
-    const { data, error } = await supabase.rpc('reset_my_calendar_token');
-    setBusy(false);
-    setConfirmReset(false);
-    if (error) { setErr(error.message); return; }
-    setLink(toUrl(data));
-  }
-
-  return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="card modal" role="dialog" aria-modal="true" aria-label="Connect to Outlook" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <h2>Show my meetings in Outlook</h2>
-          <button className="reminder-x" aria-label="Close" onClick={onClose}>✕</button>
-        </div>
-        <p className="hint" style={{ marginTop: 0, fontSize: 13 }}>
-          Your ACE meetings appear in your Outlook calendar on computer, phone and web, and stay updated when meetings change.
-        </p>
-
-        <label>Your private calendar link</label>
-        {err ? (
-          <div className="error-text" style={{ marginBottom: 12 }}>{err}</div>
-        ) : (
-          <div style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
-            <input id="ace-cal-link" readOnly value={link || 'Loading…'} onFocus={(e) => e.target.select()} className="mono" style={{ fontSize: 12 }} />
-            <button type="button" className="btn btn-primary" disabled={!link} onClick={copy} style={{ flexShrink: 0 }}>{copied ? 'Copied ✓' : 'Copy'}</button>
-          </div>
-        )}
-        <div className="hint" style={{ marginBottom: 16 }}>Keep this link private: anyone who has it can see your meetings.</div>
-
-        <div className="notif-box" style={{ marginTop: 0 }}>
-          <div style={{ fontWeight: 600, marginBottom: 6 }}>Add it to Outlook (once)</div>
-          <ol className="steps">
-            <li>Open <strong>outlook.office.com</strong> (or the new Outlook app) and go to <strong>Calendar</strong>.</li>
-            <li>Click <strong>Add calendar</strong> → <strong>Subscribe from web</strong>.</li>
-            <li>Paste the link, name it <strong>ACE Meetings</strong>, then click <strong>Import</strong>.</li>
-          </ol>
-          <div className="hint" style={{ marginTop: 6 }}>
-            Classic Outlook on Windows: <strong>Calendar → Add Calendar → From Internet</strong>, paste, <strong>OK</strong>.
-            It then shows on Outlook on your phone too.
-          </div>
-          <div className="hint" style={{ marginTop: 6 }}>
-            Outlook checks for changes every few hours. To put one meeting in Outlook right away, open it and tap <strong>📆 Add to Outlook</strong>.
-          </div>
-        </div>
-
-        <div className="modal-actions">
-          {confirmReset ? (
-            <button type="button" className="btn btn-danger" disabled={busy} onClick={reset}>Yes, make a new link</button>
-          ) : (
-            <button type="button" className="btn btn-ghost danger-text" disabled={!link} onClick={() => setConfirmReset(true)}>Reset link</button>
-          )}
-          <span style={{ flex: 1 }} />
-          <button type="button" className="btn btn-primary" onClick={onClose}>Done</button>
-        </div>
-        {confirmReset && <div className="hint">The old link stops working, and you&apos;ll need to add the new one to Outlook again.</div>}
-      </div>
-    </div>
-  );
-}
-
 // Type-or-pick project box: suggests matching projects from the list,
 // and lets you keep a new name that isn't in the list.
 function ProjectPicker({ value, projects, onChange }) {
@@ -1280,139 +1182,6 @@ function MeetingRow({ m, showDate, showAssignee, onToggle, onOpen, defaultRemind
           <button className="icon-btn danger mr-del" aria-label={`Delete ${meetingTitle(m)}`} title="Delete meeting" onClick={() => setAskDel(true)}>🗑</button>
         )
       )}
-    </div>
-  );
-}
-
-function ReminderSettings({ me, onClose, onSaved, supabase }) {
-  const [mins, setMins] = useState(String(me.reminder_default_minutes ?? DEFAULT_REMINDER));
-  const [popup, setPopup] = useState(true);
-  const [repeat, setRepeat] = useState(me.reminder_repeat !== false);
-  const [sound, setSound] = useState(true);
-  const [push, setPush] = useState('checking'); // on | off | denied | unsupported | needs-home-screen
-  const [pushBusy, setPushBusy] = useState(false);
-  const [pushMsg, setPushMsg] = useState('');
-  const [msg, setMsg] = useState('');
-  const [err, setErr] = useState('');
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    setPopup(getPref('alarm-popup', true));
-    setSound(getPref('alarm-sound', true));
-    pushStatus().then(setPush).catch(() => setPush('unsupported'));
-  }, []);
-
-  async function save() {
-    setErr(''); setMsg('');
-    setSaving(true);
-    setPref('alarm-popup', popup);
-    setPref('alarm-sound', sound);
-    const value = Number(mins);
-    const patch = { reminder_default_minutes: value };
-    if ('reminder_repeat' in me || repeat === false) patch.reminder_repeat = repeat;
-    const { data, error } = await supabase
-      .from('profiles').update(patch).eq('id', me.id).select('id');
-    setSaving(false);
-    if (error) { setErr(friendlyDbError(error.message)); return; }
-    if (!data || data.length === 0) { setErr('Could not save your default. Please ask your admin to run the planner database update.'); return; }
-    onSaved(value, repeat);
-    setMsg('Saved.');
-  }
-
-  async function turnOnPush() {
-    setPushMsg(''); setPushBusy(true);
-    try {
-      const r = await enablePush(supabase);
-      setPush(r);
-      if (r === 'on') setPushMsg('✅ This device will now get meeting reminders, even when ACE is closed.');
-    } catch (e) {
-      setPushMsg(friendlyDbError(e.message) || 'Could not turn on notifications.');
-    }
-    setPushBusy(false);
-  }
-
-  async function turnOffPush() {
-    setPushMsg(''); setPushBusy(true);
-    try { await disablePush(supabase); setPush('off'); setPushMsg('Notifications turned off for this device.'); } catch { /* ignore */ }
-    setPushBusy(false);
-  }
-
-  async function sendTest() {
-    setPushMsg(''); setPushBusy(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch('/api/push-test', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${session?.access_token || ''}` },
-      });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) setPushMsg(body.error || 'Could not send a test.');
-      else setPushMsg(`Test sent to ${body.delivered} of your device${body.devices === 1 ? '' : 's'}. It should appear within a few seconds.`);
-    } catch {
-      setPushMsg('Could not send a test.');
-    }
-    setPushBusy(false);
-  }
-
-  return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="card modal" role="dialog" aria-modal="true" aria-label="Reminder settings" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-head">
-          <h2>Reminder settings</h2>
-          <button className="reminder-x" aria-label="Close" onClick={onClose}>✕</button>
-        </div>
-
-        <div className="field-group">
-          <label>Default reminder for my meetings</label>
-          <select value={mins} onChange={(e) => setMins(e.target.value)}>
-            {REMINDER_OPTIONS.map((r) => <option key={r.value} value={String(r.value)}>{r.label}</option>)}
-          </select>
-          <div className="hint">Used for any meeting where you didn&apos;t choose a reminder. Each meeting can also have its own time. Meetings without a start time remind you at {ANYTIME_REMINDER_HOUR}:00 AM that day. The alarm keeps ringing until you stop it.</div>
-        </div>
-
-        <div className="eyebrow" style={{ margin: '18px 0 10px' }}>On this device</div>
-        <label className="toggle-row">
-          <input type="checkbox" checked={popup} onChange={(e) => setPopup(e.target.checked)} />
-          <span>Pop-up alarm before meetings</span>
-        </label>
-        <label className="toggle-row">
-          <input type="checkbox" checked={sound} onChange={(e) => setSound(e.target.checked)} />
-          <span>Play a sound and vibrate</span>
-        </label>
-
-        <div className="notif-box">
-          <div style={{ fontWeight: 600, marginBottom: 4 }}>Reminders when ACE is closed</div>
-          {push === 'checking' && <div className="hint">Checking this device…</div>}
-          {push === 'on' && (
-            <>
-              <div className="hint">✅ On for this device. Reminders arrive as a phone/computer notification even when ACE is closed.</div>
-              <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-                <button type="button" className="btn btn-ghost" disabled={pushBusy} onClick={sendTest}>Send test notification</button>
-                <button type="button" className="btn btn-ghost danger-text" disabled={pushBusy} onClick={turnOffPush}>Turn off on this device</button>
-              </div>
-            </>
-          )}
-          {push === 'off' && (
-            <>
-              <div className="hint" style={{ marginBottom: 8 }}>Get meeting reminders on this phone or computer even when ACE is closed.</div>
-              <button type="button" className="btn btn-primary" disabled={pushBusy} onClick={turnOnPush}>{pushBusy ? 'Turning on…' : 'Turn on notifications'}</button>
-            </>
-          )}
-          {push === 'denied' && <div className="hint">Notifications are blocked for ACE in this browser. Tap the icon to the left of the web address → Site settings → Notifications → Allow, then reload ACE.</div>}
-          {push === 'needs-home-screen' && <div className="hint">On iPhone: tap the Share button <strong>⬆︎</strong> in Safari → <strong>Add to Home Screen</strong>. Then open ACE from its new icon and come back here to turn on notifications.</div>}
-          {push === 'unsupported' && <div className="hint">This browser can&apos;t receive background notifications. Please use Chrome, Edge or Safari (on iPhone, from the Home Screen icon).</div>}
-          {pushMsg && <div className="hint" style={{ marginTop: 8, color: 'var(--ink)' }}>{pushMsg}</div>}
-        </div>
-
-        {err && <div className="error-text" style={{ marginBottom: 10 }}>{err}</div>}
-        {msg && <div className="ok-text">{msg}</div>}
-        <div className="modal-actions">
-          <button type="button" className="btn btn-ghost" onClick={() => window.dispatchEvent(new Event('ace-test-alarm'))}>Test alarm</button>
-          <span style={{ flex: 1 }} />
-          <button type="button" className="btn btn-ghost" onClick={onClose}>Close</button>
-          <button type="button" className="btn btn-primary" disabled={saving} onClick={save}>{saving ? 'Saving…' : 'Save'}</button>
-        </div>
-      </div>
     </div>
   );
 }
