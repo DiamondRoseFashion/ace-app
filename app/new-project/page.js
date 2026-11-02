@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
 import Sidebar from '@/components/Sidebar';
@@ -42,6 +42,16 @@ export default function NewProject() {
   const [myUserId, setMyUserId] = useState(null);
   useEffect(() => { supabase.auth.getUser().then(({ data }) => setMyUserId(data?.user?.id || null)); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
 
+  // ---------- drafts ----------
+  // "Save as draft" keeps the form in ACE (table project_drafts, only you
+  // see it); /new-project?draft=<id> opens one again. Auto-keep also holds
+  // what you type on this device, so a closed tab doesn't lose it.
+  const [draftId, setDraftId] = useState(null);
+  const [draftMsg, setDraftMsg] = useState(null); // { ok, text }
+  const [draftSaving, setDraftSaving] = useState(false);
+  const [kept, setKept] = useState(null); // unsaved work found on this device
+  const keepReady = useRef(false); // don't overwrite kept work until the person decides
+
   // one array of contacts per role
   const [contacts, setContacts] = useState({
     contractor: [emptyContact()],
@@ -64,6 +74,87 @@ const [quotation, setQuotation] = useState({
   remarks: '',
   contractor: '',
 }); 
+
+  const keepKey = myUserId ? `ace-new-project-${myUserId}` : null;
+  const hasContent = () => Object.entries(project).some(([k, v]) => k !== 'status' && String(v || '').trim())
+    || supporters.length > 0
+    || Object.values(contacts).some((list) => list.some((c) => Object.values(c).some((v) => String(v || '').trim())));
+
+  function fillForm(data) {
+    if (data.project) setProject((p) => ({ ...p, ...data.project }));
+    if (data.contacts) setContacts((c) => ({ ...c, ...data.contacts }));
+    if (Array.isArray(data.supporters)) setSupporters(data.supporters);
+  }
+
+  // open a draft (?draft=<id>), or offer work kept on this device
+  useEffect(() => {
+    if (!myUserId) return;
+    const id = new URLSearchParams(window.location.search).get('draft');
+    (async () => {
+      if (id) {
+        const { data, error: dErr } = await supabase.from('project_drafts').select('id, data').eq('id', id).maybeSingle();
+        if (data) { fillForm(data.data || {}); setDraftId(data.id); setDraftMsg({ ok: true, text: 'Draft opened. Finish it with "Save & Continue", or keep it with "Save as draft".' }); }
+        else setDraftMsg({ ok: false, text: dErr ? friendlyDraftError(dErr.message) : 'That draft was not found. It may have been finished or deleted.' });
+        keepReady.current = true;
+        return;
+      }
+      try {
+        const k = JSON.parse(window.localStorage.getItem(`ace-new-project-${myUserId}`) || 'null');
+        if (k?.data) { setKept(k); return; }
+      } catch { /* ignore */ }
+      keepReady.current = true;
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [myUserId]);
+
+  // auto-keep: hold the form on this device while you type
+  useEffect(() => {
+    if (!keepKey || !keepReady.current || step !== 1) return;
+    const t = setTimeout(() => {
+      try {
+        if (hasContent()) window.localStorage.setItem(keepKey, JSON.stringify({ data: { project, contacts, supporters }, draftId, at: Date.now() }));
+        else window.localStorage.removeItem(keepKey);
+      } catch { /* ignore */ }
+    }, 600);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project, contacts, supporters, draftId, step, keepKey]);
+
+  function clearKept() {
+    try { if (keepKey) window.localStorage.removeItem(keepKey); } catch { /* ignore */ }
+  }
+
+  function continueKept() {
+    fillForm(kept.data);
+    if (kept.draftId) setDraftId(kept.draftId);
+    setKept(null);
+    keepReady.current = true;
+  }
+
+  function discardKept() {
+    clearKept();
+    setKept(null);
+    keepReady.current = true;
+  }
+
+  async function saveDraft() {
+    setDraftMsg(null); setError('');
+    if (!hasContent()) { setDraftMsg({ ok: false, text: 'Type something first, then save it as a draft.' }); return; }
+    setDraftSaving(true);
+    const row = { name: project.name.trim() || null, data: { project, contacts, supporters } };
+    let res = draftId
+      ? await supabase.from('project_drafts').update(row).eq('id', draftId).select('id').maybeSingle()
+      : await supabase.from('project_drafts').insert(row).select('id').maybeSingle();
+    if (!res.error && !res.data && draftId) {
+      // the draft was deleted meanwhile (e.g. on another device): save a new one
+      res = await supabase.from('project_drafts').insert(row).select('id').maybeSingle();
+    }
+    setDraftSaving(false);
+    if (res.error) { setDraftMsg({ ok: false, text: friendlyDraftError(res.error.message) }); return; }
+    setDraftId(res.data.id);
+    clearKept();
+    setDraftMsg({ ok: true, text: 'Draft saved ✓ Only you can see it. Find it on My Projects → Drafts.' });
+  }
 
   function addContact(roleKey) {
     setContacts((c) => ({ ...c, [roleKey]: [...c[roleKey], emptyContact()] }));
@@ -139,6 +230,12 @@ const [quotation, setQuotation] = useState({
       }
     }
 
+    // it's a real project now: the draft and the kept copy aren't needed
+    if (draftId) await supabase.from('project_drafts').delete().eq('id', draftId);
+    clearKept();
+    setDraftId(null);
+    setDraftMsg(null);
+
     setProjectId(data.id);
     setSaving(false);
     setStep(2);
@@ -168,6 +265,21 @@ const [quotation, setQuotation] = useState({
       <div className="main">
         <div className="eyebrow">New Entry</div>
         <h1 style={{ fontSize: 30, marginTop: 4, marginBottom: 24 }}>New Project</h1>
+
+        {kept && step === 1 && (
+          <div className="card np-kept" role="status">
+            <div>
+              <strong>Continue where you left off?</strong>
+              <span>
+                You have unsaved work{kept.data?.project?.name ? ` for “${kept.data.project.name}”` : ''} from {new Date(kept.at).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}.
+              </span>
+            </div>
+            <div className="np-kept-actions">
+              <button type="button" className="btn btn-primary" onClick={continueKept}>Continue</button>
+              <button type="button" className="btn btn-ghost" onClick={discardKept}>Start fresh</button>
+            </div>
+          </div>
+        )}
 
         <div className="card">
           <div style={{ display: 'flex', gap: 8, marginBottom: 24, fontSize: 12, fontWeight: 600, color: 'var(--muted)' }}>
@@ -269,9 +381,16 @@ const [quotation, setQuotation] = useState({
               ))}
 
               {error && <div className="error-text">{error}</div>}
-              <button className="btn btn-primary" onClick={saveStep1} disabled={saving || !project.name} style={{ marginTop: 8 }}>
-                {saving ? 'Saving…' : 'Save & Continue →'}
-              </button>
+              {draftMsg && <div className={draftMsg.ok ? 'notice ok' : 'notice err'} style={{ marginTop: 8 }}>{draftMsg.text}</div>}
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 8 }}>
+                <button className="btn btn-primary" onClick={saveStep1} disabled={saving || draftSaving || !project.name.trim()}>
+                  {saving ? 'Saving…' : 'Save & Continue →'}
+                </button>
+                <button type="button" className="btn btn-ghost" onClick={saveDraft} disabled={saving || draftSaving}>
+                  {draftSaving ? 'Saving draft…' : draftId ? '📝 Update draft' : '📝 Save as draft'}
+                </button>
+              </div>
+              {!project.name.trim() && <div className="hint">Project Name is needed to continue. You can save a draft without it.</div>}
             </>
           )}
 
@@ -309,4 +428,11 @@ const [quotation, setQuotation] = useState({
       </div>
     </div>
   );
+}
+
+function friendlyDraftError(message = '') {
+  if (/project_drafts|relation|schema cache|does not exist/i.test(message)) {
+    return 'Drafts need a one-time database update. Please ask your admin to run the "project drafts" update in Supabase.';
+  }
+  return message;
 }

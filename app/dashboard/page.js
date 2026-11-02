@@ -40,6 +40,23 @@ export default function Dashboard() {
   const [deleting, setDeleting] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  // my unfinished New Project forms ("Save as draft"); only I see them
+  const [drafts, setDrafts] = useState([]);
+  const [draftsOpen, setDraftsOpen] = useState(false);
+  const [confirmDraft, setConfirmDraft] = useState(null); // draft id waiting for "Yes, delete"
+
+  async function loadDrafts() {
+    const { data, error: dErr } = await supabase.from('project_drafts').select('id, name, updated_at').order('updated_at', { ascending: false });
+    setDrafts(dErr ? [] : data || []); // no table yet: just no drafts
+  }
+
+  async function deleteDraft(id) {
+    setConfirmDraft(null);
+    const { error: dErr } = await supabase.from('project_drafts').delete().eq('id', id);
+    if (dErr) { setError(dErr.message); return; }
+    setMessage('Draft deleted.');
+    loadDrafts();
+  }
 
   async function load() {
     const { data: { user } } = await supabase.auth.getUser();
@@ -88,6 +105,7 @@ export default function Dashboard() {
     const start = startRedirect(); // Settings → "Open ACE on"
     if (start) { router.replace(start); return; }
     load();
+    loadDrafts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -223,6 +241,41 @@ export default function Dashboard() {
             <Link href="/new-project"><button className="btn btn-primary">+ New Project</button></Link>
           </div>
         </div>
+
+        {drafts.length > 0 && (
+          <div className="card drafts-card">
+            <button type="button" className="drafts-head" aria-expanded={draftsOpen} onClick={() => setDraftsOpen((o) => !o)}>
+              <span className="drafts-title">📝 Drafts <span className="sp-count">{drafts.length}</span></span>
+              <span className="drafts-sub">Unfinished projects only you can see</span>
+              <span className="drafts-caret" aria-hidden="true">{draftsOpen ? '▴' : '▾'}</span>
+            </button>
+            {draftsOpen && (
+              <ul className="drafts-list">
+                {drafts.map((d) => (
+                  <li key={d.id} className="drafts-row">
+                    <div className="drafts-text">
+                      <strong>{d.name || 'Untitled draft'}</strong>
+                      <span>Last saved {fmtDate(d.updated_at.slice(0, 10))}, {new Date(d.updated_at).toLocaleTimeString('en-GB', { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
+                    </div>
+                    <div className="drafts-actions">
+                      {confirmDraft === d.id ? (
+                        <>
+                          <button type="button" className="btn btn-danger" onClick={() => deleteDraft(d.id)}>Yes, delete</button>
+                          <button type="button" className="btn btn-ghost" onClick={() => setConfirmDraft(null)}>Cancel</button>
+                        </>
+                      ) : (
+                        <>
+                          <Link className="btn btn-primary" href={`/new-project?draft=${d.id}`}>Continue</Link>
+                          <button type="button" className="btn btn-ghost danger-text" onClick={() => setConfirmDraft(d.id)}>Delete</button>
+                        </>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
 
         <div style={{ display: 'flex', gap: 10, marginBottom: 12, flexWrap: 'wrap', alignItems: 'center' }}>
           <input
