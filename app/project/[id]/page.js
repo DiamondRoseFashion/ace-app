@@ -56,6 +56,7 @@ export default function ProjectDetail() {
   const [meetings, setMeetings] = useState([]);
   const [files, setFiles] = useState([]);
   const [myRole, setMyRole] = useState(null);
+  const [costingOn, setCostingOn] = useState(false); // Costing sheets: Admin only for now
   const [myId, setMyId] = useState(null);
   const [confirmDel, setConfirmDel] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -76,6 +77,10 @@ export default function ProjectDetail() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => { load(); }, [projectId]);
+  useEffect(() => {
+    supabase.rpc('has_costing_access').then(({ data }) => setCostingOn(!!data)); // no database update yet: just hidden
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Live: if someone else changes this project's status, show it at once
   useEffect(() => {
@@ -410,6 +415,9 @@ export default function ProjectDetail() {
             </div>
           )}
           <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
+            {!editing && costingOn && (
+              <Link href={`/project/${projectId}/costing`}><button className="btn btn-ghost">🧮 Costing sheets</button></Link>
+            )}
             {!editing && canManage && (
               <button className="btn btn-ghost" onClick={startEditing}>Edit</button>
             )}

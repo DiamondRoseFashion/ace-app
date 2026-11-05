@@ -1190,3 +1190,106 @@ html, body { overscroll-behavior-x: none; }
 .np-kept > div:first-child { display: flex; flex-direction: column; flex: 1; min-width: 200px; }
 .np-kept span { font-size: 13px; color: var(--muted); }
 .np-kept-actions { display: flex; gap: 8px; }
+
+/* ===== COSTING SHEET ===== */
+.costing .cs-actions { align-items: center; }
+.costing .cs-actions a.btn { text-decoration: none; }
+.cs-status { font-size: 12.5px; color: var(--muted); }
+.cs-status.dirty { color: var(--gold); font-weight: 600; }
+.cs-card { padding: 18px; }
+.cs-title { text-align: center; font-family: 'Fraunces', serif; font-size: 20px; font-weight: 700; letter-spacing: 3px; color: var(--deep); margin-bottom: 14px; }
+.cs-head { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 14px; margin-bottom: 16px; }
+.cs-field { display: flex; flex-direction: column; gap: 4px; margin: 0; }
+.cs-field.wide { grid-column: span 2; }
+.cs-field > span { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+.cs-field input { padding: 8px 11px; font-size: 13px; }
+.cs-scroll { position: relative; overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+.cs-table { border-collapse: collapse; table-layout: fixed; font-size: 12.5px; }
+.cs-table input, .cs-table select, .cs-table textarea { min-width: 0; }
+.cs-table th, .cs-table td { border: 1px solid var(--line); padding: 4px; vertical-align: top; }
+.cs-table thead th { background: #F6EFFA; color: var(--deep); font-size: 11px; font-weight: 700; text-align: center; vertical-align: middle; padding: 6px 6px; line-height: 1.25; }
+.cs-table thead th small { display: block; font-weight: 500; color: var(--muted); font-size: 10px; margin-top: 2px; }
+.cs-table thead th.grp { letter-spacing: 1.5px; text-transform: uppercase; }
+.cs-table thead th.buy { background: #EEF2FA; }
+.cs-table thead th.sell { background: #EEF7F0; }
+.cs-table td.c-sl { text-align: center; font-weight: 700; color: var(--muted); vertical-align: middle; }
+.cs-table tr.cs-new td.c-sl { color: #C9BBD6; }
+.cs-table .c-img { text-align: center; vertical-align: middle; }
+.cs-table .c-money { text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cs-table td.calc { background: #FBF8FD; vertical-align: middle; font-variant-numeric: tabular-nums; padding-right: 8px; }
+.cs-table td.calc.sell { background: #F4FAF6; }
+.cs-table td.strong { font-weight: 700; }
+.cs-in { width: 100%; border: 1px solid transparent; border-radius: 6px; padding: 6px 7px; font-size: 12.5px; background: transparent; resize: vertical; }
+.cs-in:hover { border-color: var(--line); }
+.cs-in:focus { border-color: var(--violet-2); background: #fff; box-shadow: 0 0 0 2px rgba(143,63,168,.14); }
+.cs-in.num { text-align: right; font-variant-numeric: tabular-nums; }
+.cs-in.bad, .cs-rates input.bad { border-color: var(--err); background: var(--err-bg); }
+.cs-desc { min-height: 48px; }
+.cs-rem { min-height: 48px; }
+.cs-desc-pick { display: block; margin-top: 3px; border: none; background: none; color: var(--violet); font: 600 11.5px 'Inter'; cursor: pointer; padding: 2px 4px; }
+.cs-desc-pick:hover { text-decoration: underline; }
+.cs-offer { display: flex; gap: 4px; }
+.cs-offer .cs-in { flex: 1; }
+.cs-offer .cs-cur { flex: 0 0 66px; }
+.cs-cur { width: auto; padding: 5px 6px; font-size: 12px; border-radius: 6px; }
+.cs-rate { display: flex; align-items: center; gap: 4px; margin: 4px 0 0; font-size: 11px; font-weight: 500; color: var(--muted); white-space: nowrap; }
+.cs-rate .cs-in { width: 70px; padding: 3px 5px; font-size: 11.5px; border-color: var(--line); }
+.cs-img { position: relative; display: inline-block; }
+.cs-img a { display: block; width: 80px; height: 60px; overflow: hidden; border-radius: 6px; }
+.cs-img img { display: block; width: 80px; height: 60px; object-fit: contain; border-radius: 6px; background: #fff; border: 1px solid var(--line); }
+.cs-img-x { position: absolute; top: -6px; right: -6px; width: 18px; height: 18px; border-radius: 50%; border: none; background: var(--err); color: #fff; font-size: 12px; line-height: 18px; cursor: pointer; padding: 0; }
+.cs-img-wait { color: var(--muted); }
+.cs-drop { width: 80px; height: 60px; margin: 0 auto; border: 1.5px dashed #CDBFDB; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; font-size: 10.5px; line-height: 1.3; color: var(--muted); cursor: pointer; }
+.cs-drop:hover, .cs-drop:focus { border-color: var(--violet-2); color: var(--violet); outline: none; background: #FBF7FD; }
+.cs-drop.busy { cursor: progress; }
+.cs-muted { color: var(--muted); }
+.cs-rowbtns { display: flex; gap: 2px; justify-content: center; }
+.cs-rowbtns button { width: 22px; height: 22px; border-radius: 5px; border: 1px solid var(--line); background: #fff; color: var(--muted); cursor: pointer; font-size: 12px; padding: 0; line-height: 1; }
+.cs-rowbtns button:hover:not(:disabled) { border-color: var(--violet-2); color: var(--violet); }
+.cs-rowbtns button:disabled { opacity: .35; cursor: default; }
+.cs-rowbtns button.del:hover { border-color: var(--err); color: var(--err); }
+.cs-table tfoot td { background: #FCFAFD; vertical-align: middle; }
+.cs-table tfoot td.lbl { text-align: right; font-weight: 700; color: var(--deep); white-space: nowrap; padding-right: 8px; }
+.cs-table tfoot .c-money { font-variant-numeric: tabular-nums; padding-right: 8px; }
+.cs-table tfoot .cs-gross td { border-top: 2px solid var(--line); }
+.cs-note-cell { vertical-align: top !important; background: #fff !important; }
+.cs-note { display: flex; flex-direction: column; gap: 4px; margin: 0; }
+.cs-note > span { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+.cs-note textarea { font-size: 12.5px; min-height: 90px; }
+.cs-dedit { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.cs-dedit .cs-in { border-color: var(--line); background: #fff; }
+.cs-dedit .cs-in:first-child { flex: 1 1 100%; }
+.cs-dedit .cs-in.num { flex: 1; width: auto; }
+.cs-dedit .cs-cur { flex: 0 0 62px; }
+.cs-dx { border: none; background: none; color: var(--muted); cursor: pointer; font-size: 14px; padding: 0 3px; }
+.cs-dx:hover { color: var(--err); }
+.cs-adddisc td { padding: 6px 8px !important; }
+.cs-profit td { background: #F4FAF6 !important; }
+.cs-profit-val { font-weight: 800; font-size: 15px; color: var(--ok); text-align: center; }
+.cs-profit-val.neg { color: var(--err); }
+.cs-profit-val small { font-weight: 500; font-size: 11.5px; color: var(--muted); }
+/* costing dropdowns */
+.cc-btn { width: 100%; display: flex; align-items: center; gap: 4px; border: 1px solid transparent; border-radius: 6px; padding: 6px 7px; background: transparent; color: var(--ink); font: 500 12.5px 'Inter'; cursor: pointer; text-align: left; min-height: 30px; }
+.cc-btn:hover { border-color: var(--line); }
+.cc-btn:focus-visible, .cc-btn[aria-expanded="true"] { border-color: var(--violet-2); outline: none; box-shadow: 0 0 0 2px rgba(143,63,168,.14); }
+.cc-btn.empty .cc-val { color: #B3A8BE; }
+.cc-val { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cc-caret { color: var(--muted); font-size: 10px; }
+.cc-panel { position: fixed; z-index: 1200; background: #fff; border: 1px solid var(--line); border-radius: 10px; box-shadow: var(--shadow-lg); padding: 6px; display: flex; flex-direction: column; max-height: 320px; }
+.cc-search { padding: 8px 10px; font-size: 13px; margin-bottom: 6px; }
+.cc-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; }
+.cc-opt { padding: 7px 10px; border-radius: 7px; cursor: pointer; font-size: 13px; color: var(--ink); }
+.cc-opt.on { background: #F4ECF9; }
+.cc-opt.cur { font-weight: 700; color: var(--violet); }
+.cc-opt.add { color: var(--violet); font-weight: 600; }
+.cc-opt small { color: var(--muted); font-weight: 500; }
+.cc-empty { padding: 10px; font-size: 12.5px; color: var(--muted); }
+.cc-clear { margin-top: 6px; border: none; background: none; color: var(--err); font: 600 12px 'Inter'; cursor: pointer; align-self: flex-end; padding: 4px 6px; }
+.cs-dpanel { max-height: 280px; }
+.cs-dhead { font-size: 12px; color: var(--muted); padding: 4px 6px 8px; }
+.cs-rates { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.cs-rate-row { display: grid; grid-template-columns: auto 80px auto 1fr auto; gap: 8px; align-items: center; font-size: 13px; }
+.cs-rate-row input { padding: 7px 9px; font-size: 13px; }
+@media (max-width: 900px) {
+  .cs-head { grid-template-columns: 1fr 1fr; }
+}
