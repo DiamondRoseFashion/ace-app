@@ -56,7 +56,7 @@ export default function ProjectDetail() {
   const [meetings, setMeetings] = useState([]);
   const [files, setFiles] = useState([]);
   const [myRole, setMyRole] = useState(null);
-  const [costingOn, setCostingOn] = useState(false); // Costing sheets: Admin only for now
+  const [costingOn, setCostingOn] = useState(false); // Costing sheets: Admin + people given access
   const [myId, setMyId] = useState(null);
   const [confirmDel, setConfirmDel] = useState(false);
   const [deleting, setDeleting] = useState(false);

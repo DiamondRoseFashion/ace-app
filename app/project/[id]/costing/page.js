@@ -2,7 +2,7 @@
 
 // A project's costing sheets (R0, R1 …): make a new one (its top details
 // fill in from the project), copy one as the next revision, open or
-// delete. Admin only for now (has_costing_access in the database).
+// delete. Admin, plus people listed in costing_access (has_costing_access).
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -114,7 +114,7 @@ export default function ProjectCostingPage() {
   if (state !== 'ok') {
     const text = {
       loading: 'Loading…',
-      denied: 'Costing sheets are open to Admin only for now.',
+      denied: 'Costing sheets are not turned on for your account yet. Please ask your admin.',
       missing: 'Costing sheets need a one-time database update. Please ask your admin to run the "costing sheets" update in Supabase.',
     }[state];
     return (

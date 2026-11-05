@@ -13,7 +13,7 @@
 //  • Image: paste a snip (Ctrl+V) or choose a file; it's remembered for
 //    that Code + Description and appears by itself next time.
 //  • Every price and total is worked out by lib/costing.js.
-// Admin only for now (has_costing_access in the database).
+// Admin, plus people listed in costing_access (has_costing_access in the database).
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -352,7 +352,7 @@ export default function CostingSheetPage() {
   if (state !== 'ok') {
     const text = {
       loading: 'Loading…',
-      denied: 'Costing sheets are open to Admin only for now.',
+      denied: 'Costing sheets are not turned on for your account yet. Please ask your admin.',
       missing: 'Costing sheets need a one-time database update. Please ask your admin to run the "costing sheets" update in Supabase.',
       notfound: 'This costing sheet was not found. It may have been deleted.',
     }[state];
