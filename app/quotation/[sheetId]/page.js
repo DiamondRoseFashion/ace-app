@@ -16,7 +16,7 @@ import Sidebar from '@/components/Sidebar';
 import DateInput from '@/components/DateInput';
 import { money } from '@/lib/costing';
 import {
-  DEFAULT_INTRO, DEFAULT_TERMS, DEFAULT_CLOSING, itemsFromCosting, quotationTotals, modelOf, qtyText,
+  DEFAULT_INTRO, DEFAULT_TERMS, DEFAULT_CLOSING, itemsFromCosting, discountsFromCosting, quotationTotals, modelOf, qtyText,
 } from '@/lib/quotation';
 
 const BUCKET = 'costing-images';
@@ -34,6 +34,7 @@ export default function QuotationPage() {
   const [doc, setDoc] = useState(null); // the saved quotation row
   const [form, setForm] = useState({});
   const [items, setItems] = useState([]);
+  const [discounts, setDiscounts] = useState([]); // selling special discounts, from the costing sheet
   const [terms, setTerms] = useState([]);
   const [vat, setVat] = useState('5');
   const [urls, setUrls] = useState({});
@@ -46,6 +47,7 @@ export default function QuotationPage() {
     for (const k of FIELDS) f[k] = row[k] ?? '';
     setForm(f);
     setItems(row.items || []);
+    setDiscounts(row.discounts || []);
     setTerms(row.terms || []);
     setVat(String(row.vat_percent ?? 5));
     setDoc(row);
@@ -86,6 +88,7 @@ export default function QuotationPage() {
         salutation: 'Dear Sir,',
         intro: DEFAULT_INTRO,
         items: itemsFromCosting(sh.items || []),
+        discounts: discountsFromCosting(sh.discounts_sell || []),
         vat_percent: 5,
         terms: DEFAULT_TERMS,
         delivery: null,
@@ -126,7 +129,7 @@ export default function QuotationPage() {
     return () => window.removeEventListener('beforeunload', onUnload);
   }, [dirty]);
 
-  const totals = useMemo(() => quotationTotals(items, vat), [items, vat]);
+  const totals = useMemo(() => quotationTotals(items, vat, discounts), [items, vat, discounts]);
   // the costing sheet has been saved since its items were last taken
   const costingNewer = sheet && doc?.synced_at && new Date(sheet.updated_at).getTime() > new Date(doc.synced_at).getTime();
 
@@ -136,6 +139,7 @@ export default function QuotationPage() {
     const p = {};
     for (const k of FIELDS) p[k] = String(form[k] ?? '').trim() || null;
     p.items = items;
+    p.discounts = discounts;
     p.terms = terms.map((t) => String(t || '').trim()).filter(Boolean);
     const v = Number(String(vat).trim());
     p.vat_percent = Number.isFinite(v) && v >= 0 && v <= 100 ? v : 5;
@@ -157,18 +161,20 @@ export default function QuotationPage() {
     if (error || !sh) { setBusy(''); setMsg({ ok: false, text: 'The costing sheet could not be read.' }); return; }
     setSheet(sh);
     const nextItems = itemsFromCosting(sh.items || []);
+    const nextDiscounts = discountsFromCosting(sh.discounts_sell || []);
     const nextForm = { ...form, ref_no: sh.quotation_no || '', quote_date: sh.quotation_date || '', project_name: sh.project_name || '' };
     setForm(nextForm);
     setItems(nextItems);
+    setDiscounts(nextDiscounts);
     const p = payload();
     const { data, error: uErr } = await supabase.from('quotation_docs').update({
       ...p, ...Object.fromEntries(['ref_no', 'quote_date', 'project_name'].map((k) => [k, String(nextForm[k] || '').trim() || null])),
-      items: nextItems, synced_at: sh.updated_at,
+      items: nextItems, discounts: nextDiscounts, synced_at: sh.updated_at,
     }).eq('id', doc.id).select('*').maybeSingle();
     setBusy('');
     if (uErr || !data) { setMsg({ ok: false, text: uErr ? uErr.message : 'Couldn\'t update.' }); return; }
     fillFrom(data);
-    setMsg({ ok: true, text: `Updated from costing sheet ${sh.revision}: ${nextItems.length} item${nextItems.length === 1 ? '' : 's'}, Ref, Date and Project.` });
+    setMsg({ ok: true, text: `Updated from costing sheet ${sh.revision}: ${nextItems.length} item${nextItems.length === 1 ? '' : 's'}, special discounts, Ref, Date and Project.` });
   }
 
   async function downloadPdf() {
@@ -312,6 +318,12 @@ export default function QuotationPage() {
               </tbody>
               <tfoot>
                 <tr><td colSpan={8} className="r lbl">Total in AED :</td><td className="r strong">{money(totals.total)}</td></tr>
+                {totals.discountLines.map((l, i) => (
+                  <tr key={`d${i}`}><td colSpan={8} className="r lbl">{l.label} :</td><td className="r strong">− {money(l.amount)}</td></tr>
+                ))}
+                {totals.discountLines.length > 0 && (
+                  <tr><td colSpan={8} className="r lbl">Total after Discount :</td><td className="r strong">{money(totals.afterDiscount)}</td></tr>
+                )}
                 <tr>
                   <td colSpan={8} className="r lbl">
                     VAT (<input className="qt-vat" inputMode="decimal" value={vat} onChange={(e) => { setVat(e.target.value); setDirty(true); }} aria-label="VAT percent" />%) :
@@ -322,7 +334,7 @@ export default function QuotationPage() {
               </tfoot>
             </table>
           </div>
-          <div className="hint">Items and prices come from the costing sheet (selling prices only). Change them there, save, then press “Update from costing sheet”.</div>
+          <div className="hint">Items, prices and special discounts come from the costing sheet (selling side only). Change them there, save, then press “Update from costing sheet”.</div>
 
           <div className="qt-sec" style={{ marginTop: 22 }}>Terms &amp; Conditions</div>
           <ol className="qt-terms">
