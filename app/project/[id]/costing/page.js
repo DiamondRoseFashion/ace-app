@@ -167,6 +167,7 @@ export default function ProjectCostingPage() {
                       ) : (
                         <>
                           <Link className="btn btn-primary" href={`/costing/${s.id}`}>Open</Link>
+                          <Link className="btn btn-ghost" href={`/quotation/${s.id}`}>📄 Quotation</Link>
                           <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => copySheet(s.id)} title="Make a copy as the next revision">Copy as {nextRevision()}</button>
                           <button type="button" className="btn btn-ghost danger-text" onClick={() => setConfirmDel(s.id)}>Delete</button>
                         </>

@@ -386,6 +386,7 @@ export default function CostingSheetPage() {
             </span>
             <button type="button" className="btn btn-ghost" onClick={() => setShowRates(true)}>💱 Currency rates</button>
             {projectId && <Link className="btn btn-ghost" href={`/project/${projectId}/costing`}>← All sheets</Link>}
+            <Link className="btn btn-ghost" href={`/quotation/${sheetId}`} title="Make or open the quotation for this costing sheet">📄 Quotation</Link>
             <button type="button" className="btn btn-primary" onClick={save} disabled={saving || !dirty}>{saving ? 'Saving…' : 'Save (Ctrl+S)'}</button>
           </div>
         </div>

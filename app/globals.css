@@ -1293,3 +1293,37 @@ html, body { overscroll-behavior-x: none; }
 @media (max-width: 900px) {
   .cs-head { grid-template-columns: 1fr 1fr; }
 }
+
+/* ===== QUOTATION ===== */
+.quotation .cs-actions a.btn { text-decoration: none; }
+.drafts-actions a.btn { text-decoration: none; }
+.qt-stale { background: var(--warn-bg); color: var(--warn); }
+.qt-paper { padding: 26px; max-width: 1100px; }
+.qt-top { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 24px; margin-bottom: 6px; }
+.qt-to, .qt-ref { display: flex; flex-direction: column; }
+.qt-field { display: flex; flex-direction: column; gap: 4px; margin: 0 0 10px; }
+.qt-field > span { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); }
+.qt-field input, .qt-field textarea { padding: 8px 11px; font-size: 13.5px; }
+.qt-sec { font-family: 'Fraunces', serif; font-size: 17px; font-weight: 700; color: var(--deep); margin-bottom: 8px; }
+.qt-items-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 16px 0 8px; flex-wrap: wrap; }
+.qt-items-head .qt-sec { margin: 0; }
+.qt-table { width: 100%; min-width: 860px; border-collapse: collapse; font-size: 12.5px; }
+.qt-table th, .qt-table td { border: 1px solid var(--line); padding: 6px 7px; vertical-align: middle; }
+.qt-table thead th { background: #F3F0F5; color: var(--deep); font-size: 11.5px; text-align: center; }
+.qt-table thead th small { display: block; font-weight: 500; color: var(--muted); }
+.qt-table td.c { text-align: center; }
+.qt-table td.r { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.qt-table td.lbl { font-weight: 700; color: var(--deep); border: none; }
+.qt-table td.strong { font-weight: 700; }
+.qt-table tfoot tr.net td { font-size: 13.5px; }
+.qt-img { width: 56px; height: 42px; object-fit: contain; display: block; margin: 0 auto; }
+.qt-vat { width: 46px; padding: 2px 5px; font-size: 12.5px; text-align: center; display: inline-block; }
+.qt-terms { list-style: none; margin: 0 0 6px; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.qt-terms li { display: flex; align-items: center; gap: 6px; }
+.qt-terms li > span { color: var(--muted); font-weight: 700; }
+.qt-terms input { padding: 6px 9px; font-size: 12.5px; }
+.qt-dpv { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+.qt-sign { margin: 6px 0 10px; font-size: 13.5px; }
+@media (max-width: 800px) {
+  .qt-top, .qt-dpv { grid-template-columns: 1fr; }
+}

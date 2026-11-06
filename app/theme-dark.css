@@ -257,6 +257,10 @@ html[data-theme="dark"] .cc-opt.on{background:hsl(277 20% 17%)}
 html[data-theme="dark"] .cc-opt.cur{color:hsl(284 49% 75%)}
 html[data-theme="dark"] .cc-opt.add{color:hsl(284 49% 75%)}
 html[data-theme="dark"] .cc-clear{color:hsl(0 51% 69%)}
+html[data-theme="dark"] .qt-stale{color:hsl(42 55% 75%)}
+html[data-theme="dark"] .qt-sec{color:hsl(219 55% 83%)}
+html[data-theme="dark"] .qt-table thead th{background:hsl(276 20% 17%); color:hsl(219 55% 83%)}
+html[data-theme="dark"] .qt-table td.lbl{color:hsl(219 55% 83%)}
 
 html[data-theme="dark"] .cal-day.out{background:hsl(222 32% 9%)}
 html[data-theme="dark"] .cal-day.out .cal-num{color:hsl(222 12% 45%)}
