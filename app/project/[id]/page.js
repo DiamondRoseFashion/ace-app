@@ -54,7 +54,6 @@ export default function ProjectDetail() {
   const [contacts, setContacts] = useState([]);
   const [quotations, setQuotations] = useState([]);
   const [meetings, setMeetings] = useState([]);
-  const [files, setFiles] = useState([]);
   const [myRole, setMyRole] = useState(null);
   const [costingOn, setCostingOn] = useState(false); // Costing sheets: Admin + people given access
   const [myId, setMyId] = useState(null);
@@ -62,7 +61,6 @@ export default function ProjectDetail() {
   const [deleting, setDeleting] = useState(false);
   const [delError, setDelError] = useState('');
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   const [statusError, setStatusError] = useState('');
   const [editing, setEditing] = useState(false);
@@ -102,12 +100,11 @@ export default function ProjectDetail() {
     setMyRole(me?.role);
     setMyId(user.id);
 
-    const [{ data: proj }, { data: c }, { data: q }, { data: m }, { data: fileList }] = await Promise.all([
+    const [{ data: proj }, { data: c }, { data: q }, { data: m }] = await Promise.all([
       supabase.from('projects').select('*').eq('id', projectId).single(),
       supabase.from('contacts').select('*').eq('project_id', projectId).order('contact_role'),
       supabase.from('quotations').select('*').eq('project_id', projectId).order('created_at', { ascending: false }),
       supabase.from('meetings').select('*').eq('project_id', projectId).order('meeting_date', { ascending: false }),
-      supabase.storage.from('project-files').list(projectId),
     ]);
     const { data: sup, error: supErr } = await supabase.from('project_supporters').select('user_id').eq('project_id', projectId);
     setSupportersReady(!supErr);
@@ -127,7 +124,6 @@ export default function ProjectDetail() {
     setContacts(c || []);
     setQuotations(q || []);
     setMeetings(m || []);
-    setFiles(Array.isArray(fileList) ? fileList : []);
     setLoading(false);
   }
 
@@ -327,28 +323,6 @@ export default function ProjectDetail() {
     load();
   }
 
-  async function handleFileUpload(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    setUploading(true); setError('');
-    const path = `${projectId}/${Date.now()}_${file.name}`;
-    const { error } = await supabase.storage.from('project-files').upload(path, file);
-    if (error) setError(error.message);
-    else load();
-    setUploading(false);
-  }
-
-  async function downloadFile(fileName) {
-    const { data, error } = await supabase.storage.from('project-files').download(`${projectId}/${fileName}`);
-    if (error) { setError(error.message); return; }
-    const url = URL.createObjectURL(data);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
   const canManage = myRole === 'owner' || myRole === 'admin' || myRole === 'manager' || myRole === 'employee';
 
   if (loading) return <div className="shell"><Sidebar active="dashboard" /><div className="main">Loading…</div></div>;
@@ -434,7 +408,7 @@ export default function ProjectDetail() {
               <div className="modal-head"><h2>Delete this project?</h2></div>
               <div className="del-names"><div>📁 {project.name}</div></div>
               <p className="del-warn">
-                This will also permanently delete its <strong>{contacts.length}</strong> contact{contacts.length === 1 ? '' : 's'}, <strong>{quotations.length}</strong> quotation{quotations.length === 1 ? '' : 's'}, <strong>{meetings.length}</strong> meeting{meetings.length === 1 ? '' : 's'} and <strong>{files.length}</strong> uploaded file{files.length === 1 ? '' : 's'}.
+                This will also permanently delete its <strong>{contacts.length}</strong> contact{contacts.length === 1 ? '' : 's'}, <strong>{quotations.length}</strong> quotation{quotations.length === 1 ? '' : 's'}, and <strong>{meetings.length}</strong> meeting{meetings.length === 1 ? '' : 's'} (and any files uploaded to it in the past).
                 <br />This can&apos;t be undone.
               </p>
               {delError && <div className="error-text" style={{ marginBottom: 10 }}>{delError}</div>}
@@ -662,19 +636,6 @@ export default function ProjectDetail() {
             </div>
           </div>
         )}
-
-        {/* Files */}
-        <SectionTitle>Files</SectionTitle>
-        <div className="card" style={{ marginBottom: 20 }}>
-          {error && !editing && <div className="error-text" style={{ marginBottom: 10 }}>{error}</div>}
-          <input type="file" onChange={handleFileUpload} disabled={uploading} style={{ marginBottom: 14 }} />
-          {files.length === 0 ? <Empty text="No files uploaded yet." /> : files.map((f) => (
-            <div key={f.name} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--line)', fontSize: 13.5 }}>
-              <span>{f.name.replace(/^\d+_/, '')}</span>
-              <span onClick={() => downloadFile(f.name)} style={{ color: 'var(--violet-2)', cursor: 'pointer', fontWeight: 600 }}>Download</span>
-            </div>
-          ))}
-        </div>
 
         {/* Activity */}
         <SectionTitle>Activity</SectionTitle>
