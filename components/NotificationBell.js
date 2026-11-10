@@ -103,10 +103,15 @@ export default function NotificationBell({ variant = 'inline' }) {
     groups[groups.length - 1].items.push(n);
   }
 
+  // open the page the notification is about (e.g. /todo?open=<id> opens that to-do)
   function openItem(n) {
     if (!n.read_at) markRead(n.id);
     setOpen(false);
-    if (n.url) router.push(n.url);
+    if (!n.url) return;
+    const target = new URL(n.url, window.location.origin);
+    // already on that page: load it again so it opens the item in the link
+    if (target.pathname === window.location.pathname && target.search) window.location.assign(target.href);
+    else router.push(n.url);
   }
 
   const badge = unread > 99 ? '99+' : unread;

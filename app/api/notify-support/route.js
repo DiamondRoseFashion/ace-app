@@ -45,7 +45,7 @@ export async function POST(req) {
     kind: 'support',
     title: '🛟 New project to support',
     body: `From ${from}: ${project.name || 'a project'}`,
-    url: '/support',
+    url: `/support?project=${projectId}`,
     tag: `ace-support-${projectId}`,
     projectId,
   };

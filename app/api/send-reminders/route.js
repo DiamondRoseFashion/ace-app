@@ -5,7 +5,7 @@ import { NextResponse } from 'next/server';
 import { adminClient, configurePush, sendToUser } from '@/lib/pushServer';
 import { logEvent, heartbeat } from '@/lib/monitor';
 import { runTodoNotifications } from '@/lib/todoReminders';
-import { pushAction, notificationFor, localDateKey, shiftDateKey, MAX_REPEATS } from '@/lib/reminderSchedule';
+import { pushAction, notificationFor, localDateKey, shiftDateKey, MAX_REPEATS, meetingUrl } from '@/lib/reminderSchedule';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -105,7 +105,7 @@ async function handle(req) {
         kind: 'meeting-copy',
         title: note.title,
         body: `${note.body}\nAssigned to ${who}`,
-        url: '/planner',
+        url: meetingUrl(m),
         tag: `ace-meeting-copy-${m.id}`,
       });
       results.push({ meeting: m.id, type: 'copy-to-creator', ...copy });

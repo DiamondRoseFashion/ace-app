@@ -74,6 +74,21 @@ export default function Support() {
   const [mine, setMine] = useState([]);
   const [mineOpenId, setMineOpenId] = useState(null);
   const [newIds, setNewIds] = useState(new Set()); // assigned since I last opened this page
+  // a notification link: /support?project=<id> opens that project's notes
+  const linkProject = useRef(null);
+  useEffect(() => { linkProject.current = new URLSearchParams(window.location.search).get('project'); }, []); // read once the page has opened
+
+  useEffect(() => {
+    const id = linkProject.current;
+    if (!id || loading) return;
+    let el = null;
+    if (rows.some((r) => r.project_id === id)) { setFa(EMPTY_A); setOpenId(id); el = `sp-${id}`; }
+    else if (mine.some((r) => r.id === id)) { setFb(EMPTY_B); setMineOpenId(id); el = `spm-${id}`; }
+    if (!el) return; // not loaded yet (or no longer on this page)
+    linkProject.current = null;
+    window.history.replaceState(null, '', '/support');
+    setTimeout(() => document.getElementById(el)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
+  }, [loading, rows, mine]);
 
   async function loadMine(uid) {
     const { data, error } = await supabase
@@ -205,7 +220,7 @@ export default function Support() {
                     {shown.map((r) => {
                       const open = openId === r.project_id;
                       return [
-                        <tr key={r.project_id} className={`sp-row${open ? ' open' : ''}`} onClick={() => setOpenId(open ? null : r.project_id)}>
+                        <tr key={r.project_id} id={`sp-${r.project_id}`} className={`sp-row${open ? ' open' : ''}`} onClick={() => setOpenId(open ? null : r.project_id)}>
                           <Cell mono>{fmtDate(r.project_date)}</Cell>
                           <Cell mono>{r.quotation_number}</Cell>
                           <Cell>{r.sales_person}</Cell>
@@ -272,7 +287,7 @@ export default function Support() {
                   {mineShown.map((r) => {
                     const open = mineOpenId === r.id;
                     return [
-                      <tr key={r.id} className={`sp-row${open ? ' open' : ''}`} onClick={() => setMineOpenId(open ? null : r.id)}>
+                      <tr key={r.id} id={`spm-${r.id}`} className={`sp-row${open ? ' open' : ''}`} onClick={() => setMineOpenId(open ? null : r.id)}>
                         <Cell mono>{fmtDate(r.date)}</Cell>
                         <Cell mono>{r.quotation_number}</Cell>
                         <Cell>{r.name}</Cell>

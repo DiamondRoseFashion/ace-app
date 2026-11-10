@@ -42,7 +42,7 @@ export async function POST(req) {
     kind: 'meeting-assigned',
     title: `📅 New meeting from ${me?.full_name || 'your manager'}`,
     body: [m.title || 'Meeting', when, m.venue && `📍 ${m.venue}`, proj && `📁 ${proj}`].filter(Boolean).join(' · '),
-    url: '/planner',
+    url: m.meeting_date ? `/planner?date=${m.meeting_date}&open=${m.id}` : `/planner?open=${m.id}`,
     tag: `ace-meeting-${m.id}`,
   };
   const r = await sendToUser(admin, m.assigned_to, payload);

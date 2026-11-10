@@ -183,7 +183,9 @@ export default function TodoPage() {
   }, []);
 
   // A to-do tapped on the Calendar: /todo?open=<id> opens it for editing
-  const openFromLink = useRef(typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('open') : null);
+  const openFromLink = useRef(null);
+  // read after the page has opened (when arriving from another page, the address isn't updated yet while it first draws)
+  useEffect(() => { openFromLink.current = new URLSearchParams(window.location.search).get('open'); }, []);
   useEffect(() => {
     if (!openFromLink.current || !me || !todos.length) return;
     const t = todos.find((x) => x.id === openFromLink.current);
