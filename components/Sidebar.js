@@ -14,6 +14,17 @@ import Icon from '@/components/Icon';
 import { resetNotifications } from '@/lib/notificationsStore';
 import { markStarted } from '@/lib/startPage';
 
+// "Open" on a pop-up for the page you're already on: load it again so
+// the meeting / project in the link opens
+function sameSpotReload(e) {
+  const a = e.currentTarget;
+  const target = new URL(a.href, window.location.origin);
+  if (target.pathname === window.location.pathname && target.search) {
+    e.preventDefault();
+    window.location.assign(target.href);
+  }
+}
+
 export default function Sidebar({ active, bell = true }) {
   const router = useRouter();
   const supabase = createClient();
@@ -101,7 +112,11 @@ export default function Sidebar({ active, bell = true }) {
             </span>
           )}
         </div>
-        <Link href="/planner" className="btn btn-primary st-open" onClick={meetingsNew.closeToast}>Open</Link>
+        <Link
+          href={meetingsNew.toast.meeting_id ? `/planner?${meetingsNew.toast.meeting_date ? `date=${meetingsNew.toast.meeting_date}&` : ''}open=${meetingsNew.toast.meeting_id}` : '/planner'}
+          className="btn btn-primary st-open"
+          onClick={(e) => { meetingsNew.closeToast(); sameSpotReload(e); }}
+        >Open</Link>
         <button type="button" className="st-close" aria-label="Close" onClick={meetingsNew.closeToast}>✕</button>
       </div>
     )}
@@ -112,7 +127,11 @@ export default function Sidebar({ active, bell = true }) {
           <strong>{t.count ? `${t.count} new projects to support` : 'New project to support'}</strong>
           {!t.count && <span>From {t.sales_person || t.assigned_by || 'a salesperson'}: {t.project_name}</span>}
         </div>
-        <Link href="/support" className="btn btn-primary st-open" onClick={support.closeToast}>Open</Link>
+        <Link
+          href={t.project_id ? `/support?project=${t.project_id}` : '/support'}
+          className="btn btn-primary st-open"
+          onClick={(e) => { support.closeToast(); sameSpotReload(e); }}
+        >Open</Link>
         <button type="button" className="st-close" aria-label="Close" onClick={support.closeToast}>✕</button>
       </div>
     )}
