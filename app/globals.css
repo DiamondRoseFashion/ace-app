@@ -163,6 +163,7 @@ input:focus, select:focus, textarea:focus{
 .pill-delivery{background:#FFEDD5; color:#C2410C;}
 .pill-invoice_payment{background:#FEF9C3; color:#A16207;}
 .pill-om_manual_warranty{background:#E2E8F0; color:#334155;}
+.pill-lost{background:var(--err-bg); color:var(--err);}
 /* aliases for older markup */
 .status-pill{font-size:11px; padding:3px 10px; border-radius:20px; font-weight:600; width:fit-content; letter-spacing:.2px;}
 .status-design{background:#F1E7F8; color:var(--violet);}

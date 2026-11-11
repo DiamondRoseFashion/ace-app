@@ -19,6 +19,7 @@ html[data-theme="dark"] .pill-lpo_order_confirmation{background:hsl(167 20% 22%)
 html[data-theme="dark"] .pill-delivery{background:hsl(34 20% 20%); color:hsl(17 55% 72%)}
 html[data-theme="dark"] .pill-invoice_payment{background:hsl(55 20% 23%); color:hsl(35 55% 75%)}
 html[data-theme="dark"] .pill-om_manual_warranty{background:hsl(214 20% 20%); color:hsl(215 25% 78%)}
+html[data-theme="dark"] .pill-lost{color:hsl(0 51% 69%)}
 html[data-theme="dark"] .status-design{background:hsl(275 20% 18%); color:hsl(284 49% 75%)}
 html[data-theme="dark"] .status-tender{color:hsl(42 55% 75%)}
 html[data-theme="dark"] .status-job{color:hsl(141 39% 72%)}
