@@ -21,12 +21,13 @@ import { createClient } from '@/lib/supabaseClient';
 import Sidebar from '@/components/Sidebar';
 import DateInput from '@/components/DateInput';
 import CostingCombo from '@/components/CostingCombo';
-import { shrinkImage } from '@/lib/shrinkImage';
+import { shrinkToLimit } from '@/lib/shrinkImage';
 import {
   num, calcSheet, money, isBlankItem, emptyItem, emptyDiscount,
 } from '@/lib/costing';
 
 const BUCKET = 'costing-images';
+const MAX_IMAGE_BYTES = 300 * 1024; // costing sheet images are stored at 300 KB at most
 const ITEM_KEYS = ['id', 'type', 'qty', 'make', 'model', 'code', 'description', 'image_path', 'make_oem', 'oem_code',
   'offer_price', 'offer_currency', 'exchange_rate', 'customs_freight', 'markup', 'remarks'];
 const NUM_KEYS = ['qty', 'offer_price', 'exchange_rate', 'customs_freight', 'markup'];
@@ -272,7 +273,7 @@ export default function CostingSheetPage() {
     if (!file || !/^image\//.test(file.type || '')) { setMsg({ ok: false, text: 'That is not an image. Snip it with the Snipping Tool, then click the image box and press Ctrl+V.' }); return; }
     setUploading(it.id);
     try {
-      const blob = await shrinkImage(file);
+      const blob = await shrinkToLimit(file, MAX_IMAGE_BYTES); // made smaller automatically to fit 300 KB
       const id = (crypto.randomUUID && crypto.randomUUID()) || String(Date.now());
       const path = `products/${id}.jpg`;
       const { error } = await supabase.storage.from(BUCKET).upload(path, blob, { contentType: 'image/jpeg', upsert: false });
