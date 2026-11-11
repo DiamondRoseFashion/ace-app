@@ -16,6 +16,7 @@ import { createClient } from '@/lib/supabaseClient';
 import Sidebar from '@/components/Sidebar';
 import DateInput from '@/components/DateInput';
 import { money } from '@/lib/costing';
+import { SIGNATURE_BUCKET, signatureFor } from '@/lib/signature';
 import {
   DEFAULT_INTRO, DEFAULT_TERMS, DEFAULT_CLOSING, itemsFromCosting, discountsFromCosting, quotationTotals, modelOf, qtyText,
 } from '@/lib/quotation';
@@ -50,6 +51,7 @@ export default function QuotationPage() {
   const [dirty, setDirty] = useState(false);
   const [busy, setBusy] = useState('');
   const [msg, setMsg] = useState(null);
+  const [sig, setSig] = useState(null); // { name, path, url } of the salesman's e-signature
 
   function fillFrom(row) {
     const f = {};
@@ -138,6 +140,21 @@ export default function QuotationPage() {
     return () => window.removeEventListener('beforeunload', onUnload);
   }, [dirty]);
 
+  // the salesman's e-signature (from the profile with that name)
+  useEffect(() => {
+    if (state !== 'ok') return undefined;
+    let stop = false;
+    const t = setTimeout(async () => {
+      const hit = await signatureFor(supabase, form.salesman);
+      if (stop) return;
+      if (!hit) { setSig(null); return; }
+      const { data } = await supabase.storage.from(SIGNATURE_BUCKET).createSignedUrl(hit.path, 60 * 60);
+      if (!stop) setSig({ ...hit, url: data?.signedUrl || '' });
+    }, 400);
+    return () => { stop = true; clearTimeout(t); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.salesman, state]);
+
   const totals = useMemo(() => quotationTotals(items, vat, discounts), [items, vat, discounts]);
   // the costing sheet has been saved since its items were last taken
   const costingNewer = sheet && doc?.synced_at && new Date(sheet.updated_at).getTime() > new Date(doc.synced_at).getTime();
@@ -218,7 +235,14 @@ export default function QuotationPage() {
           try { const res = await fetch(r.signedUrl); if (res.ok) images.set(r.path, await res.arrayBuffer()); } catch { /* skip */ }
         }));
       }
-      const bytes = await buildQuotationPdf({ q: payload(), letterhead, fonts: { regular, bold, italic, boldItalic }, images });
+      // the salesman's e-signature, if their profile has one
+      let signature = null;
+      const hit = await signatureFor(supabase, form.salesman);
+      if (hit) {
+        const { data } = await supabase.storage.from(SIGNATURE_BUCKET).createSignedUrl(hit.path, 600);
+        if (data?.signedUrl) { try { const r = await fetch(data.signedUrl); if (r.ok) signature = await r.arrayBuffer(); } catch { /* print without it */ } }
+      }
+      const bytes = await buildQuotationPdf({ q: payload(), letterhead, fonts: { regular, bold, italic, boldItalic }, images, signature });
       const blob = new Blob([bytes], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -383,6 +407,19 @@ export default function QuotationPage() {
           </label>
           <div className="qt-sign">Best Regards. <strong>For GEMS Systems LLC</strong></div>
           {inp('salesman', 'Salesman name (signs the quotation)')}
+          <div className="qt-sig">
+            {sig?.url ? (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={sig.url} alt={`Signature of ${sig.name}`} />
+                <span>{sig.name}&apos;s e-signature will be printed above the name.</span>
+              </>
+            ) : (
+              <span className="cs-muted">
+                {form.salesman ? `No e-signature found for “${form.salesman}”. ${form.salesman} can add one in My Profile → E-signature (the name here must match their profile name).` : 'Type the salesman name to print their e-signature.'}
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -262,6 +262,9 @@ html[data-theme="dark"] .qt-stale{color:hsl(42 55% 75%)}
 html[data-theme="dark"] .qt-sec{color:hsl(219 55% 83%)}
 html[data-theme="dark"] .qt-table thead th{background:hsl(276 20% 17%); color:hsl(219 55% 83%)}
 html[data-theme="dark"] .qt-table td.lbl{color:hsl(219 55% 83%)}
+html[data-theme="dark"] .sig-title{color:hsl(219 55% 83%)}
+html[data-theme="dark"] .sig-box{border:1.5px dashed hsl(270 20% 29%); background:hsl(222 30% 13%)}
+html[data-theme="dark"] .qt-sig img{background:hsl(222 30% 13%)}
 
 html[data-theme="dark"] .cal-day.out{background:hsl(222 32% 9%)}
 html[data-theme="dark"] .cal-day.out .cal-num{color:hsl(222 12% 45%)}

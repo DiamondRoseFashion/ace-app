@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
 import { shrinkImage } from '@/lib/shrinkImage';
 import Sidebar from '@/components/Sidebar';
+import SignatureCard from '@/components/SignatureCard';
 
 export default function MyProfile() {
   const router = useRouter();
@@ -213,6 +214,8 @@ export default function MyProfile() {
             </button>
           </form>
         </div>
+
+        <SignatureCard supabase={supabase} userId={userId} />
       </div>
     </div>
   );

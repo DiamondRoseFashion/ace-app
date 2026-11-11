@@ -1329,3 +1329,11 @@ html, body { overscroll-behavior-x: none; }
   .qt-top, .qt-dpv { grid-template-columns: 1fr; }
 }
 .qt-fill { align-self: flex-start; margin: -4px 0 10px; }
+/* E-signature (My Profile) and its preview on the quotation */
+.sig-card { margin-top: 20px; }
+.sig-title { font-size: 20px; color: var(--deep); }
+.sig-box { margin-top: 14px; width: 320px; max-width: 100%; height: 120px; border: 1.5px dashed #CDBFDB; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: #fff; }
+.sig-box img { max-width: 92%; max-height: 92%; object-fit: contain; }
+.sig-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.qt-sig { display: flex; align-items: center; gap: 12px; margin-top: -2px; font-size: 12.5px; color: var(--muted); }
+.qt-sig img { height: 44px; max-width: 160px; object-fit: contain; background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 2px 6px; }
