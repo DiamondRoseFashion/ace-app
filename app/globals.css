@@ -152,6 +152,7 @@ input:focus, select:focus, textarea:focus{
 /* ===== PILLS (status badges) ===== */
 .pill{font-size:11px; padding:3px 10px; border-radius:20px; font-weight:600; width:fit-content; letter-spacing:.2px; display:inline-block;}
 .pill-design{background:#F1E7F8; color:var(--violet);}
+.pill-lighting_design{background:#E0E7FF; color:#4338CA;}
 .pill-tender{background:var(--warn-bg); color:var(--warn);}
 .pill-job_in_hand{background:var(--ok-bg); color:var(--ok);}
 .pill-letter_of_intent{background:#E0F2FE; color:#0369A1;}

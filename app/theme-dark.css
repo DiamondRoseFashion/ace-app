@@ -8,6 +8,7 @@ html[data-theme="dark"] input:hover, html[data-theme="dark"] select:hover, html[
 html[data-theme="dark"] .error-text{color:hsl(0 51% 69%)}
 html[data-theme="dark"] .eyebrow{color:hsl(286 45% 70%)}
 html[data-theme="dark"] .pill-design{background:hsl(275 20% 18%); color:hsl(284 49% 75%)}
+html[data-theme="dark"] .pill-lighting_design{background:hsl(226 20% 18%)}
 html[data-theme="dark"] .pill-tender{color:hsl(42 55% 75%)}
 html[data-theme="dark"] .pill-job_in_hand{color:hsl(141 39% 72%)}
 html[data-theme="dark"] .pill-letter_of_intent{background:hsl(204 20% 18%); color:hsl(201 55% 76%)}
