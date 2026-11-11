@@ -1328,3 +1328,4 @@ html, body { overscroll-behavior-x: none; }
 @media (max-width: 800px) {
   .qt-top, .qt-dpv { grid-template-columns: 1fr; }
 }
+.qt-fill { align-self: flex-start; margin: -4px 0 10px; }

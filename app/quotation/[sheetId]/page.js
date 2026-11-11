@@ -2,8 +2,9 @@
 
 // Quotation for one costing sheet revision (costing sheet → "📄 Quotation").
 //  • First time: made from the costing sheet (Ref, Date, Project, items
-//    with selling prices) and the project's Client contact (To / Tel /
-//    Attn.), plus the standard terms. Everything is editable.
+//    with selling prices) and the project's Contractor contact (To / Tel /
+//    Attn.; Main Contractor if there's no Contractor), plus the standard
+//    terms. Everything is editable.
 //  • Items only change when you press "Update from costing sheet"; a note
 //    shows when the costing sheet was saved after the last update.
 //  • Download PDF: drawn on the company letterhead by lib/quotationPdf.js.
@@ -20,6 +21,14 @@ import {
 } from '@/lib/quotation';
 
 const BUCKET = 'costing-images';
+// the contact the quotation is addressed to: the Contractor (or the Main Contractor)
+function addressee(contacts = []) {
+  const has = (c) => (c.company_name || '').trim() || (c.name || '').trim();
+  return contacts.find((c) => c.contact_role === 'contractor' && has(c))
+    || contacts.find((c) => c.contact_role === 'main_contractor' && has(c))
+    || null;
+}
+
 const FIELDS = ['to_company', 'po_box', 'city', 'tel', 'attn', 'ref_no', 'quote_date', 'project_name', 'salutation', 'intro', 'delivery', 'payment', 'validity', 'closing', 'salesman'];
 
 export default function QuotationPage() {
@@ -68,20 +77,20 @@ export default function QuotationPage() {
       if (qErr) { setState('missing'); return; }
       if (existing) { fillFrom(existing); setState('ok'); return; }
 
-      // first time: start from the costing sheet and the project's client contact
+      // first time: start from the costing sheet and the project's contractor contact
       const [{ data: me }, { data: contacts }] = await Promise.all([
         supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle(),
         supabase.from('contacts').select('contact_role, company_name, name, tel, mobile, created_at').eq('project_id', sh.project_id).order('created_at'),
       ]);
-      const client = (contacts || []).find((c) => c.contact_role === 'client' && ((c.company_name || '').trim() || (c.name || '').trim()));
+      const to = addressee(contacts || []);
       const row = {
         costing_sheet_id: sh.id,
         project_id: sh.project_id,
-        to_company: (client?.company_name || '').trim() || sh.client || null,
+        to_company: (to?.company_name || '').trim() || sh.contractor || null,
         po_box: null,
         city: 'UAE',
-        tel: (client?.tel || client?.mobile || '').trim() || null,
-        attn: (client?.name || '').trim() || null,
+        tel: (to?.tel || to?.mobile || '').trim() || null,
+        attn: (to?.name || '').trim() || null,
         ref_no: sh.quotation_no,
         quote_date: sh.quotation_date,
         project_name: sh.project_name,
@@ -153,6 +162,19 @@ export default function QuotationPage() {
     if (error || !data) { setMsg({ ok: false, text: error ? `Couldn't save: ${error.message}` : 'Couldn\'t save: this quotation was deleted or you no longer have access.' }); return null; }
     fillFrom(data);
     return data;
+  }
+
+  // To / Tel / Attn. again from the project's contractor contact
+  async function fillFromContractor() {
+    setMsg(null);
+    const { data: contacts } = await supabase.from('contacts')
+      .select('contact_role, company_name, name, tel, mobile, created_at').eq('project_id', sheet.project_id).order('created_at');
+    const to = addressee(contacts || []);
+    const company = (to?.company_name || '').trim() || sheet.contractor || '';
+    if (!company && !to) { setMsg({ ok: false, text: 'This project has no Contractor contact yet. Add one on the project page, or type the details here.' }); return; }
+    setForm((f) => ({ ...f, to_company: company, tel: (to?.tel || to?.mobile || '').trim(), attn: (to?.name || '').trim() }));
+    setDirty(true);
+    setMsg({ ok: true, text: 'Filled in from the project\'s contractor. Press Save to keep it.' });
   }
 
   async function updateFromCosting() {
@@ -262,6 +284,7 @@ export default function QuotationPage() {
           <div className="qt-top">
             <div className="qt-to">
               {inp('to_company', 'To: M/s.')}
+              <button type="button" className="td-link qt-fill" onClick={fillFromContractor} disabled={!!busy}>↻ Fill To, Tel and Attn. from the project&apos;s contractor</button>
               {inp('po_box', 'P.O. Box')}
               {inp('city', 'City / Country')}
               {inp('tel', 'Tel')}
