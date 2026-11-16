@@ -15,6 +15,7 @@ const KINDS = {
   support: { icon: '🛟', cls: 'k-support', label: 'Support' },
   note: { icon: '💬', cls: 'k-note', label: 'Project note' },
   todo: { icon: '✅', cls: 'k-todo', label: 'To-Do' },
+  project: { icon: '📁', cls: 'k-support', label: 'Project' },
   info: { icon: '🔔', cls: 'k-info', label: 'ACE' },
 };
 const kindOf = (k) => KINDS[k] || KINDS.info;

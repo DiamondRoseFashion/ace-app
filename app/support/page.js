@@ -91,10 +91,11 @@ export default function Support() {
   }, [loading, rows, mine]);
 
   async function loadMine(uid) {
-    const { data, error } = await supabase
-      .from('projects')
-      .select('id, name, sales_person, created_at, quotations(quotation_number, quotation_date, created_at), contacts(contact_role, company_name, name), project_supporters(user_id, person:profiles!user_id(full_name)), support_notes(created_at)')
-      .eq('created_by', uid);
+    const cols = 'id, name, sales_person, created_at, quotations(quotation_number, quotation_date, created_at), contacts(contact_role, company_name, name), project_supporters(user_id, person:profiles!user_id(full_name)), support_notes(created_at)';
+    // projects I created, prepared, or am the sales person for
+    let { data, error } = await supabase.from('projects').select(cols)
+      .or(`created_by.eq.${uid},prepared_by.eq.${uid},sales_user_id.eq.${uid}`);
+    if (error) ({ data, error } = await supabase.from('projects').select(cols).eq('created_by', uid)); // before the "prepared by" update
     if (error) return;
     setMine((data || [])
       .filter((p) => (p.project_supporters || []).length > 0)

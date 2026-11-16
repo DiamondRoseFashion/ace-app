@@ -17,7 +17,7 @@ import ActivityLog from '@/components/ActivityLog';
 import PeoplePicker from '@/components/PeoplePicker';
 import SupportNotes from '@/components/SupportNotes';
 import { useTeam, teamName } from '@/lib/team';
-import { notifySupporters } from '@/lib/supportAlerts';
+import { notifySupporters, notifyProjectPeople } from '@/lib/supportAlerts';
 import { fmtDate } from '@/lib/dates';
 import { money } from '@/lib/projectTable';
 
@@ -64,7 +64,7 @@ export default function ProjectDetail() {
   const [error, setError] = useState('');
   const [statusError, setStatusError] = useState('');
   const [editing, setEditing] = useState(false);
-  const [editForm, setEditForm] = useState({ name: '', location: '', brands_required: '', sales_person: '', headed_by: '', note: '' });
+  const [editForm, setEditForm] = useState({ name: '', location: '', brands_required: '', sales_person: '', headed_by: '', prepared_by: '', note: '' });
   const [editContacts, setEditContacts] = useState({ contractor: [], client: [], consultant: [], main_contractor: [] });
   const [editQuotations, setEditQuotations] = useState([]);
   const [supporters, setSupporters] = useState([]); // user ids (Supported By)
@@ -118,6 +118,7 @@ export default function ProjectDetail() {
         brands_required: proj.brands_required || '',
         sales_person: proj.sales_person || '',
         headed_by: proj.headed_by || '',
+        prepared_by: proj.prepared_by || '',
         note: proj.note || '',
       });
     }
@@ -225,9 +226,14 @@ export default function ProjectDetail() {
       brands_required: editForm.brands_required || null,
       sales_person: editForm.sales_person || null,
       headed_by: editForm.headed_by || null,
+      ...(project && 'prepared_by' in project ? { prepared_by: editForm.prepared_by || null } : {}), // column added by the "prepared by" update
       note: editForm.note || null,
     }).eq('id', projectId);
     if (projErr) { setError(projErr.message); setSaving(false); return; }
+    // a new Sales Person / Prepared By: tell them (opens this project)
+    if ((editForm.sales_person || '') !== (project?.sales_person || '') || (editForm.prepared_by || '') !== (project?.prepared_by || '')) {
+      notifyProjectPeople(supabase, projectId);
+    }
 
     // 2. Contacts: delete removed, update existing, insert new
     const flatEditContacts = Object.entries(editContacts).flatMap(([roleKey, list]) =>
@@ -363,6 +369,15 @@ export default function ProjectDetail() {
                   </select>
                 </div>
               </div>
+              {project && 'prepared_by' in project && (
+                <div className="field-group">
+                  <label>Prepared By</label>
+                  <select value={editForm.prepared_by} onChange={(e) => setEditForm({ ...editForm, prepared_by: e.target.value })}>
+                    <option value="">None</option>
+                    {team.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </select>
+                </div>
+              )}
               {supportersReady && (
                 <div className="field-group">
                   <label>Supported By</label>
@@ -459,7 +474,7 @@ export default function ProjectDetail() {
         {/* Project details */}
         <div className="card" style={{ marginBottom: 20 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16 }}>
-            {[['Sales Person', project.sales_person], ['Headed By', project.headed_by], ['Supported By', supporters.map((id) => teamName(team, id)).join(', ')], ['Brands', project.brands_required]].map(([label, value]) => (
+            {[['Sales Person', project.sales_person], ['Headed By', project.headed_by], ...(project.prepared_by ? [['Prepared By', teamName(team, project.prepared_by)]] : []), ['Supported By', supporters.map((id) => teamName(team, id)).join(', ')], ['Brands', project.brands_required]].map(([label, value]) => (
               <div key={label}>
                 <div style={{ fontSize: 11, color: 'var(--muted)', marginBottom: 4 }}>{label}</div>
                 <div style={{ fontWeight: 600 }}>{value || '—'}</div>

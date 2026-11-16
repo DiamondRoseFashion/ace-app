@@ -10,7 +10,7 @@ import DateInput from '@/components/DateInput';
 import BrandPicker from '@/components/BrandPicker';
 import PeoplePicker from '@/components/PeoplePicker';
 import { useTeam } from '@/lib/team';
-import { notifySupporters } from '@/lib/supportAlerts';
+import { notifySupporters, notifyProjectPeople } from '@/lib/supportAlerts';
 import SuggestInput from '@/components/SuggestInput';
 import { useContactNames, companyOptions, personOptions, savedPerson, fillFromSaved, designationOptions } from '@/lib/contactNames';
 
@@ -26,6 +26,13 @@ function emptyContact() {
 }
 
 
+// the form → a projects row ("Prepared By: None" is left out, not saved as "")
+function projectRow(p) {
+  const row = { ...p };
+  if (!row.prepared_by) delete row.prepared_by;
+  return row;
+}
+
 export default function NewProject() {
   const router = useRouter();
   const supabase = createClient();
@@ -34,7 +41,7 @@ export default function NewProject() {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
-  const [project, setProject] = useState({ name: '', status: DEFAULT_PROJECT_STATUS, location: '', brands_required: '', sales_person: '', headed_by: '', note: '' });
+  const [project, setProject] = useState({ name: '', status: DEFAULT_PROJECT_STATUS, location: '', brands_required: '', sales_person: '', headed_by: '', prepared_by: '', note: '' });
 
   // Supported By: people (user ids) who support this project
   const [supporters, setSupporters] = useState([]);
@@ -199,7 +206,7 @@ const [quotation, setQuotation] = useState({
 
     const { data, error } = await supabase
       .from('projects')
-      .insert({ ...project, created_by: user.id })
+      .insert({ ...projectRow(project), created_by: user.id })
       .select()
       .single();
 
@@ -235,6 +242,9 @@ const [quotation, setQuotation] = useState({
     clearKept();
     setDraftId(null);
     setDraftMsg(null);
+
+    // made for a sales person (or with someone else as Prepared By): tell them
+    if (project.sales_person || project.prepared_by) notifyProjectPeople(supabase, data.id);
 
     setProjectId(data.id);
     setSaving(false);
@@ -322,6 +332,14 @@ const [quotation, setQuotation] = useState({
                     {HEADED_BY_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
                   </select>
                 </div>
+              </div>
+              <div className="field-group">
+                <label>Prepared By</label>
+                <select value={project.prepared_by} onChange={(e) => setProject({ ...project, prepared_by: e.target.value })}>
+                  <option value="">None</option>
+                  {team.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+                <div className="hint">Preparing this project for a sales person? Choose your name here and pick the Sales Person above: it shows on both your My Projects, and your e-signature goes on its quotation.</div>
               </div>
               <div className="field-group">
                 <label>Supported By</label>

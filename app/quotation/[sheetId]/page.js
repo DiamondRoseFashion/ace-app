@@ -30,7 +30,7 @@ function addressee(contacts = []) {
     || null;
 }
 
-const FIELDS = ['to_company', 'po_box', 'city', 'tel', 'attn', 'ref_no', 'quote_date', 'project_name', 'salutation', 'intro', 'delivery', 'payment', 'validity', 'closing', 'salesman'];
+const FIELDS = ['to_company', 'po_box', 'city', 'tel', 'attn', 'ref_no', 'quote_date', 'sales_person', 'project_name', 'salutation', 'intro', 'delivery', 'payment', 'validity', 'closing', 'salesman'];
 
 export default function QuotationPage() {
   const router = useRouter();
@@ -80,11 +80,19 @@ export default function QuotationPage() {
       if (existing) { fillFrom(existing); setState('ok'); return; }
 
       // first time: start from the costing sheet and the project's contractor contact
-      const [{ data: me }, { data: contacts }] = await Promise.all([
+      const [{ data: me }, { data: contacts }, { data: proj }] = await Promise.all([
         supabase.from('profiles').select('full_name').eq('id', user.id).maybeSingle(),
         supabase.from('contacts').select('contact_role, company_name, name, tel, mobile, created_at').eq('project_id', sh.project_id).order('created_at'),
+        supabase.from('projects').select('*').eq('id', sh.project_id).maybeSingle(),
       ]);
       const to = addressee(contacts || []);
+      // signs the quotation: the project's Prepared By, else the Sales Person's account, else me
+      const nameOf = async (id) => {
+        if (!id) return '';
+        const { data } = await supabase.from('profiles').select('full_name').eq('id', id).maybeSingle();
+        return (data?.full_name || '').trim();
+      };
+      const signer = (await nameOf(proj?.prepared_by)) || (await nameOf(proj?.sales_user_id)) || (me?.full_name || '').trim();
       const row = {
         costing_sheet_id: sh.id,
         project_id: sh.project_id,
@@ -95,6 +103,7 @@ export default function QuotationPage() {
         attn: (to?.name || '').trim() || null,
         ref_no: sh.quotation_no,
         quote_date: sh.quotation_date,
+        sales_person: (proj?.sales_person || '').trim() || null,
         project_name: sh.project_name,
         salutation: 'Dear Sir,',
         intro: DEFAULT_INTRO,
@@ -106,7 +115,7 @@ export default function QuotationPage() {
         payment: null,
         validity: '30 Days.',
         closing: DEFAULT_CLOSING,
-        salesman: (me?.full_name || '').trim() || null,
+        salesman: signer || null,
         synced_at: sh.updated_at, // the costing sheet as saved at that moment
       };
       const { data: created, error: cErr } = await supabase.from('quotation_docs').insert(row).select('*').single();
@@ -201,13 +210,18 @@ export default function QuotationPage() {
     setSheet(sh);
     const nextItems = itemsFromCosting(sh.items || []);
     const nextDiscounts = discountsFromCosting(sh.discounts_sell || []);
-    const nextForm = { ...form, ref_no: sh.quotation_no || '', quote_date: sh.quotation_date || '', project_name: sh.project_name || '' };
+    let salesPerson = form.sales_person || '';
+    if (!salesPerson) {
+      const { data: proj } = await supabase.from('projects').select('sales_person').eq('id', sh.project_id).maybeSingle();
+      salesPerson = (proj?.sales_person || '').trim();
+    }
+    const nextForm = { ...form, ref_no: sh.quotation_no || '', quote_date: sh.quotation_date || '', project_name: sh.project_name || '', sales_person: salesPerson };
     setForm(nextForm);
     setItems(nextItems);
     setDiscounts(nextDiscounts);
     const p = payload();
     const { data, error: uErr } = await supabase.from('quotation_docs').update({
-      ...p, ...Object.fromEntries(['ref_no', 'quote_date', 'project_name'].map((k) => [k, String(nextForm[k] || '').trim() || null])),
+      ...p, ...Object.fromEntries(['ref_no', 'quote_date', 'project_name', 'sales_person'].map((k) => [k, String(nextForm[k] || '').trim() || null])),
       items: nextItems, discounts: nextDiscounts, synced_at: sh.updated_at,
     }).eq('id', doc.id).select('*').maybeSingle();
     setBusy('');
@@ -320,6 +334,7 @@ export default function QuotationPage() {
                 <span>Date</span>
                 <DateInput value={form.quote_date || ''} onChange={(e) => set('quote_date', e.target.value)} />
               </label>
+              {inp('sales_person', 'Sales Person')}
             </div>
           </div>
 
@@ -406,7 +421,7 @@ export default function QuotationPage() {
             <input value={form.closing || ''} onChange={(e) => set('closing', e.target.value)} />
           </label>
           <div className="qt-sign">Best Regards. <strong>For GEMS Systems LLC</strong></div>
-          {inp('salesman', 'Salesman name (signs the quotation)')}
+          {inp('salesman', 'Prepared by (signs the quotation)')}
           <div className="qt-sig">
             {sig?.url ? (
               <>
@@ -416,7 +431,7 @@ export default function QuotationPage() {
               </>
             ) : (
               <span className="cs-muted">
-                {form.salesman ? `No e-signature found for “${form.salesman}”. ${form.salesman} can add one in My Profile → E-signature (the name here must match their profile name).` : 'Type the salesman name to print their e-signature.'}
+                {form.salesman ? `No e-signature found for “${form.salesman}”. ${form.salesman} can add one in My Profile → E-signature (the name here must match their profile name).` : 'Type the name of the person who prepared this quotation to print their e-signature.'}
               </span>
             )}
           </div>
