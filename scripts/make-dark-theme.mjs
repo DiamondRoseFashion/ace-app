@@ -107,7 +107,7 @@ function mapValue(value, fn) {
 
 const resolveVars = (v) => v.replace(/var\((--[\w-]+)\)/g, (m, name) => rootVars[name] || m);
 // left as they are: the starry page backgrounds and the Settings look previews
-const SKIP = /\.shell::before|\.auth-shell\b|\.sw-/;
+const SKIP = /\.shell::before|\.auth-shell\b|\.sw-|\.ace-splash|\.as-/;
 
 function convertRule(head, body) {
   if (SKIP.test(head)) return '';

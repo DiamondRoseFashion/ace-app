@@ -4,6 +4,8 @@ import './theme-light.css';
 import { THEME_SCRIPT } from '@/lib/theme';
 import ErrorReporter from '@/components/ErrorReporter';
 import ArrowScroll from '@/components/ArrowScroll';
+import Splash from '@/components/Splash';
+import { SPLASH_SCRIPT } from '@/lib/splash';
 
 export const metadata = {
   title: 'ACE — Project Control',
@@ -27,6 +29,7 @@ export default function RootLayout({ children }) {
     <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: SPLASH_SCRIPT }} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap"
@@ -34,6 +37,7 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body>
+        <Splash />
         <ErrorReporter />
         <ArrowScroll />
         {children}
