@@ -18,6 +18,7 @@ import PeoplePicker from '@/components/PeoplePicker';
 import SupportNotes from '@/components/SupportNotes';
 import { useTeam, teamName } from '@/lib/team';
 import { notifySupporters, notifyProjectPeople } from '@/lib/supportAlerts';
+import { KEEP_URL } from '@/lib/dashboardView';
 import { fmtDate } from '@/lib/dates';
 import { money } from '@/lib/projectTable';
 
@@ -413,7 +414,7 @@ export default function ProjectDetail() {
             {!editing && canDeleteProject(project, { id: myId, role: myRole }) && (
               <button className="btn btn-ghost danger-text" onClick={() => { setDelError(''); setConfirmDel(true); }}>🗑 Delete</button>
             )}
-            <Link href="/dashboard"><button className="btn btn-ghost">← Back to Projects</button></Link>
+            <Link href={KEEP_URL}><button className="btn btn-ghost">← Back to Projects</button></Link>
           </div>
         </div>
 

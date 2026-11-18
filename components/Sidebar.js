@@ -13,6 +13,7 @@ import NotificationBell from '@/components/NotificationBell';
 import Icon from '@/components/Icon';
 import { resetNotifications } from '@/lib/notificationsStore';
 import { markStarted } from '@/lib/startPage';
+import { resetView } from '@/lib/dashboardView';
 
 // "Open" on a pop-up for the page you're already on: load it again so
 // the meeting / project in the link opens
@@ -159,7 +160,7 @@ export default function Sidebar({ active, bell = true }) {
             href={l.href}
             className={`nav-item${active === l.key ? ' active' : ''}`}
             title={l.label}
-            onClick={() => setMenuOpen(false)}
+            onClick={() => { setMenuOpen(false); if (l.key === 'dashboard') resetView(); }}
           >
             <span className="nav-icon" aria-hidden="true"><Icon name={l.icon} size={19} /></span>
             <span className="nav-label">{l.label}</span>

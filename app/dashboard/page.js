@@ -14,6 +14,7 @@ import StarRating from '@/components/StarRating';
 import { useTeam, teamName } from '@/lib/team';
 import { fmtDate } from '@/lib/dates';
 import { startRedirect } from '@/lib/startPage';
+import { saveView, loadView, clearView, KEEP_URL } from '@/lib/dashboardView';
 import {
   REGISTER_COLUMNS, EMPTY, RATING_HIGH, RATING_LOW, toRegisterRow, cellText, selectOptions, matchesFilter, compareRows, formatDate, formatValue,
 } from '@/lib/projectTable';
@@ -31,6 +32,7 @@ export default function Dashboard() {
   const [filters, setFilters] = useState({});
   const [ratingError, setRatingError] = useState('');
   const [sort, setSort] = useState({ key: 'date', dir: 'desc' });
+  const scrollTo = useRef(null); // table position to return to (back from a project)
   const lastSigRef = useRef('');
   const tableRef = useRef(null);
 
@@ -100,6 +102,44 @@ export default function Dashboard() {
         : `Couldn't save the review${rErr ? `: ${rErr.message}` : ' (you can only review projects you can edit)'}.`);
     }
   }
+
+  // back from a project (/dashboard?keep=1): same search, filters and sort as before;
+  // otherwise (e.g. sidebar "My Projects") start with the whole list
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('keep') === '1') {
+      const v = loadView();
+      if (v) {
+        setSearch(v.search || '');
+        setFilters(v.filters || {});
+        if (v.sort?.key) setSort(v.sort);
+        scrollTo.current = { top: v.scrollTop || 0, page: v.pageY || 0 };
+      }
+      window.history.replaceState(null, '', '/dashboard');
+    } else {
+      clearView();
+    }
+    const onReset = () => { setSearch(''); setFilters({}); setSort({ key: 'date', dir: 'desc' }); };
+    window.addEventListener('ace-dashboard-reset', onReset);
+    return () => window.removeEventListener('ace-dashboard-reset', onReset);
+  }, []);
+
+  // opening a project: remember this view, and make Back return to it
+  function openProject(id) {
+    saveView({ search, filters, sort, scrollTop: tableRef.current?.scrollTop || 0, pageY: window.scrollY || 0 });
+    window.history.replaceState(null, '', KEEP_URL);
+    router.push(`/project/${id}`);
+  }
+
+  // once the list is back, scroll to where it was
+  useEffect(() => {
+    if (!scrollTo.current || loading) return;
+    const { top, page } = scrollTo.current;
+    scrollTo.current = null;
+    requestAnimationFrame(() => {
+      if (tableRef.current) tableRef.current.scrollTop = top;
+      window.scrollTo(0, page);
+    });
+  }, [loading]);
 
   useEffect(() => {
     const start = startRedirect(); // Settings → "Open ACE on"
@@ -399,7 +439,7 @@ export default function Dashboard() {
                     const p = r.project;
                     const canDel = canDeleteProject(p, me);
                     const isSel = selected.has(p.id);
-                    const open = () => (selecting ? canDel && toggle(p.id) : router.push(`/project/${p.id}`));
+                    const open = () => (selecting ? canDel && toggle(p.id) : openProject(p.id));
                     return (
                       <tr key={p.id} className={`reg-row${isSel ? ' sel' : ''}`} onClick={open}>
                         {selecting && (
@@ -422,7 +462,7 @@ export default function Dashboard() {
                         <td title={r.sales_person}>{r.sales_person || '—'}</td>
                         <td title={r.headed_by}>{r.headed_by || '—'}</td>
                         <td title={r.name}>
-                          <Link href={`/project/${p.id}`} className="reg-name" onClick={(e) => { if (selecting) e.preventDefault(); e.stopPropagation(); if (selecting && canDel) toggle(p.id); }}>
+                          <Link href={`/project/${p.id}`} className="reg-name" onClick={(e) => { e.stopPropagation(); if (e.ctrlKey || e.metaKey || e.shiftKey) return; e.preventDefault(); if (selecting) { if (canDel) toggle(p.id); } else openProject(p.id); }}>
                             {r.name}
                           </Link>
                         </td>
