@@ -59,6 +59,12 @@ an admin:
 
 That's it — a real, live, secured application, for AED 0/month at this scale.
 
+**Updates:** every push to `main` goes live (Production). Check what's live at
+`/api/version` (it shows the commit). If a commit was pushed to `main` and to
+another branch at the same moment, Vercel may build only the branch's Preview —
+then it isn't live: push to `main` on its own (or use Vercel → Deployments →
+Redeploy) so a Production build runs.
+
 ---
 
 ## What's already built
