@@ -46,6 +46,7 @@ export default function QuotationPage() {
   const [items, setItems] = useState([]);
   const [discounts, setDiscounts] = useState([]); // selling special discounts, from the costing sheet
   const [terms, setTerms] = useState([]);
+  const [notes, setNotes] = useState([]); // General Notes (optional; printed only when added)
   const [vat, setVat] = useState('5');
   const [urls, setUrls] = useState({});
   const [dirty, setDirty] = useState(false);
@@ -60,6 +61,7 @@ export default function QuotationPage() {
     setItems(row.items || []);
     setDiscounts(row.discounts || []);
     setTerms(row.terms || []);
+    setNotes(row.notes || []);
     setVat(String(row.vat_percent ?? 5));
     setDoc(row);
     setDirty(false);
@@ -164,6 +166,8 @@ export default function QuotationPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.salesman, state]);
 
+  const notesReady = !!doc && 'notes' in doc; // column added by the "general notes" update
+
   const totals = useMemo(() => quotationTotals(items, vat, discounts), [items, vat, discounts]);
   // the costing sheet has been saved since its items were last taken
   const costingNewer = sheet && doc?.synced_at && new Date(sheet.updated_at).getTime() > new Date(doc.synced_at).getTime();
@@ -176,6 +180,7 @@ export default function QuotationPage() {
     p.items = items;
     p.discounts = discounts;
     p.terms = terms.map((t) => String(t || '').trim()).filter(Boolean);
+    if (notesReady) p.notes = notes.map((t) => String(t || '').trim()).filter(Boolean);
     const v = Number(String(vat).trim());
     p.vat_percent = Number.isFinite(v) && v >= 0 && v <= 100 ? v : 5;
     return p;
@@ -409,6 +414,26 @@ export default function QuotationPage() {
             ))}
           </ol>
           <button type="button" className="td-link" onClick={() => { setTerms([...terms, '']); setDirty(true); }}>＋ Add a term</button>
+
+          {notes.length > 0 && (
+            <>
+              <div className="qt-sec" style={{ marginTop: 18 }}>General Notes</div>
+              <ol className="qt-terms">
+                {notes.map((t, i) => (
+                  <li key={i}>
+                    <span aria-hidden="true">*</span>
+                    <input value={t} placeholder="Type a note…" onChange={(e) => { setNotes(notes.map((x, j) => (j === i ? e.target.value : x))); setDirty(true); }} aria-label={`General note ${i + 1}`} />
+                    <button type="button" className="cs-dx" onClick={() => { setNotes(notes.filter((_, j) => j !== i)); setDirty(true); }} aria-label={`Remove general note ${i + 1}`} title="Remove">×</button>
+                  </li>
+                ))}
+              </ol>
+            </>
+          )}
+          {notesReady ? (
+            <div><button type="button" className="td-link" onClick={() => { setNotes([...notes, '']); setDirty(true); }}>＋ Add a general note</button></div>
+          ) : (
+            <div className="hint">General notes need a one-time database update. Please ask your admin to run the &quot;general notes&quot; update in Supabase.</div>
+          )}
 
           <div className="qt-dpv">
             {inp('delivery', 'Delivery')}
