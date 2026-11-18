@@ -6,10 +6,11 @@
 //  • after logging in, and when ACE is opened while logged in (once per
 //    tab); never between pages (see lib/splash.js)
 //  • a click or a key press skips it
-//  • skipped for people who turn off motion on their device
+//  • devices with animations turned off see a still version (about 2 s)
 import { useEffect, useState } from 'react';
 
 const TOTAL_MS = 3300; // animation + fade (see .ace-splash in globals.css)
+const STILL_MS = 2200; // the still version, for devices with animations turned off
 
 export default function Splash() {
   const [run, setRun] = useState(1); // 0 = not showing; changes restart it
@@ -24,7 +25,8 @@ export default function Splash() {
 
   useEffect(() => {
     if (!run) return undefined;
-    const done = setTimeout(() => setRun(0), TOTAL_MS);
+    const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const done = setTimeout(() => setRun(0), still ? STILL_MS : TOTAL_MS);
     const skip = () => { setLeaving(true); setTimeout(() => setRun(0), 300); };
     window.addEventListener('keydown', skip, { once: true });
     return () => { clearTimeout(done); window.removeEventListener('keydown', skip); };

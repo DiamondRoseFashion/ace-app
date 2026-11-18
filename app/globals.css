@@ -1345,7 +1345,6 @@ html, body { overscroll-behavior-x: none; }
   animation: as-out .55s ease 2.7s forwards; }
 .ace-splash.leaving { opacity: 0; transition: opacity .3s ease; }
 html[data-splash="skip"] .ace-splash, html:not([data-splash]) .ace-splash { display: none; }
-@media (prefers-reduced-motion: reduce) { .ace-splash { display: none; } }
 .ace-splash-inner { display: flex; flex-direction: column; align-items: center; }
 .ace-splash-mark { overflow: visible; }
 .as-a { fill: #0F1F3D; fill-opacity: 0; stroke: #0F1F3D; stroke-width: 2.5; stroke-linejoin: round; stroke-dasharray: 640; stroke-dashoffset: 640;
@@ -1365,3 +1364,12 @@ html[data-splash="skip"] .ace-splash, html:not([data-splash]) .ace-splash { disp
 @keyframes as-line { to { width: 150px; } }
 @keyframes as-fade { to { opacity: 1; } }
 @keyframes as-out { to { opacity: 0; visibility: hidden; } }
+/* animations turned off on the device: the finished picture, shown still
+   (after the rules above, so it wins) */
+@media (prefers-reduced-motion: reduce) {
+  .as-a { fill-opacity: 1; stroke-dashoffset: 0; }
+  .as-dot { opacity: 1; transform: none; }
+  .ace-splash-word { opacity: 1; letter-spacing: .32em; }
+  .ace-splash-line { width: 150px; }
+  .ace-splash-tag { opacity: 1; }
+}
