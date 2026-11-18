@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabaseClient';
+import { playSplash } from '@/lib/splash';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -73,7 +74,7 @@ export default function LoginPage() {
 
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) setError(error.message);
-    else router.push('/dashboard');
+    else { playSplash(); router.push('/dashboard'); }
 
     setLoading(false);
   }
@@ -111,6 +112,7 @@ async function handleResetWithCode(e) {
     if (pwError) { setError(pwError.message); setLoading(false); return; }
 
     setLoading(false);
+    playSplash();
     router.push('/dashboard');
   }
 
@@ -128,6 +130,7 @@ async function handleResetWithCode(e) {
 
     await supabase.rpc('update_my_name', { new_name: fullName.trim() });
 
+    playSplash();
     router.push('/dashboard');
     setLoading(false);
   }

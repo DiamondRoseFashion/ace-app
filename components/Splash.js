@@ -1,35 +1,42 @@
 'use client';
 
-// The opening animation: a short (about 1.5 s) premium white screen with
-// the ACE mark drawing itself, the gold dot dropping in and the name
-// fading up, then it fades away to the app (which keeps loading behind it).
-//  • only when ACE is opened (once per browser tab), never between pages
+// The opening animation: a premium white screen (about 3 s) with the ACE
+// mark drawing itself, the gold dot dropping in and the name fading up,
+// then it fades away to the app (which keeps loading behind it).
+//  • after logging in, and when ACE is opened while logged in (once per
+//    tab); never between pages (see lib/splash.js)
 //  • a click or a key press skips it
 //  • skipped for people who turn off motion on their device
-// SPLASH_SCRIPT (lib/splash.js, in <head>) decides before anything is drawn whether to
-// show it, so it never flashes up when it shouldn't.
 import { useEffect, useState } from 'react';
 
-const TOTAL_MS = 1900; // animation length + fade (see .ace-splash in globals.css)
+const TOTAL_MS = 3300; // animation + fade (see .ace-splash in globals.css)
 
 export default function Splash() {
-  const [gone, setGone] = useState(false);
+  const [run, setRun] = useState(1); // 0 = not showing; changes restart it
   const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
-    if (document.documentElement.getAttribute('data-splash') !== 'show') { setGone(true); return undefined; }
-    const done = setTimeout(() => setGone(true), TOTAL_MS);
-    const skip = () => { setLeaving(true); setTimeout(() => setGone(true), 250); };
-    window.addEventListener('keydown', skip, { once: true });
-    return () => { clearTimeout(done); window.removeEventListener('keydown', skip); };
+    if (document.documentElement.getAttribute('data-splash') !== 'show') setRun(0);
+    const onShow = () => { setLeaving(false); setRun((r) => r + 1); };
+    window.addEventListener('ace-splash-show', onShow);
+    return () => window.removeEventListener('ace-splash-show', onShow);
   }, []);
 
-  if (gone) return null;
+  useEffect(() => {
+    if (!run) return undefined;
+    const done = setTimeout(() => setRun(0), TOTAL_MS);
+    const skip = () => { setLeaving(true); setTimeout(() => setRun(0), 300); };
+    window.addEventListener('keydown', skip, { once: true });
+    return () => { clearTimeout(done); window.removeEventListener('keydown', skip); };
+  }, [run]);
+
+  if (!run) return null;
   return (
     <div
+      key={run}
       className={`ace-splash${leaving ? ' leaving' : ''}`}
       aria-hidden="true"
-      onClick={() => { setLeaving(true); setTimeout(() => setGone(true), 250); }}
+      onClick={() => { setLeaving(true); setTimeout(() => setRun(0), 300); }}
     >
       <div className="ace-splash-inner">
         <svg className="ace-splash-mark" viewBox="0 0 168 190" width="112" height="127">

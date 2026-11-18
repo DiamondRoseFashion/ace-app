@@ -1342,22 +1342,22 @@ html, body { overscroll-behavior-x: none; }
 /* ===== OPENING ANIMATION (components/Splash.js) ===== */
 .ace-splash { position: fixed; inset: 0; z-index: 5000; display: flex; align-items: center; justify-content: center; cursor: pointer;
   background: radial-gradient(520px 380px at 50% 46%, rgba(216,185,104,.16), transparent 70%), #FAF8FC;
-  animation: as-out .35s ease 1.5s forwards; }
-.ace-splash.leaving { opacity: 0; transition: opacity .25s ease; }
+  animation: as-out .55s ease 2.7s forwards; }
+.ace-splash.leaving { opacity: 0; transition: opacity .3s ease; }
 html[data-splash="skip"] .ace-splash, html:not([data-splash]) .ace-splash { display: none; }
 @media (prefers-reduced-motion: reduce) { .ace-splash { display: none; } }
 .ace-splash-inner { display: flex; flex-direction: column; align-items: center; }
 .ace-splash-mark { overflow: visible; }
 .as-a { fill: #0F1F3D; fill-opacity: 0; stroke: #0F1F3D; stroke-width: 2.5; stroke-linejoin: round; stroke-dasharray: 640; stroke-dashoffset: 640;
-  animation: as-draw .65s cubic-bezier(.65,0,.35,1) .05s forwards, as-fill .35s ease .5s forwards; }
+  animation: as-draw 1.05s cubic-bezier(.65,0,.35,1) .1s forwards, as-fill .55s ease .9s forwards; }
 .as-dot { fill: #D8B968; opacity: 0; transform-box: fill-box; transform-origin: center; filter: drop-shadow(0 0 6px rgba(216,185,104,.75));
-  animation: as-dot .55s cubic-bezier(.34,1.56,.64,1) .6s forwards; }
+  animation: as-dot .75s cubic-bezier(.34,1.56,.64,1) 1.15s forwards; }
 .ace-splash-word { margin-top: 26px; font: 700 44px 'Inter', sans-serif; color: #0F1F3D; letter-spacing: .5em; padding-left: .5em; opacity: 0;
-  animation: as-word .5s ease .8s forwards; }
+  animation: as-word .8s ease 1.5s forwards; }
 .ace-splash-line { height: 1.5px; width: 0; margin: 14px 0 12px; background: linear-gradient(90deg, transparent, #D8B968, transparent);
-  animation: as-line .45s ease 1s forwards; }
+  animation: as-line .7s ease 1.85s forwards; }
 .ace-splash-tag { font: 600 11px 'Inter', sans-serif; letter-spacing: 2.4px; text-transform: uppercase; color: #7A6C86; opacity: 0;
-  animation: as-fade .4s ease 1.1s forwards; }
+  animation: as-fade .6s ease 2s forwards; }
 @keyframes as-draw { to { stroke-dashoffset: 0; } }
 @keyframes as-fill { to { fill-opacity: 1; } }
 @keyframes as-dot { 0% { opacity: 0; transform: translateY(-34px) scale(.4); } 100% { opacity: 1; transform: none; } }
