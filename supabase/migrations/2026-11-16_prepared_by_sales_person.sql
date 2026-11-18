@@ -32,7 +32,7 @@ create policy "everyone sees sales people" on public.sales_people for select usi
 -- (no insert/update/delete policies: changed only from this SQL editor)
 
 insert into public.sales_people (name) values
-  ('AKSHAY'), ('ALWIN'), ('ANJO'), ('BIJU'), ('GEORGE'), ('HARRIS'),
+  ('AKSHAY'), ('ALWIN'), ('ANJO'), ('BIJU'), ('GEORGE'), ('HARIES'),
   ('INDRAJITH'), ('RAJAT'), ('SARATH'), ('SIDHARTH'), ('SINEESH')
 on conflict (name) do nothing;
 
