@@ -235,6 +235,44 @@ export default function QuotationPage() {
     setMsg({ ok: true, text: `Updated from costing sheet ${sh.revision}: ${nextItems.length} item${nextItems.length === 1 ? '' : 's'}, special discounts, Ref, Date and Project.` });
   }
 
+  // the pictures both downloads need: item images and the salesman's e-signature
+  async function fetchPictures() {
+    const paths = [...new Set(items.map((it) => it.image_path).filter(Boolean))];
+    const images = new Map();
+    if (paths.length) {
+      const { data } = await supabase.storage.from(BUCKET).createSignedUrls(paths, 600);
+      await Promise.all((data || []).filter((r) => r.signedUrl).map(async (r) => {
+        try { const res = await fetch(r.signedUrl); if (res.ok) images.set(r.path, await res.arrayBuffer()); } catch { /* skip */ }
+      }));
+    }
+    let signature = null;
+    const hit = await signatureFor(supabase, form.salesman);
+    if (hit) {
+      const { data } = await supabase.storage.from(SIGNATURE_BUCKET).createSignedUrl(hit.path, 600);
+      if (data?.signedUrl) { try { const r = await fetch(data.signedUrl); if (r.ok) signature = await r.arrayBuffer(); } catch { /* without it */ } }
+    }
+    return { images, signature };
+  }
+
+  async function downloadExcel() {
+    setMsg(null);
+    if (dirty && !(await save())) return;
+    setBusy('excel');
+    try {
+      const [{ images, signature }, top, bottom, { downloadQuotationExcel }] = await Promise.all([
+        fetchPictures(),
+        fetch('/quotation/letterhead-top.png').then((r) => (r.ok ? r.arrayBuffer() : null)).catch(() => null),
+        fetch('/quotation/letterhead-bottom.png').then((r) => (r.ok ? r.arrayBuffer() : null)).catch(() => null),
+        import('@/lib/officeExcel'),
+      ]);
+      const name = `Quotation ${form.ref_no || ''} ${form.project_name || ''} ${sheet?.revision || ''}`.replace(/\s+/g, ' ').trim().slice(0, 120);
+      await downloadQuotationExcel({ q: payload(), images, signature, letterhead: { top, bottom }, filename: `${name || 'Quotation'}.xlsx` });
+    } catch (e) {
+      setMsg({ ok: false, text: `The Excel file couldn't be made: ${e.message || 'please try again'}.` });
+    }
+    setBusy('');
+  }
+
   async function downloadPdf() {
     setMsg(null);
     if (dirty && !(await save())) return;
@@ -313,6 +351,7 @@ export default function QuotationPage() {
             <span className={`cs-status${dirty ? ' dirty' : ''}`}>{dirty ? '● Unsaved changes' : 'Saved'}</span>
             <Link className="btn btn-ghost" href={`/costing/${sheetId}`}>← Costing sheet</Link>
             <button type="button" className="btn btn-ghost" onClick={() => save()} disabled={!!busy || !dirty}>{busy === 'save' ? 'Saving…' : 'Save'}</button>
+            <button type="button" className="btn btn-ghost" onClick={downloadExcel} disabled={!!busy}>{busy === 'excel' ? 'Making Excel…' : '⬇ Excel'}</button>
             <button type="button" className="btn btn-primary" onClick={downloadPdf} disabled={!!busy}>{busy === 'pdf' ? 'Making PDF…' : '⬇ Download PDF'}</button>
           </div>
         </div>

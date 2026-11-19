@@ -100,6 +100,7 @@ export default function CostingSheetPage() {
   const [descPick, setDescPick] = useState(null); // { id, rect }
   const [uploading, setUploading] = useState(null); // item id
   const [showRates, setShowRates] = useState(false);
+  const [excelBusy, setExcelBusy] = useState(false);
 
   // ---------- load ----------
   async function loadLists() {
@@ -346,6 +347,30 @@ export default function CostingSheetPage() {
       : { ok: true, text: 'Saved ✓' });
   }
 
+  // ---------- Excel download (what's on screen, saved or not) ----------
+  async function downloadExcel() {
+    setExcelBusy(true); setMsg(null);
+    try {
+      const rows = items.filter((it) => !isBlankItem(it)).map(cleanItem);
+      const paths = [...new Set(rows.map((it) => it.image_path).filter(Boolean))];
+      const images = new Map();
+      if (paths.length) {
+        const { data } = await supabase.storage.from(BUCKET).createSignedUrls(paths, 600);
+        await Promise.all((data || []).filter((x) => x.signedUrl).map(async (x) => {
+          try { const res = await fetch(x.signedUrl); if (res.ok) images.set(x.path, await res.arrayBuffer()); } catch { /* skip */ }
+        }));
+      }
+      const { downloadCostingExcel } = await import('@/lib/officeExcel');
+      await downloadCostingExcel({
+        head, items: rows, discBuy, discSell, note, images,
+        filename: `Costing ${head.quotation_no || ''} ${head.project_name || ''} ${head.revision || ''}`.replace(/\s+/g, ' ').trim().slice(0, 120) + '.xlsx',
+      });
+    } catch (e) {
+      setMsg({ ok: false, text: `The Excel file couldn't be made: ${e.message || 'please try again'}.` });
+    }
+    setExcelBusy(false);
+  }
+
   // ---------- render ----------
   const calc = useMemo(() => calcSheet(items, discBuy, discSell), [items, discBuy, discSell]);
   const discRows = Math.max(discBuy.length, discSell.length);
@@ -388,6 +413,7 @@ export default function CostingSheetPage() {
             <button type="button" className="btn btn-ghost" onClick={() => setShowRates(true)}>💱 Currency rates</button>
             {projectId && <Link className="btn btn-ghost" href={`/project/${projectId}/costing`}>← All sheets</Link>}
             <Link className="btn btn-ghost" href={`/quotation/${sheetId}`} title="Make or open the quotation for this costing sheet">📄 Quotation</Link>
+            <button type="button" className="btn btn-ghost" onClick={downloadExcel} disabled={excelBusy} title="Download this costing sheet as an Excel file">{excelBusy ? 'Making Excel…' : '⬇ Excel'}</button>
             <button type="button" className="btn btn-primary" onClick={save} disabled={saving || !dirty}>{saving ? 'Saving…' : 'Save (Ctrl+S)'}</button>
           </div>
         </div>
