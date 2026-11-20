@@ -87,13 +87,13 @@ export default function Sidebar({ active, bell = true }) {
   const links = [
     { key: 'dashboard', href: '/dashboard', label: 'My Projects', icon: 'projects' },
     { key: 'new-project', href: '/new-project', label: 'New Project', icon: 'newProject' },
+    { key: 'support', href: '/support', label: 'Support', icon: 'support' },
+    ...(todoOn ? [{ key: 'todo', href: '/todo', label: 'To-Do', icon: 'todo' }] : []), // only people given To-Do access
     { key: 'planner', href: '/planner', label: 'Meetings', icon: 'meetings' },
     { key: 'calendar', href: '/calendar', label: 'Calendar', icon: 'calendar' },
-    ...(todoOn ? [{ key: 'todo', href: '/todo', label: 'To-Do', icon: 'todo' }] : []), // only people given To-Do access
-    ...(isManagerRole ? [{ key: 'team', href: '/team', label: 'Team & Access', icon: 'team' }] : []), // management only
     { key: 'profile', href: '/profile', label: 'My Profile', icon: 'profile' },
     { key: 'settings', href: '/settings', label: 'Settings', icon: 'settings' },
-    { key: 'support', href: '/support', label: 'Support', icon: 'support' },
+    ...(isManagerRole ? [{ key: 'team', href: '/team', label: 'Team & Access', icon: 'team' }] : []), // management only
   ];
 
   const t = support.toast;
