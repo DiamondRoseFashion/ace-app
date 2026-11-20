@@ -6,7 +6,8 @@ import { adminClient } from '@/lib/pushServer';
 import { cronAuthorized, logEvent, heartbeat, sendEmail, esc, uaeTime, emailShell } from '@/lib/monitor';
 import { buildBackupWorkbook } from '@/lib/backupWorkbook';
 import { buildFullBackup, BACKUP_BUCKET, NIGHTLY_PREFIX } from '@/lib/fullBackup';
-import { PROJECT_STATUSES } from '@/lib/projectStatus';
+import { PROJECT_STATUSES, projectProgress } from '@/lib/projectStatus';
+import { storageUsage, sizeText, PLAN, WARN_AT, URGENT_AT } from '@/lib/storageUsage';
 import { localDateKey } from '@/lib/reminderSchedule';
 
 export const dynamic = 'force-dynamic';
@@ -84,7 +85,11 @@ async function handle(req) {
     const weekBackups = (nightly || []).filter((f) => f.name.startsWith('ace-backup-') && f.name.slice(11, 21) >= localDateKey(now - 7 * DAY));
     const backupOk = hb.backup && now - Date.parse(hb.backup.at) < 26 * 3600 * 1000;
 
-    const healthGood = problems.length === 0 && remindersOk && backupOk && monitorOk;
+    // ----- storage (Supabase plan) -----
+    const space = await storageUsage(admin);
+    const spaceFlag = space && space.level !== 'ok';
+
+    const healthGood = problems.length === 0 && remindersOk && backupOk && monitorOk && !spaceFlag;
 
     // ----- activity -----
     const newProjects = (projects || []).filter((p) => p.created_at >= since);
@@ -101,7 +106,7 @@ async function handle(req) {
     const body = `
       <p>Hello, here is ACE's weekly report for <b>${esc(uaeTime(since).split(',')[0])} – ${esc(uaeTime(new Date(now).toISOString()).split(',')[0])}</b>.</p>
       <div style="padding:12px 14px;border-radius:8px;background:${healthGood ? '#E7F4EB' : '#FBF1DC'};font-weight:600">
-        ${healthGood ? '✅ All good — no problems this week.' : `⚠️ ${problems.length} problem${problems.length === 1 ? '' : 's'} this week — details below.`}
+        ${healthGood ? '✅ All good — no problems this week.' : problems.length ? `⚠️ ${problems.length} problem${problems.length === 1 ? '' : 's'} this week — details below.` : spaceFlag ? '⚠️ Storage is getting full — see Storage below.' : '⚠️ Something needs attention — details below.'}
       </div>
 
       ${section('Health', `
@@ -118,6 +123,20 @@ async function handle(req) {
         </table>` : ''}
       `)}
 
+      ${section('Storage', space ? (() => {
+        const bar = (label, p) => {
+          const color = p.pct >= URGENT_AT ? '#B33A3A' : p.pct >= WARN_AT ? '#B7791F' : '#3E8E5A';
+          return `<div style="margin:8px 0 2px"><b>${esc(label)}:</b> ${esc(sizeText(p.used))} of ${esc(sizeText(p.limit))} (${p.pct}%)</div>
+            <div style="height:10px;border-radius:6px;background:#EEEAF2;overflow:hidden"><div style="height:10px;width:${Math.min(100, p.pct)}%;background:${color}"></div></div>`;
+        };
+        const note = space.level === 'urgent'
+          ? `<div style="margin-top:10px;padding:10px 12px;border-radius:8px;background:#FBEBEB;color:#B33A3A;font-weight:700">🔴 Upgrade now: ACE is over ${URGENT_AT}% of the ${esc(PLAN.name)} plan. In Supabase: Organization → Billing → upgrade to Pro, so nothing stops working.</div>`
+          : space.level === 'warn'
+            ? `<div style="margin-top:10px;padding:10px 12px;border-radius:8px;background:#FBF1DC;color:#9A7213;font-weight:700">🟠 Time to plan the upgrade: ACE is over ${WARN_AT}% of the ${esc(PLAN.name)} plan. Upgrade to Supabase Pro in the next few weeks.</div>`
+            : `<div style="margin-top:8px;color:#3E8E5A">✅ Plenty of room on the ${esc(PLAN.name)} plan. No upgrade needed yet.</div>`;
+        return bar('Files (photos, signatures, images, backups)', space.files) + bar('Database (projects, quotations, contacts…)', space.db) + note;
+      })() : '<div style="color:#7A6C86">Storage check not set up yet (run the "storage usage" update in Supabase).</div>')}
+
       ${section('This week in ACE', `
         <table style="width:100%;border-collapse:separate;border-spacing:6px"><tr>
           ${stat('New projects', newProjects.length)}
@@ -132,7 +151,7 @@ async function handle(req) {
       `)}
 
       ${section('Projects by stage', statusCounts.length
-        ? `<table style="width:100%;border-collapse:collapse;font-size:13px">${statusCounts.map((s, i) => `<tr><td style="padding:5px 6px;border-top:1px solid #E8E1EF">${esc(s.label)}</td><td style="padding:5px 6px;border-top:1px solid #E8E1EF;color:#7A6C86">${(PROJECT_STATUSES.findIndex((x) => x.value === s.value) + 1) * 10}%</td><td style="padding:5px 6px;border-top:1px solid #E8E1EF;text-align:right;font-weight:700">${s.n}</td></tr>`).join('')}</table>`
+        ? `<table style="width:100%;border-collapse:collapse;font-size:13px">${statusCounts.map((s, i) => `<tr><td style="padding:5px 6px;border-top:1px solid #E8E1EF">${esc(s.label)}</td><td style="padding:5px 6px;border-top:1px solid #E8E1EF;color:#7A6C86">${projectProgress(s.value)}%</td><td style="padding:5px 6px;border-top:1px solid #E8E1EF;text-align:right;font-weight:700">${s.n}</td></tr>`).join('')}</table>`
         : '<div>No projects yet.</div>')}
 
       ${section('Backup attached', `<div>This email carries this week's backup:<br>
@@ -141,7 +160,9 @@ async function handle(req) {
         <span style="color:#7A6C86;font-size:13px">Keep these emails; each one is a restore point.</span></div>`)}
     `;
 
-    const subject = `${healthGood ? '✅' : '⚠️'} ACE weekly report — ${problems.length ? `${problems.length} problem${problems.length === 1 ? '' : 's'}` : 'all good'}`;
+    const spaceNote = space?.level === 'urgent' ? ' — 🔴 storage almost full, upgrade now'
+      : space?.level === 'warn' ? ` — 🟠 storage ${Math.max(space.files.pct, space.db.pct)}% full, plan the upgrade` : '';
+    const subject = `${healthGood ? '✅' : '⚠️'} ACE weekly report — ${problems.length ? `${problems.length} problem${problems.length === 1 ? '' : 's'}` : 'all good'}${spaceNote}`;
     const sent = await sendEmail({ subject, html: emailShell('Weekly report', body), attachments, extraTo: ownerEmails }); // also to every owner
     if (!sent.ok) throw new Error(sent.error);
     await heartbeat(admin, 'weekly-report', { problems: problems.length });
