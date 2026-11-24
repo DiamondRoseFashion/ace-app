@@ -12,8 +12,6 @@ import {
   STATUSES, statusOf, statusLabel, isOverdue, matchesStatus, projectLabel,
 } from '@/lib/planner';
 import ReminderSettings from '@/components/ReminderSettings';
-import OutlookConnect from '@/components/OutlookConnect';
-import { buildCalendar } from '@/lib/ics';
 import { downloadXlsx } from '@/lib/xlsxExport';
 import DateInput from '@/components/DateInput';
 import { fmtDate } from '@/lib/dates';
@@ -180,7 +178,6 @@ export default function PlannerPage() {
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [showOutlook, setShowOutlook] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkConfirm, setBulkConfirm] = useState(false);
@@ -218,7 +215,13 @@ export default function PlannerPage() {
       setProjects(projs || []);
       setPeople(ppl || []);
     })();
-    const tick = setInterval(() => setNowMs(Date.now()), 60 * 1000); // keeps "Overdue" current
+    let shownToday = todayKey();
+    const tick = setInterval(() => {
+      setNowMs(Date.now()); // keeps "Overdue" current
+      // left open past midnight: if you were looking at today, follow it to the new day
+      const t = todayKey();
+      if (t !== shownToday) { const was = shownToday; shownToday = t; setDate((d) => (d === was ? t : d)); }
+    }, 60 * 1000);
     return () => clearInterval(tick);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -577,10 +580,10 @@ export default function PlannerPage() {
     <div className="shell">
       <Sidebar active="planner" />
       <div className="main planner">
-        <div className="page-header">
+        <div className="page-header mt-head">
           <div>
-            <div className="eyebrow">Meetings Planner</div>
-            <h1 style={{ fontSize: 30, marginTop: 4 }}>{heading}</h1>
+            <div className="eyebrow">Meetings</div>
+            <h1 className="mt-title">{heading}</h1>
             {view === 'day' && date === today && <div className="planner-sub">{formatDayLong(today)}</div>}
             {view === 'list' && <div className="planner-sub">{whoLabel} · {shortDate(listFrom)}{listTo !== listFrom ? ` – ${shortDate(listTo)}` : ''}</div>}
           </div>
@@ -592,115 +595,76 @@ export default function PlannerPage() {
                 <button role="tab" aria-selected={view === 'list'} className={view === 'list' ? 'on' : ''} onClick={() => setView('list')}>List</button>
               )}
             </div>
-            <button className="btn btn-ghost" onClick={() => setShowOutlook(true)}><Icon name="calendar" size={15} className="ii" />Outlook</button>
             <button className="btn btn-ghost" onClick={() => setShowSettings(true)}><Icon name="bell" size={15} className="ii" />Reminders</button>
             <button className="btn btn-primary" onClick={() => openNew()}>+ New meeting</button>
           </div>
         </div>
 
-        {/* Management filters */}
+        {/* Management: one panel with the filters and the status tabs (with counts) */}
         {isManager && (
-          <div className="filter-bar">
-            <div className="fb-row">
-              <label className="fb-field">
-                <span>Person</span>
-                <select value={who} onChange={(e) => setWho(e.target.value)}>
-                  <option value="mine">My meetings</option>
-                  <option value="all">All employees</option>
-                  {people.filter((p) => p.id !== me.id).map((p) => (
-                    <option key={p.id} value={p.id}>{p.full_name || 'Unnamed'}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="fb-field">
-                <span>Project</span>
-                <select value={projectFilter} onChange={(e) => setProjectFilter(e.target.value)}>
-                  <option value="all">All projects</option>
-                  <option value="none">No project</option>
-                  {projects.map((p) => <option key={p.id} value={`id:${p.id}`}>{p.name}</option>)}
-                  {typedProjects.length > 0 && (
-                    <optgroup label="Typed on meetings">
-                      {typedProjects.map((n) => <option key={n.key} value={`name:${n.key}`}>{n.label}</option>)}
-                    </optgroup>
-                  )}
-                </select>
-              </label>
-              <label className="fb-field fb-search">
-                <span>Search</span>
-                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Title, venue, notes…" />
-              </label>
-            </div>
-            <div className="fb-row">
-              <div className="status-chips" role="group" aria-label="Status">
-                {STATUS_FILTERS.map((s) => (
-                  <button
-                    key={s.value}
-                    type="button"
-                    className={`chip chip-${s.value}${statusFilter === s.value ? ' on' : ''}`}
-                    aria-pressed={statusFilter === s.value}
-                    onClick={() => setStatusFilter(s.value)}
-                  >
-                    {s.label}
-                  </button>
+          <div className="card mt-bar">
+            <div className="mt-filters">
+              <select className="mt-select" value={who} onChange={(e) => setWho(e.target.value)} aria-label="Person">
+                <option value="mine">My meetings</option>
+                <option value="all">Everyone</option>
+                {people.filter((p) => p.id !== me.id).map((p) => (
+                  <option key={p.id} value={p.id}>{p.full_name || 'Unnamed'}</option>
                 ))}
-              </div>
-              {filtersActive && <button type="button" className="fb-clear" onClick={clearFilters}>Clear filters</button>}
+              </select>
+              <select className="mt-select" value={projectFilter} onChange={(e) => setProjectFilter(e.target.value)} aria-label="Project">
+                <option value="all">All projects</option>
+                <option value="none">No project</option>
+                {projects.map((p) => <option key={p.id} value={`id:${p.id}`}>{p.name}</option>)}
+                {typedProjects.length > 0 && (
+                  <optgroup label="Typed on meetings">
+                    {typedProjects.map((n) => <option key={n.key} value={`name:${n.key}`}>{n.label}</option>)}
+                  </optgroup>
+                )}
+              </select>
+              <label className="mt-search">
+                <Icon name="search" size={15} />
+                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search meetings" aria-label="Search meetings" />
+              </label>
             </div>
             {view === 'list' && (
-              <div className="fb-row">
-                <label className="fb-field">
-                  <span>Dates</span>
-                  <select value={range} onChange={(e) => setRange(e.target.value)}>
-                    {RANGES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
-                  </select>
-                </label>
+              <div className="mt-filters">
+                <select className="mt-select" value={range} onChange={(e) => setRange(e.target.value)} aria-label="Dates">
+                  {RANGES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                </select>
                 {range === 'custom' && (
                   <>
-                    <label className="fb-field"><span>From</span><DateInput value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} /></label>
-                    <label className="fb-field"><span>To</span><DateInput value={customTo} onChange={(e) => setCustomTo(e.target.value)} /></label>
+                    <span className="mt-date"><DateInput value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} /></span>
+                    <span className="mt-to">to</span>
+                    <span className="mt-date"><DateInput value={customTo} onChange={(e) => setCustomTo(e.target.value)} /></span>
                   </>
                 )}
-                <label className="fb-field">
-                  <span>Group by</span>
-                  <select value={groupBy} onChange={(e) => setGroupBy(e.target.value)}>
-                    {GROUPS.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
-                  </select>
-                </label>
-                <label className="fb-field">
-                  <span>Order</span>
-                  <select value={newestFirst ? 'new' : 'old'} onChange={(e) => setNewestFirst(e.target.value === 'new')}>
-                    <option value="old">Oldest first</option>
-                    <option value="new">Newest first</option>
-                  </select>
-                </label>
+                <select className="mt-select" value={groupBy} onChange={(e) => setGroupBy(e.target.value)} aria-label="Group by">
+                  {GROUPS.map((g) => <option key={g.value} value={g.value}>{g.value === 'none' ? g.label : `Group by ${g.label.toLowerCase()}`}</option>)}
+                </select>
+                <select className="mt-select" value={newestFirst ? 'new' : 'old'} onChange={(e) => setNewestFirst(e.target.value === 'new')} aria-label="Order">
+                  <option value="old">Oldest first</option>
+                  <option value="new">Newest first</option>
+                </select>
               </div>
             )}
-          </div>
-        )}
-
-        {/* Summary (management) */}
-        {isManager && (
-          <div className="stat-row">
-            <button type="button" className={`stat${statusFilter === 'all' ? ' on' : ''}`} onClick={() => setStatusFilter('all')}>
-              <strong>{stats.total}</strong><span>Total</span>
-            </button>
-            <button type="button" className={`stat st-completed${statusFilter === 'completed' ? ' on' : ''}`} onClick={() => setStatusFilter('completed')}>
-              <strong>{stats.completed}</strong><span>Completed</span>
-            </button>
-            <button type="button" className={`stat st-pending${statusFilter === 'pending' ? ' on' : ''}`} onClick={() => setStatusFilter('pending')}>
-              <strong>{stats.pending}</strong><span>Pending</span>
-            </button>
-            <button type="button" className={`stat st-overdue${statusFilter === 'overdue' ? ' on' : ''}`} onClick={() => setStatusFilter('overdue')}>
-              <strong>{stats.overdue}</strong><span>Overdue</span>
-            </button>
-            <button type="button" className={`stat st-postponed${statusFilter === 'postponed' ? ' on' : ''}`} onClick={() => setStatusFilter('postponed')}>
-              <strong>{stats.postponed}</strong><span>Postponed</span>
-            </button>
-            <button type="button" className={`stat st-cancelled${statusFilter === 'cancelled' ? ' on' : ''}`} onClick={() => setStatusFilter('cancelled')}>
-              <strong>{stats.cancelled}</strong><span>Cancelled</span>
-            </button>
-            <div className="stat stat-rate" title="Completed out of completed + pending">
-              <strong>{completionRate == null ? '—' : `${completionRate}%`}</strong><span>Completion</span>
+            <div className="mt-tabs" role="group" aria-label="Status">
+              {STATUS_FILTERS.map((f) => {
+                const n = f.value === 'all' ? stats.total : stats[f.value];
+                return (
+                  <button
+                    key={f.value}
+                    type="button"
+                    className={`mt-tab mt-${f.value}${statusFilter === f.value ? ' on' : ''}`}
+                    aria-pressed={statusFilter === f.value}
+                    onClick={() => setStatusFilter(f.value)}
+                  >
+                    {f.label}<span className={`mt-count${f.value === 'overdue' && n > 0 ? ' alert' : ''}`}>{n}</span>
+                  </button>
+                );
+              })}
+              <span className="mt-spacer" />
+              {filtersActive && <button type="button" className="mt-clear" onClick={clearFilters}>Clear filters</button>}
+              {completionRate != null && <span className="mt-rate" title="Completed out of completed + pending">{completionRate}% done</span>}
             </div>
           </div>
         )}
@@ -769,14 +733,14 @@ export default function PlannerPage() {
                 <div className="empty-sub">{filtersActive ? 'Try another status or clear the filters.' : 'Add a meeting above, or plan ahead in the week view.'}</div>
               </div>
             ) : (
-              groups.map((g) => (
-                <div key={g.name}>
-                  <div className="eyebrow planner-group">{g.name}</div>
-                  <div className="card meeting-list">
+              <div className="card meeting-list mt-daylist">
+                {groups.map((g) => (
+                  <div key={g.name}>
+                    <div className="mt-part">{g.name}</div>
                     {g.items.map((m) => <MeetingRow key={m.id} m={m} showAssignee={showAssignee} {...rowProps} />)}
                   </div>
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </>
         )}
@@ -1001,9 +965,6 @@ export default function PlannerPage() {
                     <button type="button" className="btn btn-ghost danger-text" onClick={() => setConfirmDelete(true)}>Delete</button>
                   )
                 )}
-                {form.id && (
-                  <button type="button" className="btn btn-ghost" onClick={() => downloadIcs(meetings.concat(carryOver).find((x) => x.id === form.id))}><Icon name="calendar" size={15} className="ii" />Add to Outlook</button>
-                )}
                 <span style={{ flex: 1 }} />
                 <button type="button" className="btn btn-ghost" onClick={() => setForm(null)}>Cancel</button>
                 <button className="btn btn-primary" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
@@ -1012,8 +973,6 @@ export default function PlannerPage() {
           </div>
         </div>
       )}
-
-      {showOutlook && <OutlookConnect supabase={supabase} onClose={() => setShowOutlook(false)} />}
 
       {showSettings && (
         <ReminderSettings
@@ -1025,21 +984,6 @@ export default function PlannerPage() {
       )}
     </div>
   );
-}
-
-function downloadIcs(m) {
-  if (!m) return;
-  const ics = buildCalendar([m], { name: 'ACE Meeting' });
-  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  const safe = (m.title || 'meeting').replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '').slice(0, 40) || 'meeting';
-  a.href = url;
-  a.download = `${safe}.ics`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
 // Type-or-pick project box: suggests matching projects from the list,
