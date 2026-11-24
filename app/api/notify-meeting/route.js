@@ -1,4 +1,4 @@
-// A manager / admin / owner gave a meeting to someone else: tell that
+// Someone gave a meeting to another person: tell that
 // person straight away on their phones/computers ("New meeting").
 import { NextResponse } from 'next/server';
 import { adminClient, configurePush, sendToUser } from '@/lib/pushServer';
@@ -28,8 +28,8 @@ export async function POST(req) {
     admin.from('profiles').select('full_name, role').eq('id', user.id).maybeSingle(),
   ]);
   if (!m) return NextResponse.json({ error: 'Meeting not found' }, { status: 404 });
-  // only owner / admin / manager can give meetings to other people
-  if (!MANAGEMENT.includes(me?.role)) {
+  // only the person who made the meeting (or management) can send this
+  if (m.created_by !== user.id && !MANAGEMENT.includes(me?.role)) {
     return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
   }
   if (!m.assigned_to || m.assigned_to === user.id) return NextResponse.json({ ok: true, sent: 0 });
@@ -40,7 +40,7 @@ export async function POST(req) {
   const when = [dmy(m.meeting_date), t12(m.start_time)].filter(Boolean).join(', ');
   const payload = {
     kind: 'meeting-assigned',
-    title: `📅 New meeting from ${me?.full_name || 'your manager'}`,
+    title: `📅 New meeting from ${me?.full_name || 'a colleague'}`,
     body: [m.title || 'Meeting', when, m.venue && `📍 ${m.venue}`, proj && `📁 ${proj}`].filter(Boolean).join(' · '),
     url: m.meeting_date ? `/planner?date=${m.meeting_date}&open=${m.id}` : `/planner?open=${m.id}`,
     tag: `ace-meeting-${m.id}`,

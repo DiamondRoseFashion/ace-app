@@ -208,9 +208,7 @@ export default function PlannerPage() {
       setMe(profile);
       const [{ data: projs }, { data: ppl }] = await Promise.all([
         supabase.from('projects').select('id, name').order('name'),
-        MANAGEMENT_ROLES.includes(profile.role)
-          ? supabase.from('profiles').select('id, full_name, role').order('full_name')
-          : Promise.resolve({ data: [] }),
+        supabase.from('profiles').select('id, full_name, role').order('full_name'),
       ]);
       setProjects(projs || []);
       setPeople(ppl || []);
@@ -231,7 +229,8 @@ export default function PlannerPage() {
     setPageError('');
     let q = supabase.from('meetings').select(SELECT)
       .gte('meeting_date', rangeFrom).lte('meeting_date', rangeTo);
-    if (filterId) q = q.eq('assigned_to', filterId);
+    if (!isManager) q = q.or(`assigned_to.eq.${me.id},created_by.eq.${me.id}`); // mine + the ones I gave others
+    else if (filterId) q = q.eq('assigned_to', filterId);
     const { data, error } = await q;
     if (error) { setPageError(friendlyDbError(error.message)); setLoading(false); return; }
     setMeetings(sortMeetings(data || []));
@@ -383,7 +382,7 @@ export default function PlannerPage() {
       else if (text) { payload.project_id = null; payload.project_name = text; }
       else { payload.project_id = null; payload.project_name = null; }
     }
-    if (isManager && form.assigned_to) payload.assigned_to = form.assigned_to;
+    if (form.assigned_to) payload.assigned_to = form.assigned_to;
 
     setSaving(true);
     const { data: savedRow, error } = form.id
@@ -572,7 +571,7 @@ export default function PlannerPage() {
 
   const rowProps = {
     onToggle: toggleDone, onOpen: openEdit, defaultReminder: me.reminder_default_minutes, meId: me.id, nowMs,
-    onDelete: deleteOne, canDelete: canDeleteMeeting,
+    onDelete: deleteOne, canDelete: canDeleteMeeting, showOthers: !isManager,
     selectMode, selectedIds, onSelect: toggleSelect,
   };
 
@@ -763,7 +762,7 @@ export default function PlannerPage() {
                           {m.start_time && <span className="wi-time">{formatTime(m.start_time)}</span>}
                           <span className="wi-title">{meetingTitle(m)}</span>
                           {st !== 'pending' && st !== 'completed' && <span className={`pill-status ps-${st}`}>{statusLabel(st)}</span>}
-                          {showAssignee && m.assignee?.full_name && <span className="wi-who">{m.assignee.full_name}</span>}
+                          {(showAssignee || (!isManager && m.assigned_to !== me.id)) && m.assignee?.full_name && <span className="wi-who">{m.assignee.full_name}</span>}
                         </button>
                       );
                     })}
@@ -929,7 +928,7 @@ export default function PlannerPage() {
                 </div>
               </div>
               <div className="form-row-2" style={{ marginBottom: 14 }}>
-                {isManager && (
+                {(
                   <div>
                     <label>Assigned to</label>
                     <select value={form.assigned_to} onChange={(e) => setForm({ ...form, assigned_to: e.target.value })}>
@@ -1064,7 +1063,7 @@ function ProjectPicker({ value, projects, onChange }) {
   );
 }
 
-function MeetingRow({ m, showDate, showAssignee, onToggle, onOpen, defaultReminder, meId, nowMs, onDelete, canDelete, selectMode, selectedIds, onSelect }) {
+function MeetingRow({ m, showDate, showAssignee, showOthers, onToggle, onOpen, defaultReminder, meId, nowMs, onDelete, canDelete, selectMode, selectedIds, onSelect }) {
   const [askDel, setAskDel] = useState(false);
   const deletable = canDelete ? canDelete(m) : false;
   const status = statusOf(m);
@@ -1112,7 +1111,7 @@ function MeetingRow({ m, showDate, showAssignee, onToggle, onOpen, defaultRemind
             {active && !overdue && !m.start_time && m.assigned_to === meId && m.reminder_minutes !== -1 && <span><Icon name="bell" size={13} className="ii" />{ANYTIME_REMINDER_HOUR}:00 AM</span>}
           </span>
         </span>
-        {showAssignee && m.assignee?.full_name && (
+        {(showAssignee || (showOthers && m.assigned_to !== meId)) && m.assignee?.full_name && (
           <span className="avatar mr-avatar" title={m.assignee.full_name}>{initials(m.assignee.full_name)}</span>
         )}
       </button>
