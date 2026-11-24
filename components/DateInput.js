@@ -2,10 +2,11 @@
 
 // A date box that always shows dd/mm/yyyy (the browser's own date box
 // follows the computer's language and often shows mm/dd/yyyy).
-// Type the date (slashes are added for you) or pick it from the 📅 calendar.
+// Type the date (slashes are added for you) or pick it from the calendar button.
 // Works like <input type="date">: value and onChange use "yyyy-mm-dd".
 import { useEffect, useRef, useState } from 'react';
 import { fmtDate, parseDmy } from '@/lib/dates';
+import Icon from '@/components/Icon';
 
 function mask(raw) {
   const digits = raw.replace(/\D/g, '').slice(0, 8);
@@ -66,7 +67,7 @@ export default function DateInput({ value, onChange, className = '', style, requ
         maxLength={10}
         autoComplete="off"
       />
-      <button type="button" className="date-input-cal" onClick={openCalendar} disabled={disabled} aria-label="Open calendar" tabIndex={-1}>📅</button>
+      <button type="button" className="date-input-cal" onClick={openCalendar} disabled={disabled} aria-label="Open calendar" tabIndex={-1}><Icon name="calendar" size={16} className="ii only" /></button>
       <input
         ref={pickerRef}
         type="date"

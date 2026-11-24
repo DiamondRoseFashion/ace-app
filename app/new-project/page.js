@@ -13,6 +13,7 @@ import { useTeam } from '@/lib/team';
 import { notifySupporters, notifyProjectPeople } from '@/lib/supportAlerts';
 import SuggestInput from '@/components/SuggestInput';
 import { useContactNames, companyOptions, personOptions, savedPerson, fillFromSaved, designationOptions } from '@/lib/contactNames';
+import Icon from '@/components/Icon';
 
 const CONTACT_ROLES = [
   { key: 'contractor', label: 'Contractor' },
@@ -405,7 +406,7 @@ const [quotation, setQuotation] = useState({
                   {saving ? 'Saving…' : 'Save & Continue →'}
                 </button>
                 <button type="button" className="btn btn-ghost" onClick={saveDraft} disabled={saving || draftSaving}>
-                  {draftSaving ? 'Saving draft…' : draftId ? '📝 Update draft' : '📝 Save as draft'}
+                  {draftSaving ? 'Saving draft…' : <><Icon name="pencil" size={15} className="ii" />{draftId ? 'Update draft' : 'Save as draft'}</>}
                 </button>
               </div>
               {!project.name.trim() && <div className="hint">Project Name is needed to continue. You can save a draft without it.</div>}

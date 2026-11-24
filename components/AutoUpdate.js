@@ -6,6 +6,7 @@
 // the middle of typing something).
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import Icon from '@/components/Icon';
 
 const MINE = process.env.NEXT_PUBLIC_ACE_VERSION || 'dev';
 const CHECK_EVERY_MS = 5 * 60 * 1000;
@@ -54,7 +55,7 @@ export default function AutoUpdate() {
   if (!show) return null;
   return (
     <div className="update-banner" role="status">
-      <span>✨ A new version of ACE is ready.</span>
+      <span><Icon name="refresh" size={14} className="ii" />A new version of ACE is ready.</span>
       <button type="button" onClick={() => window.location.reload()}>Refresh now</button>
     </div>
   );

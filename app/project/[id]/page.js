@@ -21,6 +21,7 @@ import { notifySupporters, notifyProjectPeople } from '@/lib/supportAlerts';
 import { KEEP_URL } from '@/lib/dashboardView';
 import { fmtDate } from '@/lib/dates';
 import { money } from '@/lib/projectTable';
+import Icon from '@/components/Icon';
 
 const STATUS_LABELS = PROJECT_STATUS_LABELS;
 const ROLE_LABELS = { contractor: 'Contractor', client: 'Client', consultant: 'Consultant', main_contractor: 'Main Contractor' };
@@ -406,13 +407,13 @@ export default function ProjectDetail() {
           )}
           <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
             {!editing && costingOn && (
-              <Link href={`/project/${projectId}/costing`}><button className="btn btn-ghost">🧮 Costing sheets</button></Link>
+              <Link href={`/project/${projectId}/costing`}><button className="btn btn-ghost"><Icon name="calculator" size={15} className="ii" />Costing sheets</button></Link>
             )}
             {!editing && canManage && (
               <button className="btn btn-ghost" onClick={startEditing}>Edit</button>
             )}
             {!editing && canDeleteProject(project, { id: myId, role: myRole }) && (
-              <button className="btn btn-ghost danger-text" onClick={() => { setDelError(''); setConfirmDel(true); }}>🗑 Delete</button>
+              <button className="btn btn-ghost danger-text" onClick={() => { setDelError(''); setConfirmDel(true); }}><Icon name="trash" size={15} className="ii" />Delete</button>
             )}
             <Link href={KEEP_URL}><button className="btn btn-ghost">← Back to Projects</button></Link>
           </div>
@@ -422,7 +423,7 @@ export default function ProjectDetail() {
           <div className="modal-backdrop" onClick={() => !deleting && setConfirmDel(false)}>
             <div className="card modal" role="alertdialog" aria-modal="true" aria-label="Delete project" onClick={(e) => e.stopPropagation()}>
               <div className="modal-head"><h2>Delete this project?</h2></div>
-              <div className="del-names"><div>📁 {project.name}</div></div>
+              <div className="del-names"><div><Icon name="projects" size={14} className="ii" />{project.name}</div></div>
               <p className="del-warn">
                 This will also permanently delete its <strong>{contacts.length}</strong> contact{contacts.length === 1 ? '' : 's'}, <strong>{quotations.length}</strong> quotation{quotations.length === 1 ? '' : 's'}, and <strong>{meetings.length}</strong> meeting{meetings.length === 1 ? '' : 's'} (and any files uploaded to it in the past).
                 <br />This can&apos;t be undone.

@@ -1,6 +1,6 @@
 'use client';
 
-// Quotation for one costing sheet revision (costing sheet → "📄 Quotation").
+// Quotation for one costing sheet revision (costing sheet → "Quotation").
 //  • First time: made from the costing sheet (Ref, Date, Project, items
 //    with selling prices) and the project's Contractor contact (To / Tel /
 //    Attn.; Main Contractor if there's no Contractor), plus the standard
@@ -17,6 +17,7 @@ import Sidebar from '@/components/Sidebar';
 import DateInput from '@/components/DateInput';
 import { money } from '@/lib/costing';
 import { SIGNATURE_BUCKET, signatureFor } from '@/lib/signature';
+import Icon from '@/components/Icon';
 import {
   DEFAULT_INTRO, DEFAULT_TERMS, DEFAULT_CLOSING, itemsFromCosting, discountsFromCosting, quotationTotals, modelOf, qtyText,
 } from '@/lib/quotation';
@@ -351,8 +352,8 @@ export default function QuotationPage() {
             <span className={`cs-status${dirty ? ' dirty' : ''}`}>{dirty ? '● Unsaved changes' : 'Saved'}</span>
             <Link className="btn btn-ghost" href={`/costing/${sheetId}`}>← Costing sheet</Link>
             <button type="button" className="btn btn-ghost" onClick={() => save()} disabled={!!busy || !dirty}>{busy === 'save' ? 'Saving…' : 'Save'}</button>
-            <button type="button" className="btn btn-ghost" onClick={downloadExcel} disabled={!!busy}>{busy === 'excel' ? 'Making Excel…' : '⬇ Excel'}</button>
-            <button type="button" className="btn btn-primary" onClick={downloadPdf} disabled={!!busy}>{busy === 'pdf' ? 'Making PDF…' : '⬇ Download PDF'}</button>
+            <button type="button" className="btn btn-ghost" onClick={downloadExcel} disabled={!!busy}>{busy === 'excel' ? 'Making Excel…' : <><Icon name="download" size={15} className="ii" />Excel</>}</button>
+            <button type="button" className="btn btn-primary" onClick={downloadPdf} disabled={!!busy}>{busy === 'pdf' ? 'Making PDF…' : <><Icon name="download" size={15} className="ii" />Download PDF</>}</button>
           </div>
         </div>
         {msg && <div className={msg.ok ? 'notice ok' : 'notice err'}>{msg.text}</div>}
@@ -366,7 +367,7 @@ export default function QuotationPage() {
           <div className="qt-top">
             <div className="qt-to">
               {inp('to_company', 'To: M/s.')}
-              <button type="button" className="td-link qt-fill" onClick={fillFromContractor} disabled={!!busy}>↻ Fill To, Tel and Attn. from the project&apos;s contractor</button>
+              <button type="button" className="td-link qt-fill" onClick={fillFromContractor} disabled={!!busy}><Icon name="refresh" size={13} className="ii" />Fill To, Tel and Attn. from the project&apos;s contractor</button>
               {inp('po_box', 'P.O. Box')}
               {inp('city', 'City / Country')}
               {inp('tel', 'Tel')}
@@ -391,7 +392,7 @@ export default function QuotationPage() {
 
           <div className="qt-items-head">
             <div className="qt-sec">Items</div>
-            <button type="button" className="btn btn-ghost" onClick={updateFromCosting} disabled={!!busy}>{busy === 'sync' ? 'Updating…' : '↻ Update from costing sheet'}</button>
+            <button type="button" className="btn btn-ghost" onClick={updateFromCosting} disabled={!!busy}>{busy === 'sync' ? 'Updating…' : <><Icon name="refresh" size={15} className="ii" />Update from costing sheet</>}</button>
           </div>
           <div className="cs-scroll">
             <table className="qt-table">

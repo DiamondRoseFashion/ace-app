@@ -5,6 +5,7 @@
 // else can pick it too. Value is a string like "Philips, Schréder".
 import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabaseClient';
+import Icon from '@/components/Icon';
 
 export function splitBrands(value) {
   return String(value || '').split(',').map((s) => s.trim()).filter(Boolean);
@@ -137,7 +138,7 @@ export default function BrandPicker({ value, onChange, id }) {
             >
               {o.type === 'new'
                 ? <>＋ Add “{o.label}”<span className="pp-sub">new brand: everyone will be able to choose it</span></>
-                : <>🏷️ {o.label}</>}
+                : <><Icon name="tag" size={13} className="ii" />{o.label}</>}
             </button>
           ))}
           {options.length === 0 && (

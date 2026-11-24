@@ -22,6 +22,7 @@ import Sidebar from '@/components/Sidebar';
 import DateInput from '@/components/DateInput';
 import CostingCombo from '@/components/CostingCombo';
 import { shrinkToLimit } from '@/lib/shrinkImage';
+import Icon from '@/components/Icon';
 import {
   num, calcSheet, money, isBlankItem, emptyItem, emptyDiscount,
 } from '@/lib/costing';
@@ -410,10 +411,10 @@ export default function CostingSheetPage() {
             <span className={`cs-status${dirty ? ' dirty' : ''}`}>
               {saving ? 'Saving…' : dirty ? '● Unsaved changes' : savedAt ? `Saved ${new Date(savedAt).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })}` : ''}
             </span>
-            <button type="button" className="btn btn-ghost" onClick={() => setShowRates(true)}>💱 Currency rates</button>
+            <button type="button" className="btn btn-ghost" onClick={() => setShowRates(true)}><Icon name="currency" size={15} className="ii" />Currency rates</button>
             {projectId && <Link className="btn btn-ghost" href={`/project/${projectId}/costing`}>← All sheets</Link>}
-            <Link className="btn btn-ghost" href={`/quotation/${sheetId}`} title="Make or open the quotation for this costing sheet">📄 Quotation</Link>
-            <button type="button" className="btn btn-ghost" onClick={downloadExcel} disabled={excelBusy} title="Download this costing sheet as an Excel file">{excelBusy ? 'Making Excel…' : '⬇ Excel'}</button>
+            <Link className="btn btn-ghost" href={`/quotation/${sheetId}`} title="Make or open the quotation for this costing sheet"><Icon name="quotation" size={15} className="ii" />Quotation</Link>
+            <button type="button" className="btn btn-ghost" onClick={downloadExcel} disabled={excelBusy} title="Download this costing sheet as an Excel file">{excelBusy ? 'Making Excel…' : <><Icon name="download" size={15} className="ii" />Excel</>}</button>
             <button type="button" className="btn btn-primary" onClick={save} disabled={saving || !dirty}>{saving ? 'Saving…' : 'Save (Ctrl+S)'}</button>
           </div>
         </div>

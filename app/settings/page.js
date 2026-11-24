@@ -2,9 +2,9 @@
 
 // Settings: one place for personal choices.
 //  • Appearance: Classic / Light / Dark / Match my device (this device)
-//  • Notifications & reminders (same panel as Meetings → ⚙️ Reminders)
+//  • Notifications & reminders (same panel as Meetings → Reminders)
 //  • Calendar & start page (this device)
-//  • Outlook connection (same panel as Meetings → 📆 Outlook)
+//  • Outlook connection (same panel as Meetings → Outlook)
 //  • Account & security: change password, log out of all devices
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -143,7 +143,7 @@ export default function SettingsPage() {
     switch (key) {
       case 'appearance': return (
     <section className="card set-card" aria-label="Appearance">
-      <div className="modal-head"><h2>🎨 Appearance</h2></div>
+      <div className="modal-head"><h2>Appearance</h2></div>
       <div className="hint" style={{ marginBottom: 12 }}>Changes straight away, on this device.</div>
       <div className="set-themes" role="radiogroup" aria-label="Look">
         {THEMES.map((t) => (
@@ -165,7 +165,7 @@ export default function SettingsPage() {
       );
       case 'calendar': return (
     <section className="card set-card" aria-label="Calendar and start page">
-      <div className="modal-head"><h2>🗓️ Calendar &amp; start page</h2></div>
+      <div className="modal-head"><h2>Calendar &amp; start page</h2></div>
       <div className="hint" style={{ marginBottom: 12 }}>Saved on this device.</div>
       <div className="field-group">
         <label>Week starts on</label>
@@ -206,7 +206,7 @@ export default function SettingsPage() {
       case 'outlook': return <OutlookConnect inline supabase={supabase} />;
       case 'account': return (
     <section className="card set-card" aria-label="Account and security">
-      <div className="modal-head"><h2>🔒 Account &amp; security</h2></div>
+      <div className="modal-head"><h2>Account &amp; security</h2></div>
       {email && <div className="hint" style={{ marginBottom: 14 }}>Logged in as <strong>{email}</strong></div>}
       <form onSubmit={changePassword}>
         <div className="field-group">

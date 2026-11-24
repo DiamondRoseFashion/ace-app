@@ -49,7 +49,7 @@ export default function ReminderSettings({ me, onClose, onSaved, supabase, inlin
     try {
       const r = await enablePush(supabase);
       setPush(r);
-      if (r === 'on') setPushMsg('✅ This device will now get meeting reminders, even when ACE is closed.');
+      if (r === 'on') setPushMsg('This device will now get meeting reminders, even when ACE is closed.');
     } catch (e) {
       setPushMsg(friendlyDbError(e.message) || 'Could not turn on notifications.');
     }
@@ -82,7 +82,7 @@ export default function ReminderSettings({ me, onClose, onSaved, supabase, inlin
   const content = (
       <>
         <div className="modal-head">
-          <h2>{inline ? '🔔 Notifications & reminders' : 'Reminder settings'}</h2>
+          <h2>{inline ? 'Notifications & reminders' : 'Reminder settings'}</h2>
           {!inline && <button className="reminder-x" aria-label="Close" onClick={onClose}>✕</button>}
         </div>
 
@@ -109,7 +109,7 @@ export default function ReminderSettings({ me, onClose, onSaved, supabase, inlin
           {push === 'checking' && <div className="hint">Checking this device…</div>}
           {push === 'on' && (
             <>
-              <div className="hint">✅ On for this device. Reminders arrive as a phone/computer notification even when ACE is closed.</div>
+              <div className="hint">On for this device. Reminders arrive as a phone/computer notification even when ACE is closed.</div>
               <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
                 <button type="button" className="btn btn-ghost" disabled={pushBusy} onClick={sendTest}>Send test notification</button>
                 <button type="button" className="btn btn-ghost danger-text" disabled={pushBusy} onClick={turnOffPush}>Turn off on this device</button>

@@ -8,6 +8,7 @@ import { downloadXlsx } from '@/lib/xlsxExport';
 import { PROJECT_STATUS_LABELS, projectStatusRank } from '@/lib/projectStatus';
 import DateInput from '@/components/DateInput';
 import { money } from '@/lib/projectTable';
+import Icon from '@/components/Icon';
 
 
 const TABS = [
@@ -319,7 +320,7 @@ export default function ViewData() {
                 onClick={() => downloadXlsx(filtered.map((r) => ({ ...r, status: r.status !== undefined ? display('status', r.status) : r.status })), columns, `ACE-${tab}${active ? '-filtered' : ''}.xlsx`, { sheetName: TABS.find((t) => t.key === tab)?.label })}
                 style={{ fontSize: 12.5 }}
               >
-                ⬇ Download for Excel
+                <Icon name="download" size={15} className="ii" />Download for Excel
               </button>
             </div>
 

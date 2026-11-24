@@ -7,16 +7,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useNotifications, markRead, markAllRead, removeOne, removeAll } from '@/lib/notificationsStore';
+import Icon from '@/components/Icon';
 
 const KINDS = {
-  reminder: { icon: '⏰', cls: 'k-reminder', label: 'Meeting reminder' },
-  'meeting-copy': { icon: '⏰', cls: 'k-reminder', label: 'Meeting reminder' },
-  'meeting-assigned': { icon: '📅', cls: 'k-meeting', label: 'Meeting' },
-  support: { icon: '🛟', cls: 'k-support', label: 'Support' },
-  note: { icon: '💬', cls: 'k-note', label: 'Project note' },
-  todo: { icon: '✅', cls: 'k-todo', label: 'To-Do' },
-  project: { icon: '📁', cls: 'k-support', label: 'Project' },
-  info: { icon: '🔔', cls: 'k-info', label: 'ACE' },
+  reminder: { icon: 'alarm', cls: 'k-reminder', label: 'Meeting reminder' },
+  'meeting-copy': { icon: 'alarm', cls: 'k-reminder', label: 'Meeting reminder' },
+  'meeting-assigned': { icon: 'meetings', cls: 'k-meeting', label: 'Meeting' },
+  support: { icon: 'support', cls: 'k-support', label: 'Support' },
+  note: { icon: 'message', cls: 'k-note', label: 'Project note' },
+  todo: { icon: 'todo', cls: 'k-todo', label: 'To-Do' },
+  project: { icon: 'projects', cls: 'k-support', label: 'Project' },
+  info: { icon: 'bell', cls: 'k-info', label: 'ACE' },
 };
 const kindOf = (k) => KINDS[k] || KINDS.info;
 
@@ -139,7 +140,7 @@ export default function NotificationBell({ variant = 'inline' }) {
             <strong>Notifications</strong>
             <div className="nb-head-actions">
               <button type="button" className="nb-link" onClick={markAllRead} disabled={!unread}>✓ Mark all as read</button>
-              <button type="button" className="nb-link danger" onClick={() => setConfirmClear(true)} disabled={!items.length}>🗑 Delete all</button>
+              <button type="button" className="nb-link danger" onClick={() => setConfirmClear(true)} disabled={!items.length}><Icon name="trash" size={13} className="ii" />Delete all</button>
             </div>
           </div>
           {confirmClear && (
@@ -163,7 +164,7 @@ export default function NotificationBell({ variant = 'inline' }) {
               <div className="nb-empty">Loading…</div>
             ) : shown.length === 0 ? (
               <div className="nb-empty">
-                <div className="nb-empty-icon">🔔</div>
+                <div className="nb-empty-icon"><Icon name="bell" size={30} className="ii only" /></div>
                 <strong>{tab === 'unread' ? 'You’re all caught up' : 'No notifications yet'}</strong>
                 <span>Reminders, new meetings, to-dos, support projects and project notes will show here.</span>
               </div>
@@ -175,7 +176,7 @@ export default function NotificationBell({ variant = 'inline' }) {
                   return (
                     <div key={n.id} className={`nb-item${n.read_at ? '' : ' unread'}`}>
                       <button type="button" className="nb-item-main" onClick={() => openItem(n)}>
-                        <span className={`nb-icon ${k.cls}`} aria-hidden="true">{k.icon}</span>
+                        <span className={`nb-icon ${k.cls}`} aria-hidden="true"><Icon name={k.icon} size={16} /></span>
                         <span className="nb-text">
                           <span className="nb-title">{cleanTitle(n.title)}</span>
                           {n.body && <span className="nb-body">{n.body}</span>}

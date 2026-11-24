@@ -83,7 +83,7 @@ export default function OutlookConnect({ supabase, onClose, inline = false }) {
             It then shows on Outlook on your phone too.
           </div>
           <div className="hint" style={{ marginTop: 6 }}>
-            Outlook checks for changes every few hours. To put one meeting in Outlook right away, open it and tap <strong>📆 Add to Outlook</strong>.
+            Outlook checks for changes every few hours. To put one meeting in Outlook right away, open it and tap <strong>Add to Outlook</strong>.
           </div>
         </div>
 

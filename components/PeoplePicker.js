@@ -3,6 +3,7 @@
 // Pick one or more people from the team (e.g. "Supported By").
 // value: array of user ids. people: [{ id, name }].
 import { useEffect, useRef, useState } from 'react';
+import Icon from '@/components/Icon';
 
 export default function PeoplePicker({ value = [], onChange, people = [], placeholder = 'Choose people', ariaLabel }) {
   const [text, setText] = useState('');
@@ -67,7 +68,7 @@ export default function PeoplePicker({ value = [], onChange, people = [], placeh
             <button type="button" key={p.id} role="option" aria-selected={i === active}
               className={`pp-opt${i === active ? ' active' : ''}`}
               onMouseDown={(e) => e.preventDefault()} onClick={() => pick(p)}>
-              👤 {p.name}
+              <Icon name="user" size={13} className="ii" />{p.name}
             </button>
           ))}
           {options.length === 0 && (

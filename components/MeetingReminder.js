@@ -14,6 +14,7 @@ import {
   DEFAULT_REMINDER, ANYTIME_REMINDER_HOUR,
 } from '@/lib/planner';
 import { syncPush } from '@/lib/pushClient';
+import Icon from '@/components/Icon';
 
 const CHECK_EVERY_MS = 15 * 1000;
 const RELOAD_EVERY_MS = 2 * 60 * 1000;
@@ -314,18 +315,18 @@ export default function MeetingReminder() {
     <div className="reminder-stack" role="alert" aria-live="assertive">
       {alerts.map((m) => (
         <div key={m.id} className="reminder-pop">
-          <div className="reminder-bell" aria-hidden="true">🔔</div>
+          <div className="reminder-bell" aria-hidden="true"><Icon name="bell" size={26} className="ii only" /></div>
           <div className="reminder-body">
             <div className="reminder-when">{whenLabel(m, now)}</div>
             <div className="reminder-title">{meetingTitle(m)}</div>
             <div className="reminder-meta">
               {m.start_time ? formatTime(m.start_time) : 'Anytime'}
               {m.end_time ? ` – ${formatTime(m.end_time)}` : ''}
-              {m.venue ? ` · 📍 ${m.venue}` : ''}
-              {(m.project?.name || m.project_name) ? ` · 📁 ${m.project?.name || m.project_name}` : ''}
+              {m.venue ? <> · <Icon name="pin" size={13} className="ii" />{m.venue}</> : ''}
+              {(m.project?.name || m.project_name) ? <> · <Icon name="projects" size={13} className="ii" />{m.project?.name || m.project_name}</> : ''}
             </div>
             <div className="reminder-actions">
-              <button className="btn btn-stop" onClick={() => close(m, { markSeen: true })}>🔕 Stop</button>
+              <button className="btn btn-stop" onClick={() => close(m, { markSeen: true })}><Icon name="bellOff" size={14} className="ii" />Stop</button>
               <button className="btn btn-ghost" onClick={() => snooze(m)}>Snooze 5 min</button>
               <button className="btn btn-ghost" onClick={() => markDone(m)}>Done</button>
               <button className="btn btn-ghost" onClick={() => { close(m, { markSeen: true }); router.push('/planner'); }}>Open</button>

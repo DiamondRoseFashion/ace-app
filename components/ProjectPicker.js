@@ -3,6 +3,7 @@
 // Pick one project by typing to search. options: [{ id, name, support }]
 // ("support" = a project I help on, from the Support page).
 import { useEffect, useRef, useState } from 'react';
+import Icon from '@/components/Icon';
 
 export default function ProjectPicker({ value, onChange, options = [], placeholder = 'Search projects…' }) {
   const [text, setText] = useState('');
@@ -47,7 +48,7 @@ export default function ProjectPicker({ value, onChange, options = [], placehold
         <div className="pjp-chosen" onClick={() => { setOpen(true); setTimeout(() => inputRef.current?.focus(), 0); }} role="button" tabIndex={0}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen(true); setTimeout(() => inputRef.current?.focus(), 0); } }}
           title={chosen.name}>
-          <span className="pjp-name">📁 {chosen.name}</span>
+          <span className="pjp-name"><Icon name="projects" size={13} className="ii" />{chosen.name}</span>
           {chosen.support && <span className="pjp-tag">Support</span>}
           <button type="button" className="pjp-x" aria-label="Remove project" onClick={(e) => { e.stopPropagation(); pick(null); }}>✕</button>
         </div>

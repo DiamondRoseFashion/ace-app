@@ -126,7 +126,7 @@ export default function CostingCombo({ value, options = [], onChange, placeholde
           <input
             ref={searchRef}
             className="cc-search"
-            placeholder="🔍 Search or type a new one…"
+            placeholder="Search or type a new one…"
             value={q}
             onChange={(e) => { setQ(e.target.value); setActive(0); }}
             onKeyDown={onSearchKey}

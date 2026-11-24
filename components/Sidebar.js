@@ -102,7 +102,7 @@ export default function Sidebar({ active, bell = true }) {
     {active !== 'planner' && <PushPrompt supabase={supabase} floating />}
     {meetingsNew.toast && (
       <div className="support-toast meeting-toast" role="status">
-        <div className="st-icon" aria-hidden="true">📅</div>
+        <div className="st-icon" aria-hidden="true"><Icon name="meetings" size={22} className="ii only" /></div>
         <div className="st-text">
           <strong>{meetingsNew.toast.count ? `${meetingsNew.toast.count} new meetings for you` : `New meeting from ${meetingsNew.toast.assigned_by || 'your manager'}`}</strong>
           {!meetingsNew.toast.count && (
@@ -123,7 +123,7 @@ export default function Sidebar({ active, bell = true }) {
     )}
     {t && (
       <div className="support-toast" role="status">
-        <div className="st-icon" aria-hidden="true">🛟</div>
+        <div className="st-icon" aria-hidden="true"><Icon name="support" size={22} className="ii only" /></div>
         <div className="st-text">
           <strong>{t.count ? `${t.count} new projects to support` : 'New project to support'}</strong>
           {!t.count && <span>From {t.sales_person || t.assigned_by || 'a salesperson'}: {t.project_name}</span>}

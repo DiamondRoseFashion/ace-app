@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabaseClient';
 import { fmtDate } from '@/lib/dates';
 import { printNotes } from '@/lib/printNotes';
+import Icon from '@/components/Icon';
 
 const timeOf = (v) => { const d = new Date(v); const h = d.getHours(); return `${h % 12 || 12}:${String(d.getMinutes()).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`; };
 
@@ -60,7 +61,7 @@ export default function SupportNotes({ projectId, canAdd = false, emptyText = 'N
     <div key={n.id} className="activity-item">
       <div className="activity-meta">
         <strong>{n.author?.full_name || 'Someone'}</strong>
-        <span className="sn-when">📅 {fmtDate(n.created_at)} &nbsp;🕒 {timeOf(n.created_at)}</span>
+        <span className="sn-when"><Icon name="calendar" size={12} className="ii" />{fmtDate(n.created_at)} &nbsp;<Icon name="clock" size={12} className="ii" />{timeOf(n.created_at)}</span>
       </div>
       <div className="activity-body">{n.body}</div>
     </div>
@@ -92,7 +93,7 @@ export default function SupportNotes({ projectId, canAdd = false, emptyText = 'N
       {notes.length > 0 && (
         <div className="sn-print-row">
           <button type="button" className="btn btn-ghost sn-print" onClick={() => printNotes(notes, printInfo || {})} title="Print only these notes">
-            🖨 Print notes
+            <Icon name="printer" size={14} className="ii" />Print notes
           </button>
         </div>
       )}

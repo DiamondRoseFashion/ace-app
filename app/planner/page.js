@@ -17,6 +17,7 @@ import { buildCalendar } from '@/lib/ics';
 import { downloadXlsx } from '@/lib/xlsxExport';
 import DateInput from '@/components/DateInput';
 import { fmtDate } from '@/lib/dates';
+import Icon from '@/components/Icon';
 
 const SELECT = '*, project:projects(id, name), assignee:profiles!assigned_to(id, full_name)';
 
@@ -591,8 +592,8 @@ export default function PlannerPage() {
                 <button role="tab" aria-selected={view === 'list'} className={view === 'list' ? 'on' : ''} onClick={() => setView('list')}>List</button>
               )}
             </div>
-            <button className="btn btn-ghost" onClick={() => setShowOutlook(true)}>📆 Outlook</button>
-            <button className="btn btn-ghost" onClick={() => setShowSettings(true)}>⚙️ Reminders</button>
+            <button className="btn btn-ghost" onClick={() => setShowOutlook(true)}><Icon name="calendar" size={15} className="ii" />Outlook</button>
+            <button className="btn btn-ghost" onClick={() => setShowSettings(true)}><Icon name="bell" size={15} className="ii" />Reminders</button>
             <button className="btn btn-primary" onClick={() => openNew()}>+ New meeting</button>
           </div>
         </div>
@@ -763,7 +764,7 @@ export default function PlannerPage() {
               <div className="card" style={{ color: 'var(--muted)' }}>Loading…</div>
             ) : dayMeetings.length === 0 ? (
               <div className="card empty-day">
-                <div className="empty-icon" aria-hidden="true">🗓️</div>
+                <div className="empty-icon" aria-hidden="true"><Icon name="calendar" size={34} className="ii only" /></div>
                 <div className="empty-title">{filtersActive ? 'No meetings match these filters' : `Nothing scheduled${date === today ? ' today' : ''}`}</div>
                 <div className="empty-sub">{filtersActive ? 'Try another status or clear the filters.' : 'Add a meeting above, or plan ahead in the week view.'}</div>
               </div>
@@ -824,7 +825,7 @@ export default function PlannerPage() {
                 disabled={listItems.length === 0}
                 onClick={() => downloadMeetingsXlsx(listItems, `ACE-meetings-${listFrom}-to-${listTo}.xlsx`)}
               >
-                ⬇ Download for Excel
+                <Icon name="download" size={15} className="ii" />Download for Excel
               </button>
             </div>
             {selectMode && (
@@ -848,7 +849,7 @@ export default function PlannerPage() {
                 ) : (
                   <>
                     <button className="btn btn-ghost" onClick={exitSelect}>Cancel</button>
-                    <button className="btn btn-danger" disabled={selectedIds.size === 0} onClick={() => setBulkConfirm(true)}>🗑 Delete selected</button>
+                    <button className="btn btn-danger" disabled={selectedIds.size === 0} onClick={() => setBulkConfirm(true)}><Icon name="trash" size={15} className="ii" />Delete selected</button>
                   </>
                 )}
               </div>
@@ -857,7 +858,7 @@ export default function PlannerPage() {
               <div className="card" style={{ color: 'var(--muted)' }}>Loading…</div>
             ) : listGroups.length === 0 ? (
               <div className="card empty-day">
-                <div className="empty-icon" aria-hidden="true">🔎</div>
+                <div className="empty-icon" aria-hidden="true"><Icon name="search" size={34} className="ii only" /></div>
                 <div className="empty-title">No meetings found</div>
                 <div className="empty-sub">Try a wider date range, another person, or clear the filters.</div>
               </div>
@@ -1001,7 +1002,7 @@ export default function PlannerPage() {
                   )
                 )}
                 {form.id && (
-                  <button type="button" className="btn btn-ghost" onClick={() => downloadIcs(meetings.concat(carryOver).find((x) => x.id === form.id))}>📆 Add to Outlook</button>
+                  <button type="button" className="btn btn-ghost" onClick={() => downloadIcs(meetings.concat(carryOver).find((x) => x.id === form.id))}><Icon name="calendar" size={15} className="ii" />Add to Outlook</button>
                 )}
                 <span style={{ flex: 1 }} />
                 <button type="button" className="btn btn-ghost" onClick={() => setForm(null)}>Cancel</button>
@@ -1109,7 +1110,7 @@ function ProjectPicker({ value, projects, onChange }) {
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => choose(o)}
             >
-              {o.type === 'new' ? <>＋ Use “{o.label}”<span className="pp-sub">new name, not in Projects</span></> : <>📁 {o.label}</>}
+              {o.type === 'new' ? <>＋ Use “{o.label}”<span className="pp-sub">new name, not in Projects</span></> : <><Icon name="projects" size={13} className="ii" />{o.label}</>}
             </button>
           ))}
           {options.length === 0 && <div className="pp-empty">No projects yet. Type a name to use one.</div>}
@@ -1161,10 +1162,10 @@ function MeetingRow({ m, showDate, showAssignee, onToggle, onOpen, defaultRemind
           </span>
           <span className="mr-meta">
             {showDate && <span>{formatDayLong(m.meeting_date)}</span>}
-            {m.venue && <span>📍 {m.venue}</span>}
-            {projectLabel(m) && <span>📁 {projectLabel(m)}</span>}
-            {active && !overdue && m.start_time && rem != null && rem >= 0 && <span>🔔 {reminderLabel(rem).replace(' before', '')}</span>}
-            {active && !overdue && !m.start_time && m.assigned_to === meId && m.reminder_minutes !== -1 && <span>🔔 {ANYTIME_REMINDER_HOUR}:00 AM</span>}
+            {m.venue && <span><Icon name="pin" size={13} className="ii" />{m.venue}</span>}
+            {projectLabel(m) && <span><Icon name="projects" size={13} className="ii" />{projectLabel(m)}</span>}
+            {active && !overdue && m.start_time && rem != null && rem >= 0 && <span><Icon name="bell" size={13} className="ii" />{reminderLabel(rem).replace(' before', '')}</span>}
+            {active && !overdue && !m.start_time && m.assigned_to === meId && m.reminder_minutes !== -1 && <span><Icon name="bell" size={13} className="ii" />{ANYTIME_REMINDER_HOUR}:00 AM</span>}
           </span>
         </span>
         {showAssignee && m.assignee?.full_name && (
@@ -1179,7 +1180,7 @@ function MeetingRow({ m, showDate, showAssignee, onToggle, onOpen, defaultRemind
             <button className="btn btn-danger" onClick={() => { setAskDel(false); onDelete(m); }}>Yes</button>
           </span>
         ) : (
-          <button className="icon-btn danger mr-del" aria-label={`Delete ${meetingTitle(m)}`} title="Delete meeting" onClick={() => setAskDel(true)}>🗑</button>
+          <button className="icon-btn danger mr-del" aria-label={`Delete ${meetingTitle(m)}`} title="Delete meeting" onClick={() => setAskDel(true)}><Icon name="trash" size={15} className="ii only" /></button>
         )
       )}
     </div>

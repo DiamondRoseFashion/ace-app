@@ -132,6 +132,7 @@ html[data-theme="dark"] .stars-clear:hover{color:hsl(284 49% 75%)}
 html[data-theme="dark"] .support-toast{background:hsl(222 30% 13%); color:hsl(280 34% 85%)}
 html[data-theme="dark"] .st-text span{color:hsl(274 12% 71%)}
 html[data-theme="dark"] .push-prompt{background:hsl(43 20% 17%); color:hsl(44 55% 84%)}
+html[data-theme="dark"] .pp-bell{color:hsl(42 55% 75%)}
 html[data-theme="dark"] .pp-err{color:hsl(0 51% 69%)}
 html[data-theme="dark"] .pp-close{color:hsl(44 55% 75%)}
 html[data-theme="dark"] .sp-row.open:hover + .sp-notes-row td, html[data-theme="dark"] .sp-notes-row:hover td{background:hsl(275 20% 25%)}

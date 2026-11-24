@@ -2,8 +2,8 @@
 
 // Calendar: a normal month calendar (weeks start on Sunday) that
 // shows, on each day:
-//  • 📅 meetings (from Meetings)
-//  • ✅ to-dos on their due date and 🔔 to-do reminders (people with
+//  • meetings (from Meetings)
+//  • to-dos on their due date and to-do reminders (people with
 //    To-Do access; repeating reminders show on every day they ring)
 //  • 🇦🇪 UAE public holidays
 // Tap a day to see everything on it or add a meeting on that day.
@@ -19,6 +19,7 @@ import {
 } from '@/lib/planner';
 import { ruleOf, stepRule } from '@/lib/repeatRule';
 import { holidayOn } from '@/lib/uaeHolidays';
+import Icon from '@/components/Icon';
 
 const WEEK_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MEETING_SELECT = '*, project:projects(id, name), assignee:profiles!assigned_to(id, full_name)';
@@ -331,7 +332,7 @@ export default function CalendarPage() {
                 {selItems.map((it) => (
                   <li key={it.id}>
                     <Link href={it.href} className={`cal-row ${it.cls}`}>
-                      <span className="cal-row-icon" aria-hidden="true">{it.kind === 'meeting' ? '📅' : it.kind === 'remind' ? '🔔' : '✅'}</span>
+                      <span className="cal-row-icon" aria-hidden="true"><Icon name={it.kind === 'meeting' ? 'meetings' : it.kind === 'remind' ? 'alarm' : 'todo'} size={16} /></span>
                       <span className="cal-row-time">{it.timeLabel}</span>
                       <span className="cal-row-text">
                         <strong>{it.title}</strong>

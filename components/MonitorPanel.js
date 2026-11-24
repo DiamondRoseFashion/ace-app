@@ -3,6 +3,7 @@
 // Owner / admin / manager: check that ACE's alert emails reach you
 import { useState } from 'react';
 import { createClient } from '@/lib/supabaseClient';
+import Icon from '@/components/Icon';
 
 export default function MonitorPanel() {
   const [busy, setBusy] = useState('');
@@ -27,7 +28,7 @@ export default function MonitorPanel() {
 
   return (
     <div className="card" style={{ marginTop: 24 }}>
-      <div style={{ fontWeight: 600, marginBottom: 6 }}>🛡️ ACE Monitor</div>
+      <div style={{ fontWeight: 600, marginBottom: 6 }}><Icon name="shield" size={15} className="ii" />ACE Monitor</div>
       <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 0 }}>
         ACE watches itself around the clock. You get an <strong>instant email</strong> if anything goes wrong
         (errors, reminders stopping, a failed backup, several projects deleted at once) and a{' '}

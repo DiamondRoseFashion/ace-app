@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabaseClient';
 import Sidebar from '@/components/Sidebar';
 import { calcSheet, money } from '@/lib/costing';
 import { fmtDate } from '@/lib/dates';
+import Icon from '@/components/Icon';
 
 // "R3" → 3; anything else → -1
 const revNo = (r) => { const m = /^R(\d+)$/i.exec(String(r || '').trim()); return m ? Number(m[1]) : -1; };
@@ -167,7 +168,7 @@ export default function ProjectCostingPage() {
                       ) : (
                         <>
                           <Link className="btn btn-primary" href={`/costing/${s.id}`}>Open</Link>
-                          <Link className="btn btn-ghost" href={`/quotation/${s.id}`}>📄 Quotation</Link>
+                          <Link className="btn btn-ghost" href={`/quotation/${s.id}`}><Icon name="quotation" size={15} className="ii" />Quotation</Link>
                           <button type="button" className="btn btn-ghost" disabled={busy} onClick={() => copySheet(s.id)} title="Make a copy as the next revision">Copy as {nextRevision()}</button>
                           <button type="button" className="btn btn-ghost danger-text" onClick={() => setConfirmDel(s.id)}>Delete</button>
                         </>

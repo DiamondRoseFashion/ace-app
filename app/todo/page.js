@@ -17,6 +17,7 @@ import DateInput from '@/components/DateInput';
 import ProjectPicker from '@/components/ProjectPicker';
 import { fmtDate } from '@/lib/dates';
 import { ruleOf, firstFire, describeRule, WEEKDAYS } from '@/lib/repeatRule';
+import Icon from '@/components/Icon';
 
 const PRIORITIES = [
   { v: 'high', label: 'High' },
@@ -337,7 +338,7 @@ export default function TodoPage() {
         <ProjectPicker value={v.project_id} onChange={(id) => set({ ...v, project_id: id })} options={projects} placeholder="Type to search projects…" />
       </div>
       <div className="td-remind">
-        <span className="td-remind-label">⏰ Remind {v.assigned_to && v.assigned_to !== me ? 'them' : 'me'} (notification)</span>
+        <span className="td-remind-label"><Icon name="alarm" size={13} className="ii" />Remind {v.assigned_to && v.assigned_to !== me ? 'them' : 'me'} (notification)</span>
         <div className="td-remind-row">
           <span className="td-mini">{v.remind_repeat !== 'none' ? 'From' : 'Date'}
             <DateInput aria-label={v.remind_repeat !== 'none' ? 'Reminder start date' : 'Reminder date'} value={v.remind_date} onChange={(e) => set({ ...v, remind_date: e.target.value, remind_time: v.remind_time || '09:00' })} />
@@ -411,15 +412,15 @@ export default function TodoPage() {
         <div className="td-presets">
           <button type="button" onClick={() => { const x = new Date(Date.now() + 3600000); set({ ...v, remind_date: iso(x), remind_time: `${pad(x.getHours())}:${pad(x.getMinutes())}`, remind_repeat: 'none' }); }}>In 1 hour</button>
           <button type="button" onClick={() => set({ ...v, remind_date: dayInfo().tomorrow, remind_time: '09:00' })}>Tomorrow 9 AM</button>
-          {!noRepeat.current && <button type="button" onClick={() => set({ ...v, remind_date: v.remind_date || dayInfo().today, remind_time: v.remind_time || '09:00', remind_repeat: 'daily' })}>🔁 Every day</button>}
+          {!noRepeat.current && <button type="button" onClick={() => set({ ...v, remind_date: v.remind_date || dayInfo().today, remind_time: v.remind_time || '09:00', remind_repeat: 'daily' })}><Icon name="repeat" size={13} className="ii" />Every day</button>}
           {v.due_date && <button type="button" onClick={() => set({ ...v, remind_date: v.due_date, remind_time: '09:00' })}>Due date 9 AM</button>}
           {v.remind_date && <button type="button" className="td-clear" onClick={() => set({ ...v, remind_date: '', remind_time: '', remind_repeat: 'none', remind_until: '' })}>No reminder</button>}
         </div>
         {v.remind_repeat === 'custom' && v.remind_date && ruleOf(v) && (
-          <span className="td-remind-hint">🔁 {describeRule(ruleOf(v), new Date(`${v.remind_date}T${v.remind_time || '09:00'}:00`).getTime(), localOffset())} at {v.remind_time ? clock(new Date(`2000-01-01T${v.remind_time}:00`)) : '9:00 AM'}, from {fmtDate(v.remind_date)}{v.remind_until ? ` to ${fmtDate(v.remind_until)}` : ' until the to-do is done'}.</span>
+          <span className="td-remind-hint"><Icon name="repeat" size={13} className="ii" />{describeRule(ruleOf(v), new Date(`${v.remind_date}T${v.remind_time || '09:00'}:00`).getTime(), localOffset())} at {v.remind_time ? clock(new Date(`2000-01-01T${v.remind_time}:00`)) : '9:00 AM'}, from {fmtDate(v.remind_date)}{v.remind_until ? ` to ${fmtDate(v.remind_until)}` : ' until the to-do is done'}.</span>
         )}
         {v.remind_repeat === 'daily' && v.remind_date && (
-          <span className="td-remind-hint">🔁 Reminds every day at {v.remind_time ? clock(new Date(`2000-01-01T${v.remind_time}:00`)) : '9:00 AM'}, from {fmtDate(v.remind_date)}{v.remind_until ? ` until ${fmtDate(v.remind_until)}` : ' until the to-do is done'}.</span>
+          <span className="td-remind-hint"><Icon name="repeat" size={13} className="ii" />Reminds every day at {v.remind_time ? clock(new Date(`2000-01-01T${v.remind_time}:00`)) : '9:00 AM'}, from {fmtDate(v.remind_date)}{v.remind_until ? ` until ${fmtDate(v.remind_until)}` : ' until the to-do is done'}.</span>
         )}
       </div>
       <label className="td-note-field">Note (optional)
@@ -495,7 +496,7 @@ export default function TodoPage() {
               )}
               {list.length === 0 ? (
                 <div className="sp-empty">
-                  {search || prio ? 'No to-dos match.' : tab === 'mine' ? '🎉 Nothing to do. Add a to-do above.' : tab === 'done' ? 'No finished to-dos in the last 7 days.' : 'You haven’t given a to-do to anyone.'}
+                  {search || prio ? 'No to-dos match.' : tab === 'mine' ? 'Nothing to do. Add a to-do above.' : tab === 'done' ? 'No finished to-dos in the last 7 days.' : 'You haven’t given a to-do to anyone.'}
                 </div>
               ) : tab === 'done' ? list.map((t) => {
                 const goes = new Date(new Date(t.done_at).getTime() + DONE_KEEP_DAYS * 86400000);
@@ -510,11 +511,11 @@ export default function TodoPage() {
                       <div className="td-main" style={{ cursor: 'default' }}>
                         <div className="td-title">{t.title}</div>
                         <div className="td-meta">
-                          <span className="td-done-by">✅ Done{t.done_by ? ` by ${nameOf(t.done_by)}` : ''} · {doneLabel(t.done_at, d)}</span>
-                          {pname && <span className="td-proj-plain">📁 {pname}</span>}
-                          {t.assigned_to !== me && <span className="td-who">👤 For {nameOf(t.assigned_to)}</span>}
-                          {t.created_by !== me && <span className="td-who">👤 From {nameOf(t.created_by)}</span>}
-                          <span className="td-goes">🗑 Deletes {fmtDate(iso(goes))}</span>
+                          <span className="td-done-by"><Icon name="checkCircle" size={13} className="ii" />Done{t.done_by ? ` by ${nameOf(t.done_by)}` : ''} · {doneLabel(t.done_at, d)}</span>
+                          {pname && <span className="td-proj-plain"><Icon name="projects" size={13} className="ii" />{pname}</span>}
+                          {t.assigned_to !== me && <span className="td-who"><Icon name="user" size={13} className="ii" />For {nameOf(t.assigned_to)}</span>}
+                          {t.created_by !== me && <span className="td-who"><Icon name="user" size={13} className="ii" />From {nameOf(t.created_by)}</span>}
+                          <span className="td-goes"><Icon name="trash" size={13} className="ii" />Deletes {fmtDate(iso(goes))}</span>
                         </div>
                       </div>
                       {confirmDel === t.id ? (
@@ -525,7 +526,7 @@ export default function TodoPage() {
                       ) : (
                         <>
                           <button type="button" className="btn btn-ghost td-edit-btn" onClick={() => notDone(t)}>↩ Not done</button>
-                          {canDelete && <button type="button" className="btn btn-ghost td-edit-btn td-del-btn" onClick={() => setConfirmDel(t.id)}>🗑 Delete</button>}
+                          {canDelete && <button type="button" className="btn btn-ghost td-edit-btn td-del-btn" onClick={() => setConfirmDel(t.id)}><Icon name="trash" size={14} className="ii" />Delete</button>}
                         </>
                       )}
                     </div>
@@ -551,23 +552,23 @@ export default function TodoPage() {
                             <div className="td-title">{t.title}</div>
                             <div className="td-meta">
                               {t.priority !== 'normal' && <span className={`td-prio p-${t.priority}`}>{t.priority === 'high' ? '● High' : '● Low'}</span>}
-                              {t.due_date && <span className={`td-due${late ? ' late' : ''}`}>📅 {dueLabel(t.due_date, d)}</span>}
+                              {t.due_date && <span className={`td-due${late ? ' late' : ''}`}><Icon name="calendar" size={13} className="ii" />{dueLabel(t.due_date, d)}</span>}
                               {t.remind_at && (ruleOf(t) ? (
                                 <span className={`td-rem${t.remind_sent_at ? ' sent' : ''}`} title={t.remind_sent_at ? 'Repeating reminders finished' : `Next: ${remindLabel(t.remind_at, d)}`}>
-                                  🔁 {t.remind_repeat === 'daily' ? 'Daily' : describeRule(ruleOf(t), new Date(t.remind_at).getTime(), localOffset())} {clock(new Date(t.remind_at))}{t.remind_until ? ` · until ${fmtDate(t.remind_until)}` : ''}{t.remind_sent_at ? ' · ended' : ''}
+                                  <Icon name="repeat" size={13} className="ii" />{t.remind_repeat === 'daily' ? 'Daily' : describeRule(ruleOf(t), new Date(t.remind_at).getTime(), localOffset())} {clock(new Date(t.remind_at))}{t.remind_until ? ` · until ${fmtDate(t.remind_until)}` : ''}{t.remind_sent_at ? ' · ended' : ''}
                                 </span>
                               ) : (
-                                <span className={`td-rem${t.remind_sent_at ? ' sent' : ''}`} title={t.remind_sent_at ? 'Reminder sent' : 'Reminder set'}>{t.remind_sent_at ? '🔔 Reminded ' : '⏰ '}{remindLabel(t.remind_at, d)}</span>
+                                <span className={`td-rem${t.remind_sent_at ? ' sent' : ''}`} title={t.remind_sent_at ? 'Reminder sent' : 'Reminder set'}>{t.remind_sent_at ? <><Icon name="bell" size={13} className="ii" />Reminded </> : <Icon name="alarm" size={13} className="ii" />}{remindLabel(t.remind_at, d)}</span>
                               ))}
                               {t.project_id && (t.project?.name || t.project_name) && (
                                 t.project ? (
-                                  <Link href={`/project/${t.project.id}`} className="td-proj" onClick={(e) => e.stopPropagation()}>📁 {t.project.name}</Link>
+                                  <Link href={`/project/${t.project.id}`} className="td-proj" onClick={(e) => e.stopPropagation()}><Icon name="projects" size={13} className="ii" />{t.project.name}</Link>
                                 ) : projects.some((p) => p.id === t.project_id && p.support) ? (
-                                  <Link href="/support" className="td-proj" onClick={(e) => e.stopPropagation()} title="Open on the Support page">📁 {t.project_name}</Link>
-                                ) : <span className="td-proj-plain">📁 {t.project_name}</span>
+                                  <Link href="/support" className="td-proj" onClick={(e) => e.stopPropagation()} title="Open on the Support page"><Icon name="projects" size={13} className="ii" />{t.project_name}</Link>
+                                ) : <span className="td-proj-plain"><Icon name="projects" size={13} className="ii" />{t.project_name}</span>
                               )}
-                              {who && <span className="td-who">👤 {who}</span>}
-                              {t.note && !open && <span className="td-note-prev">📝 {t.note}</span>}
+                              {who && <span className="td-who"><Icon name="user" size={13} className="ii" />{who}</span>}
+                              {t.note && !open && <span className="td-note-prev"><Icon name="message" size={13} className="ii" />{t.note}</span>}
                             </div>
                           </div>
                           <button type="button" className="btn btn-ghost td-edit-btn" onClick={() => startEdit(t)}>{open ? 'Close' : 'Edit'}</button>
@@ -602,7 +603,7 @@ export default function TodoPage() {
 
         {undo && (
           <div className="support-toast td-toast" role="status">
-            <span className="st-icon">✅</span>
+            <span className="st-icon"><Icon name="checkCircle" size={20} className="ii only" /></span>
             <div className="st-text"><strong>Done</strong><span>{undo.title}</span></div>
             <button type="button" className="btn btn-ghost" onClick={undoDone}>Undo</button>
           </div>

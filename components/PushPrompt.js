@@ -4,11 +4,13 @@
 // device isn't set up yet). Same switch as on the Meetings page.
 import { useEffect, useState } from 'react';
 import { enablePush, pushStatus } from '@/lib/pushClient';
+import Icon from '@/components/Icon';
 
 const SNOOZE_KEY = 'ace-push-prompt-closed';
-const SNOOZE_DAYS = 3;
+const SNOOZE_DAYS = 14;
 
-// floating: a bar on every page (closable for a few days on this device)
+// floating: a small card in the corner of every page (closing it hides it
+// for two weeks on this device). The "blocked" help stays in Settings only.
 export default function PushPrompt({ supabase, what = 'meeting reminders and new projects to support', floating = false }) {
   const [closed, setClosed] = useState(false);
   const [status, setStatus] = useState(null);
@@ -36,7 +38,7 @@ export default function PushPrompt({ supabase, what = 'meeting reminders and new
       const r = await enablePush(supabase);
       setStatus(r);
       if (r === 'on') {
-        setMsg('✅ Done. This device will now be notified, even when ACE is closed.');
+        setMsg('Done. This device will now be notified, even when ACE is closed.');
         if (floating) setTimeout(() => setClosed(true), 5000);
       }
     } catch (e) {
@@ -46,10 +48,10 @@ export default function PushPrompt({ supabase, what = 'meeting reminders and new
   }
 
   if (!status || (status === 'on' && !msg) || closed) return null;
-  if (floating && status === 'unsupported') return null;
+  if (floating && !['off', 'needs-home-screen', 'on'].includes(status)) return null;
   return (
     <div className={`push-prompt${floating ? ' floating' : ''}`} role="status">
-      <span className="pp-bell" aria-hidden="true">🔔</span>
+      <span className="pp-bell" aria-hidden="true"><Icon name="bell" size={20} className="ii only" /></span>
       <div className="pp-text">
         {status === 'on' ? <b>{msg}</b> : (
           <>
@@ -65,9 +67,9 @@ export default function PushPrompt({ supabase, what = 'meeting reminders and new
         )}
       </div>
       {status === 'off' && (
-        <button type="button" className="btn btn-primary" onClick={turnOn} disabled={busy}>{busy ? 'Turning on…' : 'Turn on notifications'}</button>
+        <button type="button" className="btn btn-primary" onClick={turnOn} disabled={busy}>{busy ? 'Turning on…' : 'Turn on'}</button>
       )}
-      {floating && <button type="button" className="pp-close" aria-label="Close" title="Remind me in a few days" onClick={close}>✕</button>}
+      {floating && <button type="button" className="pp-close" aria-label="Close" title="Ask me again in two weeks" onClick={close}>✕</button>}
     </div>
   );
 }

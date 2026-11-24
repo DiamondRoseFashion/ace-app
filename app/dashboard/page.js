@@ -15,6 +15,7 @@ import { useTeam, teamName } from '@/lib/team';
 import { fmtDate } from '@/lib/dates';
 import { startRedirect } from '@/lib/startPage';
 import { saveView, loadView, clearView, KEEP_URL } from '@/lib/dashboardView';
+import Icon from '@/components/Icon';
 import {
   REGISTER_COLUMNS, EMPTY, RATING_HIGH, RATING_LOW, toRegisterRow, cellText, selectOptions, matchesFilter, compareRows, formatDate, formatValue,
 } from '@/lib/projectTable';
@@ -285,7 +286,7 @@ export default function Dashboard() {
         {drafts.length > 0 && (
           <div className="card drafts-card">
             <button type="button" className="drafts-head" aria-expanded={draftsOpen} onClick={() => setDraftsOpen((o) => !o)}>
-              <span className="drafts-title">📝 Drafts <span className="sp-count">{drafts.length}</span></span>
+              <span className="drafts-title"><Icon name="pencil" size={16} className="ii only" /> Drafts <span className="sp-count">{drafts.length}</span></span>
               <span className="drafts-sub">Unfinished projects only you can see</span>
               <span className="drafts-caret" aria-hidden="true">{draftsOpen ? '▴' : '▾'}</span>
             </button>
@@ -350,7 +351,7 @@ export default function Dashboard() {
             <span style={{ flex: 1 }} />
             <button className="btn btn-ghost" onClick={stopSelecting}>Cancel</button>
             <button className="btn btn-danger" disabled={selected.size === 0} onClick={() => askDelete([...selected])}>
-              🗑 Delete selected
+              <Icon name="trash" size={15} className="ii" />Delete selected
             </button>
           </div>
         )}
@@ -484,7 +485,7 @@ export default function Dashboard() {
                           {canDel && !selecting && (
                             <button className="icon-btn danger" aria-label={`Delete ${p.name}`} title="Delete project"
                               onClick={(e) => { e.stopPropagation(); askDelete([p.id]); }}>
-                              🗑
+                              <Icon name="trash" size={15} />
                             </button>
                           )}
                         </td>
@@ -510,7 +511,7 @@ export default function Dashboard() {
               <h2>{confirm.ids.length === 1 ? 'Delete this project?' : `Delete ${confirm.ids.length} projects?`}</h2>
             </div>
             <div className="del-names">
-              {confirm.names.slice(0, 6).map((n) => <div key={n}>📁 {n}</div>)}
+              {confirm.names.slice(0, 6).map((n) => <div key={n}><Icon name="projects" size={14} className="ii" />{n}</div>)}
               {confirm.names.length > 6 && <div>…and {confirm.names.length - 6} more</div>}
             </div>
             <p className="del-warn">
