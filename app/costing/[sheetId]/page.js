@@ -33,10 +33,10 @@ const ITEM_KEYS = ['id', 'type', 'qty', 'make', 'model', 'code', 'description', 
   'offer_price', 'offer_currency', 'exchange_rate', 'customs_freight', 'markup', 'remarks'];
 const NUM_KEYS = ['qty', 'offer_price', 'exchange_rate', 'customs_freight', 'markup'];
 const OPTION_KINDS = ['make', 'model', 'code', 'make_oem', 'oem_code'];
-// column widths (px), in table order: Sl, Type, Qty, Make, Model, Code, Description, Image,
+// column widths (px), in table order: Sl, Type, Qty, Make, Code, Model, Description, Image,
 // Make (OEM), OEM Code, Mfctr's Offer, Unit Price, Customs+Freight, Total Unit Price,
 // Total Price, Mark up, U.P, T.P, Remarks, row buttons
-const COL_WIDTHS = [44, 74, 66, 124, 124, 172, 260, 98, 124, 120, 156, 100, 84, 104, 116, 76, 104, 116, 170, 78];
+const COL_WIDTHS = [44, 74, 66, 124, 172, 124, 260, 98, 124, 120, 156, 100, 84, 104, 116, 76, 104, 116, 170, 78];
 const key = (s) => String(s || '').trim().toLowerCase();
 
 // Supabase hands back at most 1000 rows at a time: fetch every page
@@ -444,8 +444,8 @@ export default function CostingSheetPage() {
                   <th rowSpan={2} className="c-type">Type</th>
                   <th rowSpan={2} className="c-qty">Qty</th>
                   <th rowSpan={2} className="c-dd">Make</th>
-                  <th rowSpan={2} className="c-dd">Model</th>
                   <th rowSpan={2} className="c-dd">Code</th>
+                  <th rowSpan={2} className="c-dd">Model</th>
                   <th rowSpan={2} className="c-desc">Description</th>
                   <th rowSpan={2} className="c-img">Image</th>
                   <th rowSpan={2} className="c-dd">Make (OEM)</th>
@@ -479,7 +479,6 @@ export default function CostingSheetPage() {
                       <td><input className="cs-in" value={it.type} onChange={(e) => setItem(it.id, { type: e.target.value })} aria-label={`Row ${idx + 1} type`} placeholder={last ? 'Type…' : ''} /></td>
                       <td><input className={`cs-in num${badNum(it.qty) ? ' bad' : ''}`} inputMode="decimal" value={it.qty} onChange={(e) => setItem(it.id, { qty: e.target.value })} aria-label={`Row ${idx + 1} quantity`} /></td>
                       <td><CostingCombo value={it.make} options={options.make} onChange={(v) => setItem(it.id, { make: v })} ariaLabel={`Row ${idx + 1} make`} /></td>
-                      <td><CostingCombo value={it.model} options={options.model} onChange={(v) => setItem(it.id, { model: v })} ariaLabel={`Row ${idx + 1} model`} /></td>
                       <td>
                         <CostingCombo
                           value={it.code}
@@ -489,6 +488,7 @@ export default function CostingSheetPage() {
                           ariaLabel={`Row ${idx + 1} code`}
                         />
                       </td>
+                      <td><CostingCombo value={it.model} options={options.model} onChange={(v) => setItem(it.id, { model: v })} ariaLabel={`Row ${idx + 1} model`} /></td>
                       <td className="c-desc">
                         <textarea
                           id={`desc-${it.id}`}
