@@ -7,11 +7,13 @@
 //    type in it and the next Sl No appears.
 //  • Make / Model / Code / Make (OEM) / OEM Code: shared dropdowns with
 //    a search box; new values are shared with everyone on Save.
-//  • Code → its saved Description(s), Mfctr's offer and image fill in
-//    by themselves (all still editable). One code can have several
-//    descriptions: you pick one.
-//  • Image: paste a snip (Ctrl+V) or choose a file; it's remembered for
-//    that Code + Description and appears by itself next time.
+//  • Code → a pop-up (components/ItemPicker): a new code is created
+//    once in the product list (Model, Type, Housing, Diffuser, Image and
+//    choices for Wattage, Lumen, Dimension, CCT, IP); for a saved code
+//    you pick the choices. OK fills Model, Description and Image (all
+//    still editable). A remembered Mfctr's offer for that Code +
+//    Description fills in too.
+//  • Image: also pasteable straight into the row (Ctrl+V).
 //  • Every price and total is worked out by lib/costing.js.
 // Admin, plus people listed in costing_access (has_costing_access in the database).
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -23,6 +25,8 @@ import DateInput from '@/components/DateInput';
 import CostingCombo from '@/components/CostingCombo';
 import { shrinkToLimit } from '@/lib/shrinkImage';
 import Icon from '@/components/Icon';
+import ItemPicker from '@/components/ItemPicker';
+import { findItem } from '@/lib/costingItems';
 import {
   num, calcSheet, money, isBlankItem, emptyItem, emptyDiscount,
 } from '@/lib/costing';
@@ -62,6 +66,7 @@ function cleanItem(it) {
   const o = {};
   for (const k of ITEM_KEYS) o[k] = typeof it[k] === 'string' ? it[k].trim() : (it[k] ?? '');
   for (const k of NUM_KEYS) if (o[k] !== '') o[k] = String(num(o[k]) ?? o[k]);
+  if (it.spec && typeof it.spec === 'object' && Object.values(it.spec).some(Boolean)) o.spec = it.spec; // choices from the item pop-up
   return o;
 }
 
@@ -70,6 +75,7 @@ function loadItem(saved) {
   const it = emptyItem();
   for (const k of ITEM_KEYS) if (k !== 'id' && saved?.[k] !== null && saved?.[k] !== undefined) it[k] = String(saved[k]);
   if (saved?.id) it.id = String(saved.id);
+  if (saved?.spec && typeof saved.spec === 'object') it.spec = saved.spec;
   if (!it.offer_currency) it.offer_currency = 'AED';
   return it;
 }
@@ -98,17 +104,19 @@ export default function CostingSheetPage() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState(null); // { ok, text }
   const [savedAt, setSavedAt] = useState(null);
-  const [descPick, setDescPick] = useState(null); // { id, rect }
+  const [catalog, setCatalog] = useState([]); // product list: one entry per Code
+  const [itemPick, setItemPick] = useState(null); // { id, code } → the item pop-up
   const [uploading, setUploading] = useState(null); // item id
   const [showRates, setShowRates] = useState(false);
   const [excelBusy, setExcelBusy] = useState(false);
 
   // ---------- load ----------
   async function loadLists() {
-    const [opt, prod, rt] = await Promise.all([
+    const [opt, prod, rt, cat] = await Promise.all([
       fetchAll(() => supabase.from('costing_options').select('kind, value').order('value')),
       fetchAll(() => supabase.from('costing_products').select('code, description, offer_price, offer_currency, image_path, updated_at').order('updated_at', { ascending: false })),
       supabase.from('currency_rates').select('code, rate').order('code'),
+      fetchAll(() => supabase.from('costing_items').select('*').order('code')),
     ]);
     const o = {};
     for (const k of OPTION_KINDS) o[k] = [];
@@ -116,6 +124,7 @@ export default function CostingSheetPage() {
     setOptions(o);
     setProducts(prod.data || []);
     setRates(rt.data || []);
+    setCatalog(cat.data || []);
   }
 
   useEffect(() => {
@@ -199,6 +208,7 @@ export default function CostingSheetPage() {
   }, [products]);
   const productsFor = (code) => byCode.get(key(code)) || [];
   const findProduct = (code, desc) => productsFor(code).find((p) => key(p.description) === key(desc));
+  const codeOptions = useMemo(() => [...(options.code || []), ...catalog.map((c) => c.code)], [options.code, catalog]);
   const rateOf = (cur) => rates.find((r) => r.code === cur)?.rate;
   const currencies = useMemo(() => {
     const list = rates.map((r) => r.code);
@@ -229,21 +239,25 @@ export default function CostingSheetPage() {
     change(items.map((it) => (it.id === id ? { ...it, ...patch } : it)));
   }
 
-  function onCode(it, code, rect) {
-    const list = productsFor(code);
-    let patch = { code };
-    if (!code) { setItem(it.id, patch); return; }
-    const same = it.description && findProduct(code, it.description);
-    if (same) patch = { ...patch, ...fromProduct(same) };
-    else if (list.length === 1) patch = { ...patch, description: list[0].description, ...fromProduct(list[0]) };
-    else if (list.length > 1) setDescPick({ id: it.id, rect });
-    if (!same && list.length !== 1 && key(code) !== key(it.code)) patch.image_path = ''; // the old code's image doesn't belong to the new one
-    setItem(it.id, patch);
+  // picked or typed a Code → the item pop-up (create it, or pick its choices)
+  function onCode(it, code) {
+    setItem(it.id, { code });
+    if (code) setItemPick({ id: it.id, code });
   }
 
-  function pickDescription(id, p) {
-    setDescPick(null);
-    setItem(id, { description: p.description, ...fromProduct(p) });
+  // OK in the pop-up: Model, Description and Image from the product list
+  function applyItem(rowId, saved, pick, description) {
+    setCatalog((list) => [...list.filter((x) => x.id !== saved.id), saved].sort((x, y) => x.code.localeCompare(y.code)));
+    setItems((list) => withBlank(list.map((x) => {
+      if (x.id !== rowId) return x;
+      const next = { ...x, code: saved.code, model: saved.model || x.model, description, image_path: saved.image_path || '', spec: pick };
+      const p = findProduct(saved.code, description); // a remembered Mfctr's offer for this code + description
+      if (p && String(x.offer_price).trim() === '') Object.assign(next, fromProduct(p, { image: false }));
+      return next;
+    })));
+    setDirty(true);
+    setMsg(null);
+    setItemPick(null);
   }
 
   // typed a description by hand: bring in its remembered image / price if
@@ -470,7 +484,6 @@ export default function CostingSheetPage() {
                 {items.map((it, idx) => {
                   const c = calc.rows[idx];
                   const last = idx === items.length - 1;
-                  const descs = productsFor(it.code);
                   const canImage = it.code.trim() && it.description.trim();
                   const url = it.image_path && urls[it.image_path];
                   return (
@@ -482,9 +495,9 @@ export default function CostingSheetPage() {
                       <td>
                         <CostingCombo
                           value={it.code}
-                          options={options.code}
+                          options={codeOptions}
                           wide
-                          onChange={(v) => onCode(it, v, document.getElementById(`desc-${it.id}`)?.getBoundingClientRect())}
+                          onChange={(v) => onCode(it, v)}
                           ariaLabel={`Row ${idx + 1} code`}
                         />
                       </td>
@@ -493,19 +506,15 @@ export default function CostingSheetPage() {
                         <textarea
                           id={`desc-${it.id}`}
                           className="cs-in cs-desc"
-                          rows={2}
+                          rows={3}
                           value={it.description}
                           onChange={(e) => setItem(it.id, { description: e.target.value })}
                           onBlur={() => onDescriptionBlur(it)}
                           aria-label={`Row ${idx + 1} description`}
                         />
-                        {descs.length > 1 && (
-                          <button
-                            type="button"
-                            className="cs-desc-pick"
-                            onClick={(e) => setDescPick({ id: it.id, rect: e.currentTarget.closest('td').getBoundingClientRect() })}
-                          >
-                            ▾ {descs.length} saved descriptions
+                        {it.code.trim() && (
+                          <button type="button" className="cs-desc-pick" onClick={() => setItemPick({ id: it.id, code: it.code.trim() })}>
+                            {findItem(catalog, it.code) ? '▾ Choose options' : '＋ Create item'}
                           </button>
                         )}
                       </td>
@@ -611,16 +620,26 @@ export default function CostingSheetPage() {
           </div>
           <div className="hint" style={{ marginTop: 10 }}>
             Prices are in AED and rounded to fils at each step. A new row appears as soon as you type in the last one.
-            Dropdown values, descriptions, offers and images are shared with everyone when you press Save.
+            Picking a Code opens its item: choose the options and press OK to fill Model, Description and Image.
+            Dropdown values and offers are shared with everyone when you press Save.
           </div>
         </div>
       </div>
 
-      {descPick && (() => {
-        const it = items.find((x) => x.id === descPick.id);
-        const list = it ? productsFor(it.code) : [];
-        if (!it || list.length < 2) return null;
-        return <DescriptionPicker rect={descPick.rect} list={list} current={it.description} onPick={(p) => pickDescription(it.id, p)} onClose={() => setDescPick(null)} />;
+      {itemPick && (() => {
+        const it = items.find((x) => x.id === itemPick.id);
+        if (!it) return null;
+        return (
+          <ItemPicker
+            key={`${itemPick.id}-${itemPick.code}`}
+            supabase={supabase}
+            code={itemPick.code}
+            item={findItem(catalog, itemPick.code)}
+            initialPick={it.spec}
+            onCancel={() => setItemPick(null)}
+            onDone={(saved, pick, description) => applyItem(it.id, saved, pick, description)}
+          />
+        );
       })()}
 
       {showRates && (
@@ -671,33 +690,6 @@ function ImageDrop({ busy, onFile }) {
     >
       {busy ? <span>Uploading…</span> : <><span>Click, then</span><b>Ctrl+V</b></>}
       <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) onFile(f); }} />
-    </div>
-  );
-}
-
-function DescriptionPicker({ rect, list, current, onPick, onClose }) {
-  const ref = useRef(null);
-  useEffect(() => {
-    const onDoc = (e) => { if (!ref.current?.contains(e.target)) onClose(); };
-    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('mousedown', onDoc);
-    document.addEventListener('keydown', onKey);
-    return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey); };
-  }, [onClose]);
-  const width = 380;
-  const left = Math.max(8, Math.min((rect?.left || 100), window.innerWidth - width - 8));
-  const top = Math.min((rect?.bottom || 200) + 4, window.innerHeight - 260);
-  return (
-    <div ref={ref} className="cc-panel cs-dpanel" style={{ left, top, width }} role="dialog" aria-label="Pick a description">
-      <div className="cs-dhead">This code has {list.length} saved descriptions. Pick one (you can still edit it):</div>
-      <ul className="cc-list">
-        {list.map((p) => (
-          <li key={p.description} className={`cc-opt${key(p.description) === key(current) ? ' cur' : ''}`} onMouseDown={(e) => { e.preventDefault(); onPick(p); }}>
-            {p.description}
-            {p.offer_price !== null && p.offer_price !== undefined && <small> · {p.offer_currency || 'AED'} {p.offer_price}</small>}
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }

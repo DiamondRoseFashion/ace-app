@@ -274,6 +274,14 @@ html[data-theme="dark"] .qt-table td.lbl{color:hsl(219 55% 83%)}
 html[data-theme="dark"] .sig-title{color:hsl(219 55% 83%)}
 html[data-theme="dark"] .sig-box{border:1.5px dashed hsl(270 20% 29%); background:hsl(222 30% 13%)}
 html[data-theme="dark"] .qt-sig img{background:hsl(222 30% 13%)}
+html[data-theme="dark"] .ip-code strong{color:hsl(284 49% 75%)}
+html[data-theme="dark"] .ip-note{background:hsl(274 20% 15%)}
+html[data-theme="dark"] .ip-field > span{color:hsl(219 55% 83%)}
+html[data-theme="dark"] .ip-fixed{background:hsl(276 20% 16%)}
+html[data-theme="dark"] .ip-chip{background:hsl(222 30% 13%)}
+html[data-theme="dark"] .ip-img{background:hsl(222 30% 13%)}
+html[data-theme="dark"] .ip-preview{background:hsl(43 20% 17%); border:1px solid hsl(45 20% 28%)}
+html[data-theme="dark"] .ip-preview > span{color:hsl(42 55% 75%)}
 
 html[data-theme="dark"] .cal-day.out{background:hsl(222 32% 9%)}
 html[data-theme="dark"] .cal-day.out .cal-num{color:hsl(222 12% 45%)}
